@@ -1,0 +1,65 @@
+.reports-page {
+  width: 100%;
+}
+
+.reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.reports-title {
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.reports-filter {
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4,1fr);
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.metric-card {
+  background: white;
+  border: 1px solid #eef2f7;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.metric-title {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.report-table {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #eef2f7;
+  overflow: hidden;
+}
+
+.report-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  padding: 14px 20px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.report-row.header {
+  font-weight: 600;
+  background: #fafafa;
+}

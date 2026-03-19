@@ -1,0 +1,56 @@
+.users-header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:25px;
+}
+
+.users-title{
+font-size:26px;
+font-weight:600;
+}
+
+.users-button{
+background:#E6007E;
+color:white;
+border:none;
+padding:10px 16px;
+border-radius:10px;
+cursor:pointer;
+}
+
+.users-table{
+width:100%;
+background:white;
+border-radius:14px;
+border:1px solid #eef2f7;
+overflow:hidden;
+}
+
+.users-row{
+display:grid;
+grid-template-columns:2fr 3fr 2fr 1fr 1fr;
+padding:14px 20px;
+border-bottom:1px solid #f1f5f9;
+}
+
+.users-row.header{
+font-weight:600;
+background:#fafafa;
+}
+
+.user-status{
+font-size:12px;
+padding:4px 8px;
+border-radius:8px;
+}
+
+.status-active{
+background:#ecfdf5;
+color:#059669;
+}
+
+.status-off{
+background:#fef2f2;
+color:#dc2626;
+}

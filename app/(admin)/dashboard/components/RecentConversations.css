@@ -1,0 +1,31 @@
+.conversation-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.conversation-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.conversation-item strong {
+  font-size: 14px;
+  color: #111;
+}
+
+.conversation-item p {
+  font-size: 13px;
+  color: #666;
+  margin-top: 2px;
+}
+
+.conversation-item span {
+  font-size: 12px;
+  color: #999;
+}

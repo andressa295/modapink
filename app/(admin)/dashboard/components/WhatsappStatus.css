@@ -1,0 +1,27 @@
+.whatsapp-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.status-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.status-indicator.online {
+  background: #22c55e;
+}
+
+.whatsapp-number {
+  margin-top: 10px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.dashboard-card small {
+  color: #777;
+  font-size: 12px;
+}

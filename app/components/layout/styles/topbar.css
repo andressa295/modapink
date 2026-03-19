@@ -1,0 +1,49 @@
+.topbar {
+  width: 100%;
+  background: #ffffff;
+  border-bottom: 1px solid #eef2f7;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 16px 28px;
+}
+
+.topbar-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.topbar-date {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.topbar-clock {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+
+  background: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 10px;
+}
+
+.topbar-user {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+}
