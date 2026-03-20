@@ -1,0 +1,4 @@
+2026/03/19-20:57:55.236 2854 Creating DB C:\Users\alian\sistemamodapink\whatsapp-server\.wwebjs_auth\session\Default\Session Storage since it was missing.
+2026/03/19-20:57:56.554 2854 Reusing MANIFEST C:\Users\alian\sistemamodapink\whatsapp-server\.wwebjs_auth\session\Default\Session Storage/MANIFEST-000001
+2026/03/19-20:57:56.650 2854 Recovering log #3
+2026/03/19-20:57:56.813 2854 Reusing old log C:\Users\alian\sistemamodapink\whatsapp-server\.wwebjs_auth\session\Default\Session Storage/000003.log 

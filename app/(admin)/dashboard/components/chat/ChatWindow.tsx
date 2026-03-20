@@ -1,59 +1,120 @@
+"use client"
+
+import { useState } from "react"
+import MessageBubble from "./MessageBubble"
+import ChatInfo from "./ChatInfo"
+import { extractOrderNumber } from "@/utils/extractOrder"
+import { fetchOrder } from "@/services/fetchOrder"
 import "../../styles/chat.css"
 
 export default function ChatWindow() {
 
-  return (
+  const [messages, setMessages] = useState([
+    { id: 1, text: "Meu pedido não chegou, é o 4821", type: "client" },
+  ])
 
+  const [input, setInput] = useState("")
+
+  const [clientData, setClientData] = useState<any>(null)
+
+  async function handleIncomingMessage(text: string) {
+    const orderId = extractOrderNumber(text)
+
+    if (!orderId) return
+
+    const order = await fetchOrder(orderId)
+
+    if (!order) return
+
+    setClientData({
+      name: order.customerName,
+      phone: order.phone,
+      order: `#${order.id}`,
+      status: order.status,
+      shipping: order.shipping,
+    })
+  }
+
+  async function sendMessage() {
+    if (!input.trim()) return
+
+    const newMsg = {
+      id: Date.now(),
+      text: input,
+      type: "agent"
+    }
+
+    setMessages(prev => [...prev, newMsg])
+    setInput("")
+  }
+
+  // 🔥 simula recebimento de mensagem do cliente
+  async function receiveClientMessage(text: string) {
+    const newMsg = {
+      id: Date.now(),
+      text,
+      type: "client"
+    }
+
+    setMessages(prev => [...prev, newMsg])
+
+    await handleIncomingMessage(text)
+  }
+
+  return (
     <div className="chat-window">
 
+      {/* HEADER */}
       <div className="chat-header">
-
-        <div className="chat-header-info">
-
+        <div>
           <div className="chat-client-name">
-            Juliana
+            {clientData?.name || "Cliente"}
           </div>
 
           <div className="chat-client-phone">
-            (11) 99999-8888
+            {clientData?.phone || ""}
           </div>
-
         </div>
 
-        <div className="chat-status">
-          🟢 Conversa ativa
-        </div>
-
+        <div className="chat-status">🟢 Online</div>
       </div>
 
-
+      {/* MENSAGENS */}
       <div className="chat-messages">
 
-        <div className="message-row">
-          <div>
-            <div className="message-bubble client">
-              Meu pedido não chegou
-            </div>
-            <div className="message-time">10:32</div>
-          </div>
-        </div>
-
-        <div className="message-row agent">
-          <div>
-            <div className="message-bubble agent">
-              Oi Juliana! Vou verificar para você.
-            </div>
-            <div className="message-time">10:33</div>
-          </div>
-        </div>
+        {messages.map(msg => (
+          <MessageBubble key={msg.id} {...msg} />
+        ))}
 
       </div>
 
-      <div className="chat-monitor">
-        Monitorando conversa — respostas feitas no WhatsApp do atendente
+      {/* INPUT */}
+      <div className="chat-input">
+
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Digite uma mensagem..."
+        />
+
+        <button onClick={sendMessage}>
+          Enviar
+        </button>
+
+        {/* 🔥 botão de teste */}
+        <button
+          onClick={() =>
+            receiveClientMessage("Meu pedido é #4821")
+          }
+        >
+          Simular cliente
+        </button>
+
       </div>
+
+      {/* INFO LATERAL */}
+      <ChatInfo client={clientData} />
 
     </div>
-
   )
 }

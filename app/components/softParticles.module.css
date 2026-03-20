@@ -1,0 +1,36 @@
+/* /components/softParticles.module.css */
+
+.bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: #000;
+  overflow: hidden;
+}
+
+/* bolinhas */
+.particles {
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  background-image:
+    radial-gradient(#ff1493 1px, transparent 1px),
+    radial-gradient(#ff4dc4 1px, transparent 1px);
+
+  background-size: 60px 60px;
+  background-position: 0 0, 30px 30px;
+
+  opacity: 0.25;
+
+  animation: moveParticles 25s linear infinite;
+}
+
+/* movimento suave */
+@keyframes moveParticles {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-60px);
+  }
+}

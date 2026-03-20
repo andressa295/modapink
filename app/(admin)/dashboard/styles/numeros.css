@@ -1,12 +1,20 @@
+/* ===================== */
+/* BASE */
+/* ===================== */
+
 .numbers-page {
   width: 100%;
 }
+
+/* ===================== */
+/* HEADER */
+/* ===================== */
 
 .numbers-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .numbers-title {
@@ -15,33 +23,58 @@
   color: #111827;
 }
 
+/* ===================== */
+/* BOTÃO */
+/* ===================== */
+
 .connect-button {
   background: #E6007E;
   color: white;
   border: none;
-  padding: 10px 16px;
-  border-radius: 10px;
+  padding: 11px 18px;
+  border-radius: 12px;
   font-size: 14px;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .connect-button:hover {
   background: #c4006a;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(230, 0, 126, 0.25);
 }
+
+/* ===================== */
+/* GRID */
+/* ===================== */
 
 .numbers-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
+  gap: 20px;
 }
 
-.number-card {
-  background: white;
+/* ===================== */
+/* CARD */
+/* ===================== */
+
+.numbers-page .number-card {
+  background: #ffffff;
   border: 1px solid #eef2f7;
   padding: 20px;
-  border-radius: 14px;
+  border-radius: 16px;
+  transition: all 0.2s ease;
 }
+
+.numbers-page .number-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.06);
+}
+
+/* ===================== */
+/* TEXTOS */
+/* ===================== */
 
 .number-title {
   font-weight: 600;
@@ -52,14 +85,19 @@
 .number-phone {
   font-size: 13px;
   color: #6b7280;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
+
+/* ===================== */
+/* STATUS */
+/* ===================== */
 
 .number-status {
   font-size: 12px;
-  padding: 5px 10px;
+  padding: 6px 10px;
   border-radius: 8px;
   display: inline-block;
+  font-weight: 500;
 }
 
 .status-online {
@@ -72,20 +110,50 @@
   color: #dc2626;
 }
 
+/* ===================== */
+/* USERS */
+/* ===================== */
+
 .number-users {
-  margin-top: 12px;
+  margin-top: 14px;
   font-size: 13px;
   color: #374151;
 }
 
+/* ===================== */
+/* ACTIONS */
+/* ===================== */
+
 .number-actions {
-  margin-top: 16px;
+  margin-top: 18px;
 }
 
 .number-actions button {
   border: 1px solid #e5e7eb;
   background: white;
-  padding: 7px 12px;
-  border-radius: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
   cursor: pointer;
+  transition: 0.2s;
+  font-size: 13px;
+}
+
+.number-actions button:hover {
+  background: #f9fafb;
+}
+
+/* ===================== */
+/* RESPONSIVO */
+/* ===================== */
+
+@media (max-width: 1024px) {
+  .numbers-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .numbers-grid {
+    grid-template-columns: 1fr;
+  }
 }

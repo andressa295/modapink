@@ -1,0 +1,4 @@
+2026/03/19-20:57:51.488 3058 Creating DB C:\Users\alian\sistemamodapink\whatsapp-server\.wwebjs_auth\session\Default\shared_proto_db\metadata since it was missing.
+2026/03/19-20:57:52.974 3058 Reusing MANIFEST C:\Users\alian\sistemamodapink\whatsapp-server\.wwebjs_auth\session\Default\shared_proto_db\metadata/MANIFEST-000001
+2026/03/19-20:57:53.324 3058 Recovering log #3
+2026/03/19-20:57:53.529 3058 Reusing old log C:\Users\alian\sistemamodapink\whatsapp-server\.wwebjs_auth\session\Default\shared_proto_db\metadata/000003.log 

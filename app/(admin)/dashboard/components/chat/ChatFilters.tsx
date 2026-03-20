@@ -3,34 +3,21 @@
 import { useState } from "react"
 import "../../styles/chat.css"
 
-// Tipos
 export type FilterType = "Todos" | "Vendas" | "SAC" | "Financeiro"
 
-interface ChatFiltersProps {
+interface Props {
   onChange?: (filter: FilterType) => void
-
-  // 🔥 pronto pra backend (contadores)
-  counts?: {
-    Todos?: number
-    Vendas?: number
-    SAC?: number
-    Financeiro?: number
-  }
+  counts?: Partial<Record<FilterType, number>>
 }
 
-export default function ChatFilters({ onChange, counts }: ChatFiltersProps) {
+/* 🔥 fora do componente (evita recriação) */
+const FILTERS: FilterType[] = ["Todos", "Vendas", "SAC", "Financeiro"]
 
-  const filters: FilterType[] = [
-    "Todos",
-    "Vendas",
-    "SAC",
-    "Financeiro",
-  ]
-
+export default function ChatFilters({ onChange, counts }: Props) {
   const [active, setActive] = useState<FilterType>("Todos")
 
   function handleClick(filter: FilterType) {
-    if (filter === active) return
+    if (filter === active) return // 🔥 evita re-render inútil
 
     setActive(filter)
     onChange?.(filter)
@@ -38,28 +25,26 @@ export default function ChatFilters({ onChange, counts }: ChatFiltersProps) {
 
   return (
     <div className="chat-filters">
+      {FILTERS.map((filter) => {
+        const count = counts?.[filter]
 
-      {filters.map((filter) => (
+        return (
+          <button
+            key={filter}
+            type="button"
+            onClick={() => handleClick(filter)}
+            className={`chat-filter-item ${active === filter ? "active" : ""}`}
+          >
+            <span>{filter}</span>
 
-        <button
-          key={filter}
-          onClick={() => handleClick(filter)}
-          className={`chat-filter-item ${active === filter ? "active" : ""}`}
-        >
-
-          <span>{filter}</span>
-
-          {/* 🔥 contador (UX MUITO FORTE) */}
-          {counts?.[filter] !== undefined && (
-            <span className="chat-filter-count">
-              {counts[filter]}
-            </span>
-          )}
-
-        </button>
-
-      ))}
-
+            {count !== undefined && (
+              <span className="chat-filter-count">
+                {count}
+              </span>
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }

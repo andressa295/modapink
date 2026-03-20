@@ -1,6 +1,5 @@
 "use client"
 
-import { useState } from "react"
 import "../../styles/chat.css"
 
 type Chat = {
@@ -13,78 +12,40 @@ type Chat = {
   time: string
 }
 
-export default function ChatList() {
+type Props = {
+  chats?: Chat[] // 🔥 agora opcional (evita crash)
+  selected?: number | null
+  onSelect?: (id: number) => void
+}
 
-  const [activeFilter, setActiveFilter] = useState("Todos")
-  const [selectedChat, setSelectedChat] = useState<number | null>(null)
-
-  const chats: Chat[] = [
-    {
-      id: 1,
-      name: "Maria",
-      message: "Tem esse vestido no M?",
-      sector: "Vendas",
-      status: "online",
-      attendant: "Ana",
-      time: "14:32"
-    },
-    {
-      id: 2,
-      name: "Juliana",
-      message: "Meu pedido não chegou",
-      sector: "SAC",
-      status: "pendente",
-      attendant: "Carlos",
-      time: "13:10"
-    },
-    {
-      id: 3,
-      name: "Carla",
-      message: "Quero comprar no atacado",
-      sector: "Financeiro",
-      status: "resolvido",
-      attendant: "Bruna",
-      time: "12:05"
-    }
-  ]
-
-  const filters = ["Todos", "Vendas", "SAC", "Financeiro"]
-
-  const filteredChats =
-    activeFilter === "Todos"
-      ? chats
-      : chats.filter(chat => chat.sector === activeFilter)
+export default function ChatList({
+  chats = [], // 🔥 fallback seguro
+  selected = null,
+  onSelect,
+}: Props) {
 
   return (
     <div className="chat-list">
 
-      {/* FILTROS */}
-      <div className="chat-filters">
-
-        {filters.map(filter => (
-          <button
-            key={filter}
-            className={`chat-filter ${activeFilter === filter ? "active" : ""}`}
-            onClick={() => setActiveFilter(filter)}
-          >
-            {filter}
-          </button>
-        ))}
-
-      </div>
-
-      {/* LISTA */}
       <div className="chat-items">
 
-        {filteredChats.map(chat => (
+        {/* 🔥 estado vazio (UX importante) */}
+        {chats.length === 0 && (
+          <div className="chat-empty">
+            Nenhuma conversa encontrada
+          </div>
+        )}
+
+        {/* 🔥 lista segura */}
+        {chats.map(chat => (
           <div
             key={chat.id}
-            className={`chat-item ${selectedChat === chat.id ? "selected" : ""}`}
-            onClick={() => setSelectedChat(chat.id)}
+            className={`chat-item ${selected === chat.id ? "selected" : ""}`}
+            onClick={() => onSelect?.(chat.id)}
           >
 
+            {/* HEADER */}
             <div className="chat-item-header">
-
               <span className="chat-item-name">
                 {chat.name}
               </span>
@@ -92,13 +53,14 @@ export default function ChatList() {
               <span className="chat-item-time">
                 {chat.time}
               </span>
-
             </div>
 
+            {/* ÚLTIMA MENSAGEM */}
             <div className="chat-item-message">
               {chat.message}
             </div>
 
+            {/* FOOTER */}
             <div className="chat-item-footer">
 
               <span className={`badge ${chat.sector.toLowerCase()}`}>
