@@ -7,14 +7,20 @@ import { extractOrderNumber } from "@/utils/extractOrder"
 import { fetchOrder } from "@/services/fetchOrder"
 import "../../styles/chat.css"
 
+// 🔥 TIPO CORRETO
+type Message = {
+  id: number
+  text: string
+  type: "client" | "agent"
+}
+
 export default function ChatWindow() {
 
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<Message[]>([
     { id: 1, text: "Meu pedido não chegou, é o 4821", type: "client" },
   ])
 
   const [input, setInput] = useState("")
-
   const [clientData, setClientData] = useState<any>(null)
 
   async function handleIncomingMessage(text: string) {
@@ -38,10 +44,10 @@ export default function ChatWindow() {
   async function sendMessage() {
     if (!input.trim()) return
 
-    const newMsg = {
+    const newMsg: Message = {
       id: Date.now(),
       text: input,
-      type: "agent"
+      type: "agent",
     }
 
     setMessages(prev => [...prev, newMsg])
@@ -50,10 +56,10 @@ export default function ChatWindow() {
 
   // 🔥 simula recebimento de mensagem do cliente
   async function receiveClientMessage(text: string) {
-    const newMsg = {
+    const newMsg: Message = {
       id: Date.now(),
       text,
-      type: "client"
+      type: "client",
     }
 
     setMessages(prev => [...prev, newMsg])
@@ -81,11 +87,9 @@ export default function ChatWindow() {
 
       {/* MENSAGENS */}
       <div className="chat-messages">
-
         {messages.map(msg => (
           <MessageBubble key={msg.id} {...msg} />
         ))}
-
       </div>
 
       {/* INPUT */}
