@@ -1,8 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import "./styles/sidebar.css"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase/client"
 
 import {
   LayoutDashboard,
@@ -12,15 +14,53 @@ import {
   Package,
   BarChart3,
   Settings,
-  ChevronLeft
+  ChevronLeft,
+  LogOut
 } from "lucide-react"
 
 export default function Sidebar() {
 
   const [collapsed, setCollapsed] = useState(false)
+  const [userName, setUserName] = useState("Usuário")
 
-  const user = {
-    name: "Rafaela"
+  const router = useRouter()
+
+  // 🔐 BUSCAR USUÁRIO REAL (VERSÃO SEGURA)
+  useEffect(() => {
+    async function loadUser() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+
+        if (!user) {
+          setUserName("Usuário")
+          return
+        }
+
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("name")
+          .eq("id", user.id)
+          .single()
+
+        if (error || !profile) {
+          setUserName("Usuário")
+          return
+        }
+
+        setUserName(profile.name || "Usuário")
+
+      } catch {
+        setUserName("Usuário")
+      }
+    }
+
+    loadUser()
+  }, [])
+
+  // 🚪 LOGOUT
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    router.push("/login")
   }
 
   return (
@@ -96,13 +136,23 @@ export default function Sidebar() {
 
       </nav>
 
-      {/* USUÁRIO */}
+      {/* USUÁRIO + LOGOUT */}
       <div className="sidebar-user">
 
         {!collapsed && (
-          <div className="sidebar-user-name">
-            Logado como <strong>{user.name}</strong>
-          </div>
+          <>
+            <div className="sidebar-user-name">
+              Logado como <strong>{userName}</strong>
+            </div>
+
+            <button
+              className="sidebar-logout"
+              onClick={handleLogout}
+            >
+              <LogOut size={16} />
+              <span>Sair</span>
+            </button>
+          </>
         )}
 
       </div>

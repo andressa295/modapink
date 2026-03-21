@@ -1,13 +1,35 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import "./AutomationsUsage.css"
+import { supabase } from "@/lib/supabase/client"
+
+type Automation = {
+  id: string
+  name: string
+  uses: number
+}
 
 export default function AutomationsUsage() {
 
-  const automations = [
-    { name: "Menu principal", uses: 84 },
-    { name: "Resposta FRETE", uses: 42 },
-    { name: "Resposta PRAZO", uses: 31 },
-    { name: "Encaminhar suporte", uses: 12 }
-  ]
+  const [automations, setAutomations] = useState<Automation[]>([])
+
+  useEffect(() => {
+    async function loadAutomations() {
+
+      const { data } = await supabase
+        .from("automations")
+        .select("id, name, uses")
+        .order("uses", { ascending: false })
+        .limit(5)
+
+      if (!data) return
+
+      setAutomations(data)
+    }
+
+    loadAutomations()
+  }, [])
 
   return (
 
@@ -17,13 +39,24 @@ export default function AutomationsUsage() {
 
       <div className="automation-list">
 
+        {automations.length === 0 && (
+          <p className="empty">
+            Nenhuma automação ainda
+          </p>
+        )}
+
         {automations.map((item, index) => (
 
-          <div key={index} className="automation-item">
+          <div key={item.id} className="automation-item">
 
-            <span>{item.name}</span>
+            <div className="automation-left">
+              <span className="rank">#{index + 1}</span>
+              <span className="name">{item.name}</span>
+            </div>
 
-            <strong>{item.uses}</strong>
+            <strong className="uses">
+              {item.uses}
+            </strong>
 
           </div>
 
@@ -34,5 +67,4 @@ export default function AutomationsUsage() {
     </div>
 
   )
-
 }
