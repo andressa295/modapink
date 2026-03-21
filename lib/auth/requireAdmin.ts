@@ -1,11 +1,10 @@
-// /lib/auth/requireAdmin.ts
-
 import { redirect } from "next/navigation"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
 
 export async function requireAdmin() {
-  const supabase = createSupabaseServerClient()
+  const supabase = await createClient()
 
+  // 🔐 pega usuário
   const {
     data: { user },
     error,
@@ -13,19 +12,20 @@ export async function requireAdmin() {
 
   console.log("USER SERVER:", user)
 
-  if (!user) {
+  if (error || !user) {
     redirect("/login")
   }
 
-  const { data: profile } = await supabase
+  // 🔐 busca perfil
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single()
 
-  if (profile?.role !== "admin") {
+  if (profileError || profile?.role !== "admin") {
     redirect("/login")
   }
 
-  return user
+  return { user, profile }
 }
