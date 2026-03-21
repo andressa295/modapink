@@ -217,3 +217,9 @@ using (
     and role = 'admin'
   )
 );
+create table stores (
+  id uuid primary key default uuid_generate_v4(),
+  store_id text,
+  access_token text,
+  created_at timestamp default now()
+);
