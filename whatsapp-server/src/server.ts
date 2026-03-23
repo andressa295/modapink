@@ -25,10 +25,25 @@ client.on("qr", async (qr) => {
 // =======================
 // ✅ CONECTADO
 // =======================
-client.on("ready", () => {
+client.on("ready", async () => {
   console.log("✅ WhatsApp conectado")
+
   isReady = true
   qrCodeBase64 = null
+
+  try {
+    await fetch("http://localhost:3000/api/whatsapp/session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        phone: client.info?.wid?.user || "desconhecido"
+      })
+    })
+  } catch (err) {
+    console.error("Erro ao salvar sessão:", err)
+  }
 })
 
 // =======================
@@ -53,14 +68,26 @@ app.get("/qr", (req, res) => {
 })
 
 // =======================
-// ❤️ HEALTHCHECK
+// 📡 ROTA SESSION (STATUS)
+// =======================
+app.get("/session", (req, res) => {
+  res.json([
+    {
+      phone: isReady ? client.info?.wid?.user : null,
+      status: isReady ? "online" : "offline"
+    }
+  ])
+})
+
+// =======================
+// ❤️ HEALTH
 // =======================
 app.get("/", (req, res) => {
   res.send("API WhatsApp rodando 🚀")
 })
 
 // =======================
-// 🌍 LISTEN PRODUÇÃO
+// 🌍 LISTEN
 // =======================
 app.listen(3001, "0.0.0.0", () => {
   console.log("🚀 Servidor rodando em http://0.0.0.0:3001")

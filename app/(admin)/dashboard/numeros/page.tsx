@@ -31,7 +31,7 @@ export default function Numeros() {
   // =======================
   async function loadSessions() {
     try {
-      const res = await fetch("/api/whatsapp/session")
+      const res = await fetch(`${API_URL}/session`)
       const data = await res.json()
 
       setNumbers(
@@ -128,7 +128,6 @@ export default function Numeros() {
   return (
     <div className="numbers-page">
 
-      {/* HEADER */}
       <div className="numbers-header">
         <div className="numbers-title">
           Números de WhatsApp
@@ -142,7 +141,6 @@ export default function Numeros() {
         </button>
       </div>
 
-      {/* GRID */}
       <div className="numbers-grid">
         {numbers.length === 0 && (
           <p style={{ opacity: 0.6 }}>
@@ -184,7 +182,6 @@ export default function Numeros() {
         ))}
       </div>
 
-      {/* MODAL */}
       {showQR && (
         <div className="qr-modal">
           <div className="qr-box">
@@ -194,14 +191,12 @@ export default function Numeros() {
               <button onClick={() => setShowQR(false)}>✕</button>
             </div>
 
-            {/* INICIALIZANDO */}
             {initializing && step === "qr" && (
               <p className="qr-loading">
                 Conectando ao WhatsApp...
               </p>
             )}
 
-            {/* QR */}
             {step === "qr" && !initializing && (
               <>
                 <p className="qr-sub">
@@ -220,7 +215,6 @@ export default function Numeros() {
               </>
             )}
 
-            {/* CONECTADO */}
             {step === "naming" && (
               <p className="qr-sub success">
                 WhatsApp conectado 🎉

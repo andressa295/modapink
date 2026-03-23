@@ -6,9 +6,12 @@ export default function WhatsAppConfig() {
   const [qr, setQr] = useState<string | null>(null)
   const [connected, setConnected] = useState(false)
 
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+
   async function loadQR() {
     try {
-      const res = await fetch("http://localhost:3001/qr")
+      const res = await fetch(`${API_URL}/qr`)
       const data = await res.json()
 
       setQr(data.qr)
@@ -27,7 +30,6 @@ export default function WhatsAppConfig() {
 
   return (
     <div style={{ padding: 40 }}>
-
       <h1 style={{ fontSize: 22, fontWeight: 600 }}>
         Conectar WhatsApp
       </h1>
@@ -38,9 +40,8 @@ export default function WhatsAppConfig() {
         </p>
       ) : (
         <div style={{ marginTop: 20 }}>
-
           <p style={{ marginBottom: 10 }}>
-            Escaneie o QR Code com seu WhatsApp
+            Escaneie o QR Code
           </p>
 
           {qr ? (
@@ -48,10 +49,8 @@ export default function WhatsAppConfig() {
           ) : (
             <p>Gerando QR Code...</p>
           )}
-
         </div>
       )}
-
     </div>
   )
 }
