@@ -19,40 +19,47 @@ export default function Numeros() {
   const [initializing, setInitializing] = useState(true)
 
   const [step, setStep] = useState<"qr" | "naming">("qr")
-  const [channelName, setChannelName] = useState("")
-  const [saving, setSaving] = useState(false)
 
-  // MOCK inicial
+  // =======================
+  // 🔥 CONFIG API
+  // =======================
+  const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+
+  // =======================
+  // 📡 CARREGAR SESSÕES
+  // =======================
+  async function loadSessions() {
+    try {
+      const res = await fetch("/api/whatsapp/session")
+      const data = await res.json()
+
+      setNumbers(
+        data.map((s: any) => ({
+          setor: "WhatsApp",
+          phone: s.phone || "—",
+          status: s.status === "online" ? "online" : "offline",
+          users: []
+        }))
+      )
+    } catch (err) {
+      console.error("Erro ao carregar sessões:", err)
+    }
+  }
+
   useEffect(() => {
-    setNumbers([
-      {
-        setor: "Vendas",
-        phone: "(11) 9999-0000",
-        status: "offline",
-        users: ["Rafaela", "Bruna"]
-      },
-      {
-        setor: "SAC",
-        phone: "(11) 9999-1111",
-        status: "offline",
-        users: ["Rodrigo"]
-      },
-      {
-        setor: "Logística",
-        phone: "(11) 9999-2222",
-        status: "offline",
-        users: []
-      }
-    ])
+    loadSessions()
   }, [])
 
-  // 🔥 FETCH ROBUSTO
+  // =======================
+  // 📲 BUSCAR QR
+  // =======================
   async function loadQR() {
     try {
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 4000)
 
-      const res = await fetch("http://localhost:3001/qr", {
+      const res = await fetch(`${API_URL}/qr`, {
         signal: controller.signal
       })
 
@@ -71,12 +78,13 @@ export default function Numeros() {
       }
 
     } catch (err) {
-      // 🔥 NÃO quebrar UI
       console.log("Aguardando backend...")
     }
   }
 
-  // 🔁 polling INTELIGENTE
+  // =======================
+  // 🔁 POLLING QR
+  // =======================
   useEffect(() => {
     if (!showQR) return
 
@@ -91,41 +99,30 @@ export default function Numeros() {
     return () => clearInterval(interval)
   }, [showQR, connected])
 
-  // abrir modal
+  // =======================
+  // 🔄 ATUALIZA APÓS CONECTAR
+  // =======================
+  useEffect(() => {
+    if (!connected) return
+
+    const timeout = setTimeout(() => {
+      loadSessions()
+      setShowQR(false)
+      setStep("qr")
+    }, 2000)
+
+    return () => clearTimeout(timeout)
+  }, [connected])
+
+  // =======================
+  // ABRIR MODAL
+  // =======================
   function handleOpenModal() {
     setShowQR(true)
     setStep("qr")
     setQr(null)
     setConnected(false)
-    setChannelName("")
     setInitializing(true)
-  }
-
-  // salvar canal
-  async function handleSaveChannel() {
-    if (!channelName.trim()) return
-
-    try {
-      setSaving(true)
-
-      const newNumber: NumberType = {
-        setor: channelName,
-        phone: "Conectado agora",
-        status: "online",
-        users: []
-      }
-
-      setNumbers((prev) => [...prev, newNumber])
-
-      setShowQR(false)
-      setChannelName("")
-      setStep("qr")
-
-    } catch (err) {
-      console.error("Erro ao salvar canal", err)
-    } finally {
-      setSaving(false)
-    }
   }
 
   return (
@@ -147,6 +144,12 @@ export default function Numeros() {
 
       {/* GRID */}
       <div className="numbers-grid">
+        {numbers.length === 0 && (
+          <p style={{ opacity: 0.6 }}>
+            Nenhum número conectado
+          </p>
+        )}
+
         {numbers.map((n, index) => (
           <div key={index} className="number-card">
 
@@ -191,7 +194,7 @@ export default function Numeros() {
               <button onClick={() => setShowQR(false)}>✕</button>
             </div>
 
-            {/* 🔥 ESTADO: INICIALIZANDO */}
+            {/* INICIALIZANDO */}
             {initializing && step === "qr" && (
               <p className="qr-loading">
                 Conectando ao WhatsApp...
@@ -217,29 +220,11 @@ export default function Numeros() {
               </>
             )}
 
-            {/* NOME */}
+            {/* CONECTADO */}
             {step === "naming" && (
-              <>
-                <p className="qr-sub success">
-                  WhatsApp conectado 🎉
-                </p>
-
-                <input
-                  type="text"
-                  placeholder="Nome do canal"
-                  value={channelName}
-                  onChange={(e) => setChannelName(e.target.value)}
-                  className="qr-input"
-                />
-
-                <button
-                  className="qr-save"
-                  onClick={handleSaveChannel}
-                  disabled={!channelName || saving}
-                >
-                  {saving ? "Salvando..." : "Salvar canal"}
-                </button>
-              </>
+              <p className="qr-sub success">
+                WhatsApp conectado 🎉
+              </p>
             )}
 
           </div>

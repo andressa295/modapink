@@ -223,3 +223,4 @@ create table stores (
   access_token text,
   created_at timestamp default now()
 );
+alter table stores add column shop text;
