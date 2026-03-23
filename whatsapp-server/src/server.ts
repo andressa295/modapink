@@ -5,32 +5,63 @@ import { handleMessage } from "./bot/handler"
 import qrcode from "qrcode"
 
 const app = express()
+
 app.use(cors())
 app.use(express.json())
 
 let qrCodeBase64: string | null = null
+let isReady = false
+let isInitializing = true
 
-// QR
+// =======================
+// 📲 QR
+// =======================
 client.on("qr", async (qr) => {
   console.log("📲 QR gerado")
   qrCodeBase64 = await qrcode.toDataURL(qr)
+  isInitializing = false
 })
 
-// conectado
+// =======================
+// ✅ CONECTADO
+// =======================
 client.on("ready", () => {
   console.log("✅ WhatsApp conectado")
+  isReady = true
+  qrCodeBase64 = null
 })
 
-// mensagens
+// =======================
+// 💬 MENSAGENS
+// =======================
 client.on("message", handleMessage)
 
+// =======================
+// 🚀 START
+// =======================
 client.initialize()
 
-// rota QR
+// =======================
+// 📡 ROTA QR
+// =======================
 app.get("/qr", (req, res) => {
-  res.json({ qr: qrCodeBase64 })
+  res.json({
+    qr: qrCodeBase64,
+    connected: isReady,
+    initializing: isInitializing
+  })
 })
 
-app.listen(3001, () => {
-  console.log("🚀 Servidor rodando em http://localhost:3001")
+// =======================
+// ❤️ HEALTHCHECK
+// =======================
+app.get("/", (req, res) => {
+  res.send("API WhatsApp rodando 🚀")
+})
+
+// =======================
+// 🌍 LISTEN PRODUÇÃO
+// =======================
+app.listen(3001, "0.0.0.0", () => {
+  console.log("🚀 Servidor rodando em http://0.0.0.0:3001")
 })
