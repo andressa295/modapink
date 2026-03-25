@@ -23,7 +23,7 @@ export default function Numeros() {
   // =======================
   // 🔥 API (PRODUÇÃO)
   // =======================
-  const API_URL = "/api/whatsapp"
+  const API_URL = "/bot"
 
   // =======================
   // 📡 CARREGAR SESSÕES
