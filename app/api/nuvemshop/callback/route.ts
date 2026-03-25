@@ -18,7 +18,7 @@ export async function GET(req: Request) {
       )
     }
 
-    // 🔥 1. TROCA CODE POR TOKEN (FORMATO CORRETO)
+    // 🔥 1. TROCA CODE POR ACCESS TOKEN
     const body = new URLSearchParams({
       client_id: process.env.NUVEMSHOP_CLIENT_ID!,
       client_secret: process.env.NUVEMSHOP_CLIENT_SECRET!,
@@ -45,7 +45,10 @@ export async function GET(req: Request) {
       console.error("Erro ao obter token:", tokenData)
 
       return new Response(
-        JSON.stringify({ error: "Erro ao obter token", details: tokenData }),
+        JSON.stringify({
+          error: "Erro ao obter token",
+          details: tokenData,
+        }),
         { status: 400 }
       )
     }
@@ -53,7 +56,7 @@ export async function GET(req: Request) {
     const accessToken = tokenData.access_token
     const userId = tokenData.user_id
 
-    // 🔥 2. BUSCA DADOS DA LOJA (FORMA CORRETA)
+    // 🔥 2. BUSCA DADOS DA LOJA
     const storeRes = await fetch(
       `https://api.nuvemshop.com.br/v1/${userId}/store`,
       {
@@ -66,21 +69,30 @@ export async function GET(req: Request) {
 
     const storeData = await storeRes.json()
 
+    console.log("STORE RESPONSE:", storeData)
+
     if (!storeRes.ok) {
       console.error("Erro ao buscar loja:", storeData)
 
       return new Response(
-        JSON.stringify({ error: "Erro ao buscar dados da loja", details: storeData }),
+        JSON.stringify({
+          error: "Erro ao buscar dados da loja",
+          details: storeData,
+        }),
         { status: 400 }
       )
     }
 
-    const shop = storeData.domain
+    // 🔥 CORREÇÃO AQUI
+    const shop = storeData.permanent_domain
     const storeId = storeData.id
 
     if (!shop) {
       return new Response(
-        JSON.stringify({ error: "Domínio da loja não encontrado" }),
+        JSON.stringify({
+          error: "Domínio da loja não encontrado",
+          details: storeData,
+        }),
         { status: 400 }
       )
     }
@@ -102,6 +114,8 @@ export async function GET(req: Request) {
         { status: 500 }
       )
     }
+
+    console.log("✅ Loja conectada:", shop)
 
     // 🔥 4. REDIRECT FINAL
     return Response.redirect(
