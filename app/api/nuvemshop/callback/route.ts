@@ -18,39 +18,44 @@ export async function GET(req: Request) {
       )
     }
 
-    // 🔥 1. TROCA CODE POR ACCESS TOKEN (CORRETO)
+    // 🔥 1. TROCA CODE POR TOKEN (FORMATO CORRETO)
+    const body = new URLSearchParams({
+      client_id: process.env.NUVEMSHOP_CLIENT_ID!,
+      client_secret: process.env.NUVEMSHOP_CLIENT_SECRET!,
+      grant_type: "authorization_code",
+      code,
+    })
+
     const tokenRes = await fetch(
       "https://www.nuvemshop.com.br/apps/authorize/token",
       {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify({
-          client_id: process.env.NUVEMSHOP_CLIENT_ID,
-          client_secret: process.env.NUVEMSHOP_CLIENT_SECRET,
-          grant_type: "authorization_code",
-          code,
-        }),
+        body: body.toString(),
       }
     )
 
     const tokenData = await tokenRes.json()
 
+    console.log("TOKEN RESPONSE:", tokenData)
+
     if (!tokenRes.ok || !tokenData.access_token) {
       console.error("Erro ao obter token:", tokenData)
 
       return new Response(
-        JSON.stringify({ error: "Erro ao obter token" }),
+        JSON.stringify({ error: "Erro ao obter token", details: tokenData }),
         { status: 400 }
       )
     }
 
     const accessToken = tokenData.access_token
+    const userId = tokenData.user_id
 
-    // 🔥 2. BUSCA DADOS DA LOJA (OFICIAL)
+    // 🔥 2. BUSCA DADOS DA LOJA (FORMA CORRETA)
     const storeRes = await fetch(
-      "https://api.nuvemshop.com.br/v1/store",
+      `https://api.nuvemshop.com.br/v1/${userId}/store`,
       {
         headers: {
           Authentication: `bearer ${accessToken}`,
@@ -65,7 +70,7 @@ export async function GET(req: Request) {
       console.error("Erro ao buscar loja:", storeData)
 
       return new Response(
-        JSON.stringify({ error: "Erro ao buscar dados da loja" }),
+        JSON.stringify({ error: "Erro ao buscar dados da loja", details: storeData }),
         { status: 400 }
       )
     }
@@ -83,13 +88,14 @@ export async function GET(req: Request) {
     // 💾 3. SALVA NO SUPABASE
     const { error } = await supabase.from("stores").upsert({
       store_id: storeId,
+      user_id: userId,
       shop,
       access_token: accessToken,
       updated_at: new Date().toISOString(),
     })
 
     if (error) {
-      console.error("Erro ao salvar no Supabase:", error)
+      console.error("Erro Supabase:", error)
 
       return new Response(
         JSON.stringify({ error: "Erro ao salvar loja" }),
@@ -97,7 +103,7 @@ export async function GET(req: Request) {
       )
     }
 
-    // 🔥 4. REDIRECIONA (UX PROFISSIONAL)
+    // 🔥 4. REDIRECT FINAL
     return Response.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?connected=1`,
       302
