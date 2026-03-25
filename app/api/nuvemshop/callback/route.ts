@@ -62,7 +62,7 @@ export async function GET(req: Request) {
       {
         headers: {
           Authentication: `bearer ${accessToken}`,
-          "User-Agent": "Phandshop (contato@phand.com.br)",
+          "User-Agent": "Phandshop/1.0 (contato@phand.com.br)",
         },
       }
     )
@@ -83,8 +83,12 @@ export async function GET(req: Request) {
       )
     }
 
-    // 🔥 CORREÇÃO AQUI
-    const shop = storeData.permanent_domain
+    // 🔥 DOMÍNIO CORRETO (ADAPTADO PRA API REAL)
+    const shop =
+      storeData.url_with_protocol ||
+      storeData.domains?.[0] ||
+      storeData.original_domain
+
     const storeId = storeData.id
 
     if (!shop) {
