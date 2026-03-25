@@ -23,7 +23,7 @@ client.on("qr", async (qr) => {
     qrCodeBase64 = await qrcode.toDataURL(qr)
     isInitializing = false
   } catch (err) {
-    console.error("Erro ao gerar QR:", err)
+    console.error("❌ Erro ao gerar QR:", err)
   }
 })
 
@@ -40,6 +40,7 @@ client.on("ready", async () => {
   const phone = client.info?.wid?.user || "desconhecido"
 
   try {
+    // Node 18+ já tem fetch nativo
     await fetch("http://localhost:3000/api/whatsapp/session", {
       method: "POST",
       headers: {
@@ -64,7 +65,10 @@ client.on("disconnected", () => {
   isInitializing = true
   qrCodeBase64 = null
 
-  client.initialize()
+  // reinicializa automaticamente
+  setTimeout(() => {
+    client.initialize()
+  }, 3000)
 })
 
 // =======================
