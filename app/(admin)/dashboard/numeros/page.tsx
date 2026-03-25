@@ -20,17 +20,16 @@ export default function Numeros() {
 
   const [step, setStep] = useState<"qr" | "naming">("qr")
 
-  // =======================
-  // 🔥 API (PRODUÇÃO)
-  // =======================
-  const API_URL = "/api/whatsapp"
+  // 🔥 ENDPOINTS SEPARADOS (CORRETO)
+  const API_DB = "/api/whatsapp" // Next + Supabase
+  const API_BOT = "/bot" // Backend WhatsApp
 
   // =======================
-  // 📡 CARREGAR SESSÕES
+  // 📡 CARREGAR SESSÕES (BANCO)
   // =======================
   async function loadSessions() {
     try {
-      const res = await fetch(`${API_URL}/session`)
+      const res = await fetch(`${API_DB}/session`)
 
       if (!res.ok) {
         throw new Error(`Erro HTTP: ${res.status}`)
@@ -40,7 +39,7 @@ export default function Numeros() {
 
       setNumbers(
         data.map((s: any) => ({
-          setor: "WhatsApp",
+          setor: s.setor || "WhatsApp",
           phone: s.phone || "—",
           status: s.status === "online" ? "online" : "offline",
           users: []
@@ -56,18 +55,11 @@ export default function Numeros() {
   }, [])
 
   // =======================
-  // 📲 BUSCAR QR
+  // 📲 BUSCAR QR (BOT)
   // =======================
   async function loadQR() {
     try {
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 4000)
-
-      const res = await fetch(`${API_URL}/qr`, {
-        signal: controller.signal
-      })
-
-      clearTimeout(timeout)
+      const res = await fetch(`${API_BOT}/qr`)
 
       if (!res.ok) return
 
@@ -81,7 +73,7 @@ export default function Numeros() {
         setStep("naming")
       }
 
-    } catch (err) {
+    } catch {
       console.log("Aguardando backend...")
     }
   }
@@ -104,7 +96,7 @@ export default function Numeros() {
   }, [showQR, connected])
 
   // =======================
-  // 🔄 ATUALIZA APÓS CONECTAR
+  // 🔄 APÓS CONECTAR
   // =======================
   useEffect(() => {
     if (!connected) return
@@ -118,9 +110,6 @@ export default function Numeros() {
     return () => clearTimeout(timeout)
   }, [connected])
 
-  // =======================
-  // ABRIR MODAL
-  // =======================
   function handleOpenModal() {
     setShowQR(true)
     setStep("qr")
@@ -171,17 +160,6 @@ export default function Numeros() {
                 : "🔴 Desconectado"}
             </div>
 
-            <div className="number-users">
-              Responsáveis:
-              {n.users.length > 0
-                ? ` ${n.users.join(", ")}`
-                : " Nenhum"}
-            </div>
-
-            <div className="number-actions">
-              <button>Gerenciar</button>
-            </div>
-
           </div>
         ))}
       </div>
@@ -195,34 +173,16 @@ export default function Numeros() {
               <button onClick={() => setShowQR(false)}>✕</button>
             </div>
 
-            {initializing && step === "qr" && (
-              <p className="qr-loading">
-                Conectando ao WhatsApp...
-              </p>
+            {initializing && (
+              <p>Conectando...</p>
             )}
 
-            {step === "qr" && !initializing && (
-              <>
-                <p className="qr-sub">
-                  Escaneie o QR Code
-                </p>
-
-                {qr ? (
-                  <div className="qr-image">
-                    <img src={qr} alt="QR Code" />
-                  </div>
-                ) : (
-                  <p className="qr-loading">
-                    Gerando QR...
-                  </p>
-                )}
-              </>
+            {!initializing && qr && (
+              <img src={qr} alt="QR Code" />
             )}
 
             {step === "naming" && (
-              <p className="qr-sub success">
-                WhatsApp conectado 🎉
-              </p>
+              <p>Conectado 🎉</p>
             )}
 
           </div>
