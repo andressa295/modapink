@@ -1,8 +1,9 @@
 import express from "express"
 import cors from "cors"
+import qrcode from "qrcode"
+import fetch from "node-fetch"
 import { client } from "./bot/client"
 import { handleMessage } from "./bot/handler"
-import qrcode from "qrcode"
 
 const app = express()
 
@@ -18,8 +19,13 @@ let isInitializing = true
 // =======================
 client.on("qr", async (qr) => {
   console.log("📲 QR gerado")
-  qrCodeBase64 = await qrcode.toDataURL(qr)
-  isInitializing = false
+
+  try {
+    qrCodeBase64 = await qrcode.toDataURL(qr)
+    isInitializing = false
+  } catch (err) {
+    console.error("Erro ao gerar QR:", err)
+  }
 })
 
 // =======================
@@ -29,7 +35,10 @@ client.on("ready", async () => {
   console.log("✅ WhatsApp conectado")
 
   isReady = true
+  isInitializing = false
   qrCodeBase64 = null
+
+  const phone = client.info?.wid?.user || "desconhecido"
 
   try {
     await fetch("http://localhost:3000/api/whatsapp/session", {
@@ -37,13 +46,26 @@ client.on("ready", async () => {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-        phone: client.info?.wid?.user || "desconhecido"
-      })
+      body: JSON.stringify({ phone })
     })
+
+    console.log("📡 Sessão enviada para o frontend")
   } catch (err) {
-    console.error("Erro ao salvar sessão:", err)
+    console.error("❌ Erro ao salvar sessão:", err)
   }
+})
+
+// =======================
+// ❌ DESCONECTADO
+// =======================
+client.on("disconnected", () => {
+  console.log("❌ WhatsApp desconectado")
+
+  isReady = false
+  isInitializing = true
+  qrCodeBase64 = null
+
+  client.initialize()
 })
 
 // =======================
@@ -68,7 +90,7 @@ app.get("/qr", (req, res) => {
 })
 
 // =======================
-// 📡 ROTA SESSION (STATUS)
+// 📡 ROTA SESSION
 // =======================
 app.get("/session", (req, res) => {
   res.json([
@@ -89,6 +111,8 @@ app.get("/", (req, res) => {
 // =======================
 // 🌍 LISTEN
 // =======================
-app.listen(3001, "0.0.0.0", () => {
-  console.log("🚀 Servidor rodando em http://0.0.0.0:3001")
+const PORT = 3001
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor rodando em http://0.0.0.0:${PORT}`)
 })
