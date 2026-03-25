@@ -1,7 +1,6 @@
 import express from "express"
 import cors from "cors"
 import qrcode from "qrcode"
-import fetch from "node-fetch"
 import { client } from "./bot/client"
 import { handleMessage } from "./bot/handler"
 
