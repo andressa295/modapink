@@ -23,7 +23,7 @@ export default function Numeros() {
   // =======================
   // 🔥 API (PRODUÇÃO)
   // =======================
-  const API_URL = "/bot"
+  const API_URL = "http://173.249.59.166:3001"
 
   // =======================
   // 📡 CARREGAR SESSÕES

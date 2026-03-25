@@ -224,3 +224,44 @@ create table stores (
   created_at timestamp default now()
 );
 alter table stores add column shop text;
+
+-- adiciona colunas que faltam
+alter table stores add column if not exists user_id bigint;
+alter table stores add column if not exists updated_at timestamp;
+
+-- garante que upsert funcione
+alter table stores add constraint stores_store_id_unique unique (store_id);
+alter table stores alter column store_id type bigint using store_id::bigint;
+
+alter table orders add column if not exists external_id text;
+create unique index if not exists orders_external_id_idx on orders(external_id);
+alter table orders add column if not exists order_number bigint;
+alter table orders add column if not exists customer_name text;
+alter table orders add column if not exists customer_email text;
+alter table orders add column if not exists customer_phone text;
+
+alter table orders add column if not exists payment_status text;
+alter table orders add column if not exists payment_method text;
+
+alter table orders add column if not exists shipping_status text;
+alter table orders add column if not exists shipping_method text;
+
+alter table orders add column if not exists currency text;
+alter table orders add column if not exists address text;
+
+alter table orders add column if not exists items jsonb;
+alter table orders add column if not exists raw jsonb;
+
+create unique index if not exists orders_external_id_idx on orders(external_id);
+
+create table if not exists whatsapp_sessions (
+  id uuid primary key default gen_random_uuid(),
+  store_id bigint,
+  phone text,
+  status text,
+  created_at timestamp default now()
+);
+
+alter table whatsapp_sessions add column if not exists store_id bigint;
+alter table whatsapp_sessions add column if not exists setor text;
+alter table whatsapp_sessions add column if not exists is_default boolean default false;

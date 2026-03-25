@@ -1,15 +1,13 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
-// =======================
-// 📲 CRIAR / ATUALIZAR SESSÃO
-// =======================
 export async function POST(req: Request) {
   const supabase = await createClient()
 
   try {
     const body = await req.json()
-    let { phone } = body
+
+    let { phone, store_id, setor, is_default } = body
 
     if (!phone) {
       return NextResponse.json(
@@ -28,32 +26,19 @@ export async function POST(req: Request) {
       )
     }
 
-    // =======================
-    // 🔍 VERIFICA SE EXISTE
-    // =======================
-    const { data: existing, error: findError } = await supabase
-      .from("whatsapp_sessions")
-      .select("*")
-      .eq("phone", phone)
-      .maybeSingle()
+    // 🔥 fallback inteligente
+    store_id = store_id || null
+    setor = setor || "Atendimento"
+    is_default = is_default || false
 
-    if (findError) {
-      console.error("Erro ao buscar sessão:", findError)
-      return NextResponse.json(
-        { error: "Erro ao verificar sessão" },
-        { status: 500 }
-      )
-    }
-
-    // =======================
-    // 🔄 UPSERT (melhor que update+insert separado)
-    // =======================
     const { data, error } = await supabase
       .from("whatsapp_sessions")
       .upsert(
         {
-          id: existing?.id,
           phone,
+          store_id,
+          setor,
+          is_default,
           status: "online",
           last_seen: new Date().toISOString(),
         },
@@ -93,6 +78,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("whatsapp_sessions")
       .select("*")
+      .order("is_default", { ascending: false })
       .order("last_seen", { ascending: false })
 
     if (error) {

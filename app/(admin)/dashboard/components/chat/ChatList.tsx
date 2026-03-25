@@ -8,18 +8,31 @@ type Chat = {
   message: string
   sector: "Vendas" | "SAC" | "Financeiro"
   status: "online" | "pendente" | "resolvido"
-  attendant: string
-  time: string
+  attendant?: string
+  time?: string
 }
 
 type Props = {
-  chats?: Chat[] // 🔥 agora opcional (evita crash)
+  chats?: Chat[]
   selected?: number | null
   onSelect?: (id: number) => void
 }
 
+function getStatus(status: Chat["status"]) {
+  switch (status) {
+    case "online":
+      return { label: "Ativo", className: "status-online" }
+    case "pendente":
+      return { label: "Pendente", className: "status-pending" }
+    case "resolvido":
+      return { label: "Resolvido", className: "status-done" }
+    default:
+      return { label: "Desconhecido", className: "" }
+  }
+}
+
 export default function ChatList({
-  chats = [], // 🔥 fallback seguro
+  chats = [],
   selected = null,
   onSelect,
 }: Props) {
@@ -29,56 +42,64 @@ export default function ChatList({
 
       <div className="chat-items">
 
-        {/* 🔥 estado vazio (UX importante) */}
+        {/* EMPTY */}
         {chats.length === 0 && (
           <div className="chat-empty">
             Nenhuma conversa encontrada
           </div>
         )}
 
-        {/* 🔥 lista segura */}
-        {chats.map(chat => (
-          <div
-            key={chat.id}
-            className={`chat-item ${selected === chat.id ? "selected" : ""}`}
-            onClick={() => onSelect?.(chat.id)}
-          >
+        {/* LIST */}
+        {chats.map((chat) => {
+          const status = getStatus(chat.status)
 
-            {/* HEADER */}
-            <div className="chat-item-header">
-              <span className="chat-item-name">
-                {chat.name}
-              </span>
+          return (
+            <div
+              key={chat.id}
+              className={`chat-item ${
+                selected === chat.id ? "selected" : ""
+              }`}
+              onClick={() => onSelect?.(chat.id)}
+            >
 
-              <span className="chat-item-time">
-                {chat.time}
-              </span>
+              {/* HEADER */}
+              <div className="chat-item-header">
+
+                <span className="chat-item-name">
+                  {chat.name || "Cliente"}
+                </span>
+
+                <span className="chat-item-time">
+                  {chat.time || "--:--"}
+                </span>
+
+              </div>
+
+              {/* MESSAGE */}
+              <div className="chat-item-message">
+                {chat.message || "Sem mensagem"}
+              </div>
+
+              {/* FOOTER */}
+              <div className="chat-item-footer">
+
+                <span className={`badge ${chat.sector?.toLowerCase()}`}>
+                  {chat.sector || "Geral"}
+                </span>
+
+                <span className={`status ${status.className}`}>
+                  {status.label}
+                </span>
+
+                <span className="attendant">
+                  {chat.attendant || "Sem atendente"}
+                </span>
+
+              </div>
+
             </div>
-
-            {/* ÚLTIMA MENSAGEM */}
-            <div className="chat-item-message">
-              {chat.message}
-            </div>
-
-            {/* FOOTER */}
-            <div className="chat-item-footer">
-
-              <span className={`badge ${chat.sector.toLowerCase()}`}>
-                {chat.sector}
-              </span>
-
-              <span className={`status ${chat.status}`}>
-                {chat.status}
-              </span>
-
-              <span className="attendant">
-                {chat.attendant}
-              </span>
-
-            </div>
-
-          </div>
-        ))}
+          )
+        })}
 
       </div>
 

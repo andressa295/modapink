@@ -18,34 +18,62 @@ export default function AdminLoginPage() {
     e.preventDefault()
     setLoading(true)
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    try {
+      // 🔥 LIMPA QUALQUER SESSÃO QUEBRADA
+      await supabase.auth.signOut()
 
-    if (error) {
-      alert("Email ou senha inválidos")
+      // 🔐 LOGIN
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+
+      if (error || !data.session) {
+        alert("Email ou senha inválidos")
+        setLoading(false)
+        return
+      }
+
+      // 🔥 GARANTE QUE A SESSÃO FOI SETADA
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session) {
+        alert("Erro ao iniciar sessão. Tente novamente.")
+        setLoading(false)
+        return
+      }
+
+      // 🔐 BUSCA ROLE COM SEGURANÇA
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", data.user.id)
+        .maybeSingle()
+
+      if (profileError) {
+        console.error("Erro ao buscar perfil:", profileError)
+        alert("Erro ao validar usuário")
+        setLoading(false)
+        return
+      }
+
+      if (!profile || profile.role !== "admin") {
+        await supabase.auth.signOut()
+        alert("Acesso não autorizado")
+        setLoading(false)
+        return
+      }
+
+      // 🔥 REDIRECT FORÇADO (GARANTE COOKIE)
+      window.location.href = "/dashboard"
+
+    } catch (err) {
+      console.error("Erro inesperado:", err)
+      alert("Erro inesperado ao fazer login")
       setLoading(false)
-      return
     }
-
-    // 🔥 SINCRONIZA SESSÃO (ESSENCIAL)
-    await supabase.auth.getSession()
-
-    // 🔐 VERIFICA ROLE
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", data.user.id)
-      .single()
-
-    if (profile?.role !== "admin") {
-      alert("Acesso não autorizado")
-      setLoading(false)
-      return
-    }
-
-    router.push("/dashboard")
   }
 
   return (
