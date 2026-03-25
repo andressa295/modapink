@@ -21,10 +21,9 @@ export default function Numeros() {
   const [step, setStep] = useState<"qr" | "naming">("qr")
 
   // =======================
-  // 🔥 CONFIG API
+  // 🔥 API (PRODUÇÃO)
   // =======================
-  const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+  const API_URL = "/bot"
 
   // =======================
   // 📡 CARREGAR SESSÕES
@@ -32,6 +31,11 @@ export default function Numeros() {
   async function loadSessions() {
     try {
       const res = await fetch(`${API_URL}/session`)
+
+      if (!res.ok) {
+        throw new Error(`Erro HTTP: ${res.status}`)
+      }
+
       const data = await res.json()
 
       setNumbers(
@@ -205,7 +209,7 @@ export default function Numeros() {
 
                 {qr ? (
                   <div className="qr-image">
-                    <img src={qr} />
+                    <img src={qr} alt="QR Code" />
                   </div>
                 ) : (
                   <p className="qr-loading">

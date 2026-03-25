@@ -18,8 +18,15 @@ export async function POST(req: Request) {
       )
     }
 
-    // normaliza telefone
+    // 🔥 normaliza telefone
     phone = String(phone).replace(/\D/g, "")
+
+    if (phone.length < 10) {
+      return NextResponse.json(
+        { error: "Telefone inválido" },
+        { status: 400 }
+      )
+    }
 
     // =======================
     // 🔍 VERIFICA SE EXISTE
@@ -39,45 +46,26 @@ export async function POST(req: Request) {
     }
 
     // =======================
-    // 🔄 ATUALIZA SE EXISTIR
-    // =======================
-    if (existing) {
-      const { data, error } = await supabase
-        .from("whatsapp_sessions")
-        .update({
-          status: "online",
-          last_seen: new Date().toISOString(),
-        })
-        .eq("id", existing.id)
-        .select()
-        .single()
-
-      if (error) {
-        console.error("Erro ao atualizar sessão:", error)
-        return NextResponse.json(
-          { error: "Erro ao atualizar sessão" },
-          { status: 500 }
-        )
-      }
-
-      return NextResponse.json(data)
-    }
-
-    // =======================
-    // 🆕 CRIA NOVA SESSÃO
+    // 🔄 UPSERT (melhor que update+insert separado)
     // =======================
     const { data, error } = await supabase
       .from("whatsapp_sessions")
-      .insert({
-        phone,
-        status: "online",
-        last_seen: new Date().toISOString(),
-      })
+      .upsert(
+        {
+          id: existing?.id,
+          phone,
+          status: "online",
+          last_seen: new Date().toISOString(),
+        },
+        {
+          onConflict: "phone",
+        }
+      )
       .select()
       .single()
 
     if (error) {
-      console.error("Erro ao criar sessão:", error)
+      console.error("Erro ao salvar sessão:", error)
       return NextResponse.json(
         { error: "Erro ao salvar sessão" },
         { status: 500 }
@@ -105,7 +93,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from("whatsapp_sessions")
       .select("*")
-      .order("created_at", { ascending: false })
+      .order("last_seen", { ascending: false })
 
     if (error) {
       console.error("Erro ao listar sessões:", error)
