@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server"
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 const BOT_URL = "http://localhost:3001"
 
@@ -14,16 +14,15 @@ function errorResponse(message: string, status = 500) {
 // 🔌 DESCONECTAR
 // =======================
 export async function POST(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
-    const { id } = params
+    const { id } = await context.params
 
     if (!id) return errorResponse("ID inválido", 400)
 
-    // 🔎 busca sessão
     const { data: session, error } = await supabase
       .from("whatsapp_sessions")
       .select("session_key")
@@ -34,7 +33,6 @@ export async function POST(
       return errorResponse("Sessão não encontrada", 404)
     }
 
-    // 🔌 tenta desconectar no bot
     try {
       await fetch(`${BOT_URL}/sessions/${session.session_key}/disconnect`, {
         method: "POST",
@@ -43,7 +41,6 @@ export async function POST(
       console.error("⚠️ Erro ao desconectar no bot:", botError)
     }
 
-    // 💾 atualiza banco (sempre)
     const { error: updateError } = await supabase
       .from("whatsapp_sessions")
       .update({
@@ -68,12 +65,12 @@ export async function POST(
 // ✏️ ATUALIZAR NOME
 // =======================
 export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
-    const { id } = params
+    const { id } = await context.params
 
     if (!id) return errorResponse("ID inválido", 400)
 
@@ -105,16 +102,15 @@ export async function PATCH(
 // 🗑 EXCLUIR COMPLETO
 // =======================
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createClient()
-    const { id } = params
+    const { id } = await context.params
 
     if (!id) return errorResponse("ID inválido", 400)
 
-    // 🔎 busca sessão
     const { data: session, error } = await supabase
       .from("whatsapp_sessions")
       .select("session_key")
@@ -125,7 +121,6 @@ export async function DELETE(
       return errorResponse("Sessão não encontrada", 404)
     }
 
-    // 🔥 tenta destruir no bot
     try {
       await fetch(`${BOT_URL}/sessions/${session.session_key}`, {
         method: "DELETE",
@@ -134,7 +129,6 @@ export async function DELETE(
       console.error("⚠️ Erro ao deletar no bot:", botError)
     }
 
-    // 💾 soft delete no banco
     const { error: updateError } = await supabase
       .from("whatsapp_sessions")
       .update({
