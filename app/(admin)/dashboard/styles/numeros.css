@@ -1,14 +1,13 @@
-/* ===================== */
-/* BASE */
-/* ===================== */
+/* =========================
+   BASE
+========================= */
 
 .numbers-page {
-  width: 100%;
+  padding: 32px;
+  background: #faf9f6;
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
 }
-
-/* ===================== */
-/* HEADER */
-/* ===================== */
 
 .numbers-header {
   display: flex;
@@ -17,143 +16,232 @@
   margin-bottom: 32px;
 }
 
-.numbers-title {
+.numbers-header h1 {
   font-size: 26px;
   font-weight: 600;
-  color: #111827;
+  color: #111;
 }
 
-/* ===================== */
-/* BOTÃO */
-/* ===================== */
+/* =========================
+   BOTÃO PRINCIPAL
+========================= */
 
-.connect-button {
-  background: #E6007E;
-  color: white;
+.numbers-header button {
+  background: #e6007e;
+  color: #fff;
   border: none;
-  padding: 11px 18px;
-  border-radius: 12px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  padding: 12px 18px;
+  border-radius: 10px;
   font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s ease;
 }
 
-.connect-button:hover {
-  background: #c4006a;
+.numbers-header button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(230, 0, 126, 0.25);
+  box-shadow: 0 6px 18px rgba(230, 0, 126, 0.25);
 }
 
-/* ===================== */
-/* GRID */
-/* ===================== */
+/* =========================
+   GRID
+========================= */
 
 .numbers-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 20px;
 }
 
-/* ===================== */
-/* CARD */
-/* ===================== */
+/* =========================
+   CARD
+========================= */
 
-.numbers-page .number-card {
-  background: #ffffff;
-  border: 1px solid #eef2f7;
-  padding: 20px;
+.card {
+  background: #fff;
   border-radius: 16px;
-  transition: all 0.2s ease;
+  padding: 18px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: 0.2s ease;
 }
 
-.numbers-page .number-card:hover {
+.card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 12px 25px rgba(0, 0, 0, 0.06);
 }
 
-/* ===================== */
-/* TEXTOS */
-/* ===================== */
+/* =========================
+   TEXTO
+========================= */
 
-.number-title {
+.card-title {
+  font-size: 18px;
   font-weight: 600;
-  font-size: 16px;
-  margin-bottom: 6px;
+  color: #111;
 }
 
-.number-phone {
-  font-size: 13px;
-  color: #6b7280;
-  margin-bottom: 14px;
-}
-
-/* ===================== */
-/* STATUS */
-/* ===================== */
-
-.number-status {
+.card-id {
   font-size: 12px;
-  padding: 6px 10px;
-  border-radius: 8px;
-  display: inline-block;
+  color: #777;
+  word-break: break-all;
+}
+
+/* =========================
+   STATUS
+========================= */
+
+.status {
+  font-size: 13px;
   font-weight: 500;
 }
 
-.status-online {
-  background: #ecfdf5;
-  color: #059669;
+.status.online {
+  color: #1bbf5c;
 }
 
-.status-offline {
-  background: #fef2f2;
-  color: #dc2626;
+.status.offline {
+  color: #ff3b3b;
 }
 
-/* ===================== */
-/* USERS */
-/* ===================== */
+/* =========================
+   AÇÕES
+========================= */
 
-.number-users {
-  margin-top: 14px;
+.card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.card-actions button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: none;
   font-size: 13px;
-  color: #374151;
-}
-
-/* ===================== */
-/* ACTIONS */
-/* ===================== */
-
-.number-actions {
-  margin-top: 18px;
-}
-
-.number-actions button {
-  border: 1px solid #e5e7eb;
-  background: white;
-  padding: 8px 14px;
-  border-radius: 10px;
   cursor: pointer;
   transition: 0.2s;
-  font-size: 13px;
 }
 
-.number-actions button:hover {
-  background: #f9fafb;
+/* botão principal (pink) */
+.card-actions button:first-child {
+  background: #e6007e;
+  color: #fff;
 }
 
-/* ===================== */
-/* RESPONSIVO */
-/* ===================== */
+.card-actions button:first-child:hover {
+  background: #c8006d;
+}
 
-@media (max-width: 1024px) {
-  .numbers-grid {
-    grid-template-columns: repeat(2, 1fr);
+/* botão secundário */
+.card-actions button:last-child {
+  background: #f1f1f1;
+  color: #333;
+}
+
+.card-actions button:last-child:hover {
+  background: #e5e5e5;
+}
+
+/* =========================
+   EMPTY / LOADING
+========================= */
+
+.empty {
+  color: #777;
+  font-size: 14px;
+}
+
+/* =========================
+   MODAL
+========================= */
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.55);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-box {
+  background: #fff;
+  padding: 28px;
+  border-radius: 16px;
+  width: 360px;
+  text-align: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-box h2 {
+  margin-bottom: 16px;
+  color: #111;
+}
+
+/* =========================
+   INPUT
+========================= */
+
+.modal-box input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  margin-bottom: 14px;
+  outline: none;
+}
+
+.modal-box input:focus {
+  border-color: #e6007e;
+}
+
+/* =========================
+   BOTÕES MODAL
+========================= */
+
+.modal-box button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #e6007e;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.modal-box button:hover {
+  background: #c8006d;
+}
+
+/* =========================
+   QR
+========================= */
+
+.qr {
+  width: 200px;
+  margin-top: 10px;
+}
+
+/* =========================
+   ANIMAÇÃO
+========================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-}
-
-@media (max-width: 640px) {
-  .numbers-grid {
-    grid-template-columns: 1fr;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

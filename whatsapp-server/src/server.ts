@@ -1,121 +1,274 @@
 import express from "express"
 import cors from "cors"
 import qrcode from "qrcode"
-import { client } from "./bot/client"
-import { handleMessage } from "./bot/handler"
+import { Client, LocalAuth } from "whatsapp-web.js"
 
 const app = express()
-
 app.use(cors())
 app.use(express.json())
 
-let qrCodeBase64: string | null = null
-let isReady = false
-let isInitializing = true
+console.log("🔥 SERVER MULTI WHATSAPP INICIANDO")
 
 // =======================
-// 📲 QR
+// TIPOS
 // =======================
-client.on("qr", async (qr) => {
-  console.log("📲 QR gerado")
+type Channel = "VENDAS" | "SAC" | "FINANCEIRO"
 
-  try {
-    qrCodeBase64 = await qrcode.toDataURL(qr)
-    isInitializing = false
-  } catch (err) {
-    console.error("❌ Erro ao gerar QR:", err)
+type Message = {
+  id: number
+  body: string
+  from: string
+  timestamp: number
+  fromMe: boolean
+}
+
+type Conversation = {
+  contact: string
+  channel: Channel
+  lastMessageAt: number
+  messages: Message[]
+}
+
+type Session = {
+  id: string
+  name: string
+  client: Client
+  conversations: Record<string, Conversation>
+  qr: string | null
+  ready: boolean
+}
+
+const sessions: Record<string, Session> = {}
+
+// =======================
+// DETECTAR CANAL
+// =======================
+function detectChannel(text: string): Channel {
+  const t = text.toLowerCase()
+
+  if (t.includes("comprar") || t.includes("preço")) return "VENDAS"
+  if (t.includes("boleto") || t.includes("pagamento")) return "FINANCEIRO"
+
+  return "SAC"
+}
+
+// =======================
+// CRIAR SESSÃO (FIXADA)
+// =======================
+function createSession(sessionId: string, name?: string) {
+  if (sessions[sessionId]) return sessions[sessionId]
+
+  const client = new Client({
+    authStrategy: new LocalAuth({ clientId: sessionId }),
+    puppeteer: {
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox"]
+    }
+  })
+
+  const session: Session = {
+    id: sessionId,
+    name: name || sessionId,
+    client,
+    conversations: {},
+    qr: null,
+    ready: false
   }
-})
+
+  sessions[sessionId] = session
+
+  client.on("qr", async (qr) => {
+    session.qr = await qrcode.toDataURL(qr)
+  })
+
+  client.on("ready", () => {
+    console.log(`✅ ${sessionId} conectado`)
+    session.ready = true
+    session.qr = null
+  })
+
+  client.on("message", (msg) => handleIncoming(sessionId, msg))
+
+  client.on("disconnected", () => {
+    console.log(`❌ ${sessionId} desconectado`)
+    session.ready = false
+  })
+
+  client.initialize()
+
+  return session
+}
 
 // =======================
-// ✅ CONECTADO
+// RECEBER MSG (CORRIGIDO)
 // =======================
-client.on("ready", async () => {
-  console.log("✅ WhatsApp conectado")
+function handleIncoming(sessionId: string, msg: any) {
+  const session = sessions[sessionId]
+  if (!session) return
 
-  isReady = true
-  isInitializing = false
-  qrCodeBase64 = null
+  const contact = msg.from
 
-  const phone = client.info?.wid?.user || "desconhecido"
-
-  try {
-    // Node 18+ já tem fetch nativo
-    await fetch("http://localhost:3000/api/whatsapp/session", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ phone })
-    })
-
-    console.log("📡 Sessão enviada para o frontend")
-  } catch (err) {
-    console.error("❌ Erro ao salvar sessão:", err)
+  if (!session.conversations[contact]) {
+    session.conversations[contact] = {
+      contact,
+      channel: detectChannel(msg.body || ""),
+      lastMessageAt: Date.now(),
+      messages: []
+    }
   }
+
+  const conv = session.conversations[contact]
+
+  conv.messages.push({
+    id: Date.now(),
+    body: msg.body || "",
+    from: msg.from,
+    timestamp: Date.now(),
+    fromMe: false
+  })
+
+  conv.lastMessageAt = Date.now()
+}
+
+// =======================
+// ROTAS
+// =======================
+
+// HEALTH
+app.get("/", (_, res) => {
+  res.send("OK")
 })
 
-// =======================
-// ❌ DESCONECTADO
-// =======================
-client.on("disconnected", () => {
-  console.log("❌ WhatsApp desconectado")
+// CRIAR SESSÃO
+app.post("/sessions", (req, res) => {
+  const { sessionId, name } = req.body
 
-  isReady = false
-  isInitializing = true
-  qrCodeBase64 = null
+  if (!sessionId) {
+    return res.status(400).json({ error: "sessionId obrigatório" })
+  }
 
-  // reinicializa automaticamente
-  setTimeout(() => {
-    client.initialize()
-  }, 3000)
+  createSession(sessionId, name)
+
+  res.json({ ok: true })
 })
 
-// =======================
-// 💬 MENSAGENS
-// =======================
-client.on("message", handleMessage)
+// CRIAR PADRÃO
+app.post("/sessions/defaults", (_, res) => {
+  createSession("vendas", "Vendas")
+  createSession("sac", "SAC")
+  createSession("financeiro", "Financeiro")
 
-// =======================
-// 🚀 START
-// =======================
-client.initialize()
+  res.json({ ok: true })
+})
 
-// =======================
-// 📡 ROTA QR
-// =======================
-app.get("/qr", (req, res) => {
+// LISTAR SESSÕES
+app.get("/sessions", (_, res) => {
+  res.json(
+    Object.values(sessions).map((s) => ({
+      id: s.id,
+      name: s.name,
+      ready: s.ready,
+      hasQr: !!s.qr
+    }))
+  )
+})
+
+// QR (CORRIGIDO: CRIA SE NÃO EXISTIR)
+app.get("/sessions/:id/qr", (req, res) => {
+  const id = req.params.id
+
+  const session = sessions[id] || createSession(id)
+
   res.json({
-    qr: qrCodeBase64,
-    connected: isReady,
-    initializing: isInitializing
+    qr: session.qr,
+    ready: session.ready
   })
 })
 
-// =======================
-// 📡 ROTA SESSION
-// =======================
-app.get("/session", (req, res) => {
-  res.json([
-    {
-      phone: isReady ? client.info?.wid?.user : null,
-      status: isReady ? "online" : "offline"
+// CONVERSAS (BASE DO ESPELHAMENTO)
+app.get("/conversations/:id", (req, res) => {
+  const s = sessions[req.params.id]
+  if (!s) return res.json([])
+
+  res.json(
+    Object.values(s.conversations).sort(
+      (a, b) => b.lastMessageAt - a.lastMessageAt
+    )
+  )
+})
+
+// MUDAR CANAL
+app.post("/conversations/:id/:contact/channel", (req, res) => {
+  const { id, contact } = req.params
+  const { channel } = req.body
+
+  const s = sessions[id]
+
+  if (!s || !s.conversations[contact]) {
+    return res.status(404).json({})
+  }
+
+  s.conversations[contact].channel = channel
+
+  res.json({ ok: true })
+})
+
+// ENVIAR MSG (CORRIGIDO PARA ESPELHAR)
+app.post("/send", async (req, res) => {
+  const { sessionId, contact, message } = req.body
+  const s = sessions[sessionId]
+
+  if (!s || !s.ready) {
+    return res.status(400).json({ error: "Sessão offline" })
+  }
+
+  await s.client.sendMessage(contact, message)
+
+  if (!s.conversations[contact]) {
+    s.conversations[contact] = {
+      contact,
+      channel: "SAC",
+      lastMessageAt: Date.now(),
+      messages: []
     }
-  ])
+  }
+
+  s.conversations[contact].messages.push({
+    id: Date.now(),
+    body: message,
+    from: "me",
+    timestamp: Date.now(),
+    fromMe: true
+  })
+
+  s.conversations[contact].lastMessageAt = Date.now()
+
+  res.json({ ok: true })
 })
 
-// =======================
-// ❤️ HEALTH
-// =======================
-app.get("/", (req, res) => {
-  res.send("API WhatsApp rodando 🚀")
+// 🔌 DESCONECTAR (NOVO E CORRETO)
+app.post("/sessions/:id/disconnect", async (req, res) => {
+  const { id } = req.params
+  const s = sessions[id]
+
+  if (!s) {
+    return res.status(404).json({ error: "Sessão não encontrada" })
+  }
+
+  try {
+    await s.client.destroy()
+  } catch (e) {
+    console.error("Erro ao destruir client:", e)
+  }
+
+  delete sessions[id]
+
+  res.json({ ok: true })
 })
 
-// =======================
-// 🌍 LISTEN
-// =======================
-const PORT = 3001
+// AUTO START
+createSession("loja1", "Principal")
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor rodando em http://0.0.0.0:${PORT}`)
+app.listen(3001, () => {
+  console.log("🚀 API rodando 3001")
 })

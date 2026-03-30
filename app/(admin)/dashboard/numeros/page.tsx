@@ -4,77 +4,110 @@ import { useEffect, useState } from "react"
 import "../styles/numeros.css"
 
 type NumberType = {
-  setor: string
-  phone: string
+  id: string
+  name: string
   status: "online" | "offline"
-  users: string[]
+  phone?: string
 }
+
+// 🔥 AJUSTE AQUI CONFORME SEU AMBIENTE
+// LOCAL:
+const API = "http://localhost:3000/api/whatsapp/session"
+
+// VPS:
+// const API = "https://modapink.phand.com.br/api/whatsapp/session"
 
 export default function Numeros() {
   const [numbers, setNumbers] = useState<NumberType[]>([])
+  const [loading, setLoading] = useState(true)
 
   const [showQR, setShowQR] = useState(false)
   const [qr, setQr] = useState<string | null>(null)
   const [connected, setConnected] = useState(false)
   const [initializing, setInitializing] = useState(true)
 
-  const [step, setStep] = useState<"qr" | "naming">("qr")
+  const [showNaming, setShowNaming] = useState(false)
+  const [newName, setNewName] = useState("")
+  const [savingName, setSavingName] = useState(false)
 
-  // 🔥 ENDPOINTS SEPARADOS (CORRETO)
-  const API_DB = "/api/whatsapp" // Next + Supabase
-  const API_BOT = "/bot" // Backend WhatsApp
+  const [currentSession, setCurrentSession] = useState<string | null>(null)
 
   // =======================
-  // 📡 CARREGAR SESSÕES (BANCO)
+  // 📡 LOAD SESSÕES
   // =======================
   async function loadSessions() {
     try {
-      const res = await fetch(`${API_DB}/session`)
+      setLoading(true)
+
+      const res = await fetch(API, { cache: "no-store" })
 
       if (!res.ok) {
-        throw new Error(`Erro HTTP: ${res.status}`)
+        console.error("Erro API:", res.status)
+        setNumbers([])
+        return
       }
 
       const data = await res.json()
+
+      if (!Array.isArray(data)) {
+        console.error("Resposta inválida:", data)
+        setNumbers([])
+        return
+      }
 
       setNumbers(
         data.map((s: any) => ({
-          setor: s.setor || "WhatsApp",
-          phone: s.phone || "—",
+          id: s.id,
+          name: s.name || s.setor || "WhatsApp",
           status: s.status === "online" ? "online" : "offline",
-          users: []
+          phone: s.phone
         }))
       )
+
     } catch (err) {
       console.error("Erro ao carregar sessões:", err)
+      setNumbers([])
+    } finally {
+      setLoading(false)
     }
   }
 
-  useEffect(() => {
-    loadSessions()
-  }, [])
-
   // =======================
-  // 📲 BUSCAR QR (BOT)
+  // 📲 QR
   // =======================
-  async function loadQR() {
+  async function loadQR(sessionId: string) {
     try {
-      const res = await fetch(`${API_BOT}/qr`)
+      const res = await fetch(`${API}/${sessionId}/qr`)
 
-      if (!res.ok) return
+      if (!res.ok) {
+        console.error("Erro QR:", res.status)
+        setInitializing(false)
+        return
+      }
 
       const data = await res.json()
 
-      setQr(data.qr)
-      setConnected(data.connected)
-      setInitializing(data.initializing)
-
-      if (data.connected) {
-        setStep("naming")
+      if (data.ready) {
+        setConnected(true)
+        setQr(null)
+        setInitializing(false)
+        return
       }
 
-    } catch {
-      console.log("Aguardando backend...")
+      if (data.qr) {
+        setQr(data.qr)
+        setConnected(false)
+        setInitializing(false)
+        return
+      }
+
+      setQr(null)
+      setConnected(false)
+      setInitializing(true)
+
+    } catch (err) {
+      console.error("Erro QR:", err)
+      setInitializing(false)
     }
   }
 
@@ -82,18 +115,16 @@ export default function Numeros() {
   // 🔁 POLLING QR
   // =======================
   useEffect(() => {
-    if (!showQR) return
+    if (!showQR || !currentSession) return
 
-    loadQR()
+    loadQR(currentSession)
 
     const interval = setInterval(() => {
-      if (!connected) {
-        loadQR()
-      }
-    }, 2500)
+      loadQR(currentSession)
+    }, 2000)
 
     return () => clearInterval(interval)
-  }, [showQR, connected])
+  }, [showQR, currentSession])
 
   // =======================
   // 🔄 APÓS CONECTAR
@@ -101,93 +132,159 @@ export default function Numeros() {
   useEffect(() => {
     if (!connected) return
 
-    const timeout = setTimeout(() => {
-      loadSessions()
+    setTimeout(() => {
       setShowQR(false)
-      setStep("qr")
-    }, 2000)
-
-    return () => clearTimeout(timeout)
+      setShowNaming(true)
+      loadSessions()
+    }, 1000)
   }, [connected])
 
-  function handleOpenModal() {
-    setShowQR(true)
-    setStep("qr")
-    setQr(null)
-    setConnected(false)
-    setInitializing(true)
+  // =======================
+  // 💾 SALVAR NOME
+  // =======================
+  async function saveName() {
+    if (!newName.trim() || !currentSession) return
+
+    try {
+      setSavingName(true)
+
+      await fetch(`${API}/${currentSession}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newName })
+      })
+
+      setShowNaming(false)
+      setNewName("")
+      loadSessions()
+
+    } catch (err) {
+      console.error("Erro ao salvar nome:", err)
+    } finally {
+      setSavingName(false)
+    }
   }
+
+  // =======================
+  // ➕ NOVA SESSÃO
+  // =======================
+  async function createNewSession() {
+    const phone = prompt("Digite o número com DDD")
+    if (!phone) return
+
+    try {
+      const res = await fetch(API, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          phone,
+          setor: "Atendimento"
+        })
+      })
+
+      let data: any = null
+
+      try {
+        data = await res.json()
+      } catch {
+        console.error("Resposta inválida")
+      }
+
+      if (!res.ok) {
+        console.error("Erro HTTP:", res.status, data)
+        alert("Erro no servidor.")
+        return
+      }
+
+      if (!data?.id) {
+        console.error("Resposta sem id:", data)
+        alert("Erro ao criar sessão.")
+        return
+      }
+
+      setCurrentSession(data.id)
+      setShowQR(true)
+      setQr(null)
+      setConnected(false)
+      setInitializing(true)
+
+    } catch (err) {
+      console.error("Erro ao criar sessão:", err)
+      alert("Erro de rede")
+    }
+  }
+
+  async function disconnect(id: string) {
+    if (!confirm("Deseja desconectar este número?")) return
+
+    try {
+      await fetch(`${API}/${id}`, { method: "POST" })
+      loadSessions()
+    } catch (err) {
+      console.error("Erro ao desconectar:", err)
+    }
+  }
+
+  async function removeSession(id: string) {
+    if (!confirm("Excluir permanentemente este WhatsApp?")) return
+
+    try {
+      await fetch(`${API}/${id}`, { method: "DELETE" })
+      loadSessions()
+    } catch (err) {
+      console.error("Erro ao excluir:", err)
+    }
+  }
+
+  useEffect(() => {
+    loadSessions()
+  }, [])
 
   return (
     <div className="numbers-page">
 
       <div className="numbers-header">
-        <div className="numbers-title">
-          Números de WhatsApp
-        </div>
+        <h1>Números de WhatsApp</h1>
 
-        <button
-          className="connect-button"
-          onClick={handleOpenModal}
-        >
-          + Conectar WhatsApp
+        <button onClick={createNewSession}>
+          + Conectar
         </button>
       </div>
 
       <div className="numbers-grid">
-        {numbers.length === 0 && (
-          <p style={{ opacity: 0.6 }}>
-            Nenhum número conectado
-          </p>
+
+        {loading && <p className="empty">Carregando...</p>}
+
+        {!loading && numbers.length === 0 && (
+          <p className="empty">Nenhum número conectado</p>
         )}
 
-        {numbers.map((n, index) => (
-          <div key={index} className="number-card">
+        {numbers.map((n) => (
+          <div key={n.id} className="card">
 
-            <div className="number-title">{n.setor}</div>
+            <div className="card-title">{n.name}</div>
+            <div className="card-id">{n.phone}</div>
 
-            <div className="number-phone">{n.phone}</div>
+            <div className={`status ${n.status}`}>
+              {n.status === "online" ? "🟢 Online" : "🔴 Offline"}
+            </div>
 
-            <div
-              className={`number-status ${
-                n.status === "online"
-                  ? "status-online"
-                  : "status-offline"
-              }`}
-            >
-              {n.status === "online"
-                ? "🟢 Conectado"
-                : "🔴 Desconectado"}
+            <div className="card-actions">
+              <button onClick={() => disconnect(n.id)}>
+                Desconectar
+              </button>
+
+              <button onClick={() => removeSession(n.id)}>
+                Excluir
+              </button>
             </div>
 
           </div>
         ))}
+
       </div>
-
-      {showQR && (
-        <div className="qr-modal">
-          <div className="qr-box">
-
-            <div className="qr-header">
-              <h2>Conectar WhatsApp</h2>
-              <button onClick={() => setShowQR(false)}>✕</button>
-            </div>
-
-            {initializing && (
-              <p>Conectando...</p>
-            )}
-
-            {!initializing && qr && (
-              <img src={qr} alt="QR Code" />
-            )}
-
-            {step === "naming" && (
-              <p>Conectado 🎉</p>
-            )}
-
-          </div>
-        </div>
-      )}
 
     </div>
   )

@@ -1,14 +1,19 @@
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
+// =======================
+// 🔥 CREATE SESSION (ESTÁVEL)
+// =======================
 export async function POST(req: Request) {
-  const supabase = await createClient()
-
   try {
+    const supabase = await createClient()
     const body = await req.json()
 
     let { phone, store_id, setor, is_default } = body
 
+    // =======================
+    // 🧪 VALIDAÇÃO
+    // =======================
     if (!phone) {
       return NextResponse.json(
         { error: "Telefone obrigatório" },
@@ -16,7 +21,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // 🔥 normaliza telefone
     phone = String(phone).replace(/\D/g, "")
 
     if (phone.length < 10) {
@@ -26,11 +30,16 @@ export async function POST(req: Request) {
       )
     }
 
-    // 🔥 fallback inteligente
-    store_id = store_id || null
-    setor = setor || "Atendimento"
-    is_default = is_default || false
+    // =======================
+    // 🔧 DEFAULTS
+    // =======================
+    store_id = store_id ?? null
+    setor = setor ?? "Atendimento"
+    is_default = is_default ?? false
 
+    // =======================
+    // 💾 UPSERT (IGUAL AO QUE FUNCIONAVA)
+    // =======================
     const { data, error } = await supabase
       .from("whatsapp_sessions")
       .upsert(
@@ -47,22 +56,28 @@ export async function POST(req: Request) {
         }
       )
       .select()
-      .single()
 
     if (error) {
-      console.error("Erro ao salvar sessão:", error)
+      console.error("❌ ERRO UPSERT:", error)
+
       return NextResponse.json(
-        { error: "Erro ao salvar sessão" },
+        { error: error.message },
         { status: 500 }
       )
     }
 
-    return NextResponse.json(data)
+    // =======================
+    // 🔥 GARANTE FORMATO CORRETO
+    // =======================
+    const session = Array.isArray(data) ? data[0] : data
 
-  } catch (err) {
-    console.error("Erro geral:", err)
+    return NextResponse.json(session)
+
+  } catch (err: any) {
+    console.error("❌ ERRO GERAL POST:", err)
+
     return NextResponse.json(
-      { error: "Erro interno" },
+      { error: err.message || String(err) },
       { status: 500 }
     )
   }
@@ -72,9 +87,9 @@ export async function POST(req: Request) {
 // 🔁 LISTAR SESSÕES
 // =======================
 export async function GET() {
-  const supabase = await createClient()
-
   try {
+    const supabase = await createClient()
+
     const { data, error } = await supabase
       .from("whatsapp_sessions")
       .select("*")
@@ -82,19 +97,21 @@ export async function GET() {
       .order("last_seen", { ascending: false })
 
     if (error) {
-      console.error("Erro ao listar sessões:", error)
+      console.error("❌ ERRO GET:", error)
+
       return NextResponse.json(
-        { error: "Erro ao buscar sessões" },
+        { error: error.message },
         { status: 500 }
       )
     }
 
     return NextResponse.json(data || [])
 
-  } catch (err) {
-    console.error("Erro geral:", err)
+  } catch (err: any) {
+    console.error("❌ ERRO GERAL GET:", err)
+
     return NextResponse.json(
-      { error: "Erro interno" },
+      { error: err.message || String(err) },
       { status: 500 }
     )
   }

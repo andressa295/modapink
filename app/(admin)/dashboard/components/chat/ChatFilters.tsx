@@ -25,7 +25,7 @@ export default function ChatFilters({ onChange, counts }: Props) {
   useEffect(() => {
     async function loadSessions() {
       try {
-        const res = await fetch("/api/whatsapp")
+        const res = await fetch("/api/whatsapp/session")
         const data = await res.json()
 
         setSessions(data)

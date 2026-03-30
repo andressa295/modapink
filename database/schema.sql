@@ -265,3 +265,75 @@ create table if not exists whatsapp_sessions (
 alter table whatsapp_sessions add column if not exists store_id bigint;
 alter table whatsapp_sessions add column if not exists setor text;
 alter table whatsapp_sessions add column if not exists is_default boolean default false;
+
+alter table whatsapp_sessions enable row level security;
+create policy "allow all"
+on whatsapp_sessions
+for all
+using (true)
+with check (true);
+
+alter table conversations 
+add column if not exists session_id uuid 
+references whatsapp_sessions(id) on delete set null;
+create table if not exists ratings (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid references conversations(id) on delete cascade,
+  score int check (score between 1 and 5),
+  feedback text,
+  created_at timestamp default now()
+);
+alter table conversations
+add column if not exists first_response_at timestamp;
+
+alter table conversations
+add column if not exists last_agent_message_at timestamp;
+
+alter table conversations
+add column if not exists closed_at timestamp;
+alter table conversations
+add column if not exists assigned_agent_id uuid 
+references agents(id) on delete set null;
+alter table automations
+add column if not exists flow jsonb;
+alter table whatsapp_sessions
+add column if not exists name text;
+
+alter table whatsapp_sessions
+add column if not exists user_id uuid;
+create table if not exists events (
+  id uuid primary key default gen_random_uuid(),
+  type text,
+  conversation_id uuid,
+  payload jsonb,
+  created_at timestamp default now()
+);
+alter table whatsapp_sessions
+add column if not exists name text;
+
+alter table whatsapp_sessions
+add column if not exists user_id uuid;
+
+alter table whatsapp_sessions
+add column if not exists store_id bigint;
+
+alter table whatsapp_sessions
+add column if not exists status text default 'offline';
+
+alter table whatsapp_sessions
+add column if not exists is_connected boolean default false;
+
+alter table whatsapp_sessions
+add column if not exists last_seen timestamp;
+
+alter table whatsapp_sessions
+add column if not exists deleted_at timestamp;
+
+create unique index if not exists unique_active_phone
+on whatsapp_sessions(phone)
+where deleted_at is null;
+create policy "Allow all"
+on whatsapp_sessions
+for all
+using (true)
+with check (true);

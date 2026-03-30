@@ -14,14 +14,13 @@ type Message = {
   type: "client" | "agent"
 }
 
-export default function ChatWindow() {
+// 🔥 URL DO BOT (PADRÃO GLOBAL)
+const API_BOT = "https://modapink.phand.com.br/bot"
 
+export default function ChatWindow() {
   const { activeSession } = useSession()
 
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: "Meu pedido não chegou, é o 4821", type: "client" },
-  ])
-
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [clientData, setClientData] = useState<any>(null)
 
@@ -58,7 +57,7 @@ export default function ChatWindow() {
 
     setClientData(data)
 
-    // 🔥 RESPOSTA AUTOMÁTICA
+    // 🔥 resposta automática
     const autoReply: Message = {
       id: Date.now() + 1,
       type: "agent",
@@ -71,7 +70,7 @@ Envio: ${order.shipping}`,
   }
 
   // ========================
-  // 📤 ENVIO AGENTE
+  // 📤 ENVIO AGENTE → WHATSAPP
   // ========================
   async function sendMessage() {
     if (!input.trim()) return
@@ -84,13 +83,14 @@ Envio: ${order.shipping}`,
       type: "agent",
     }
 
+    // UI instantânea
     setMessages(prev => [...prev, newMsg])
     setInput("")
 
-    // 🔥 ENVIO REAL (PRONTO PRA BOT)
+    // 🔥 ENVIO REAL PRO BOT
     if (activeSession) {
       try {
-        await fetch("/bot/send", {
+        const res = await fetch(`${API_BOT}/send`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -100,6 +100,11 @@ Envio: ${order.shipping}`,
             message: text
           })
         })
+
+        if (!res.ok) {
+          console.error("Erro ao enviar mensagem:", await res.text())
+        }
+
       } catch (err) {
         console.error("Erro ao enviar mensagem:", err)
       }
@@ -107,7 +112,7 @@ Envio: ${order.shipping}`,
   }
 
   // ========================
-  // 📥 RECEBE CLIENTE (SIMULAÇÃO)
+  // 📥 RECEBER CLIENTE (mock / futuro realtime)
   // ========================
   async function receiveClientMessage(text: string) {
     const newMsg: Message = {
@@ -120,6 +125,19 @@ Envio: ${order.shipping}`,
 
     await handleIncomingMessage(text)
   }
+
+  // ========================
+  // 🧪 MOCK INICIAL (remover depois)
+  // ========================
+  useEffect(() => {
+    setMessages([
+      {
+        id: 1,
+        text: "Olá, preciso de ajuda com meu pedido",
+        type: "client"
+      }
+    ])
+  }, [])
 
   return (
     <div className="chat-window">
@@ -170,7 +188,7 @@ Envio: ${order.shipping}`,
           Enviar
         </button>
 
-        {/* 🔥 TESTE */}
+        {/* 🔥 SIMULADOR */}
         <button
           onClick={() =>
             receiveClientMessage("Meu pedido é #4821")
