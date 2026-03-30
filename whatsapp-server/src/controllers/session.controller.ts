@@ -1,9 +1,8 @@
-// controllers/session.controller.ts
-
+import { Request, Response } from "express"
 import { sessions } from "../sessions/sessions.store"
 import { createSession } from "../services/whatsapp.service"
 
-export function create(req, res) {
+export function create(req: Request, res: Response) {
   const { sessionId, name } = req.body
 
   if (!sessionId) {
@@ -12,16 +11,16 @@ export function create(req, res) {
 
   createSession(sessionId, name)
 
-  res.json({ ok: true })
+  return res.json({ ok: true })
 }
 
-export function list(req, res) {
-  res.json(
+export function list(req: Request, res: Response) {
+  return res.json(
     Object.values(sessions).map((s) => ({
       id: s.id,
       name: s.name,
       ready: s.ready,
-      hasQr: !!s.qr
+      hasQr: !!s.qr,
     }))
   )
 }
