@@ -337,3 +337,30 @@ on whatsapp_sessions
 for all
 using (true)
 with check (true);
+alter table whatsapp_sessions
+add column session_key text;
+ALTER TABLE whatsapp_sessions
+ADD COLUMN setor text;
+ALTER TABLE whatsapp_sessions
+ADD CONSTRAINT unique_session_key UNIQUE (session_key);
+
+
+alter table messages add column if not exists type text default 'text';
+alter table messages add column if not exists external_id text;
+alter table messages add column if not exists status text default 'sent';
+alter table messages add column if not exists metadata jsonb;
+
+alter table conversations 
+add column if not exists state text default 'idle';
+
+alter table customers add column if not exists email text;
+alter table customers add column if not exists tags text[];
+alter table customers add column if not exists metadata jsonb;
+
+alter table customers add column if not exists store_id bigint;
+alter table conversations add column if not exists store_id bigint;
+alter table messages add column if not exists store_id bigint;
+
+alter table stores add column name text;
+alter table stores add column phone_number_id text;
+alter table stores add column status text default 'online';

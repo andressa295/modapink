@@ -1,3 +1,12 @@
+/* =========================
+   RESET
+========================= */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
 .chat-app {
   display: grid;
   grid-template-columns: 320px 1fr;
@@ -6,38 +15,22 @@
   font-family: "Poppins", sans-serif;
 }
 
-/* SIDEBAR */
+/* =========================
+   SIDEBAR
+========================= */
 .sidebar {
-  background: #fff;
+  background: #ffffff;
   border-right: 1px solid #eee;
-}
-
-/* FILTROS */
-.filters {
   display: flex;
-  gap: 6px;
-  padding: 12px;
+  flex-direction: column;
+  overflow-y: auto;
 }
 
-.filters button {
-  border: none;
-  background: transparent;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  cursor: pointer;
-  color: #666;
-}
-
-.filters button.active {
-  background: #ffe3f6;
-  color: #ff4ecd;
-}
-
-/* CHAT ITEM */
 .chat-item {
-  padding: 14px 16px;
+  padding: 16px 18px;
   cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+  transition: all 0.2s ease;
 }
 
 .chat-item:hover {
@@ -45,131 +38,173 @@
 }
 
 .chat-item.active {
-  background: #f4f2ff;
+  background: rgba(255, 78, 205, 0.08);
+  border-left: 3px solid #ff4ecd;
 }
 
-.chat-top {
-  display: flex;
-  justify-content: space-between;
+.chat-item strong {
+  display: block;
+  font-size: 14px;
+  color: #222;
 }
 
-.chat-item p {
+.chat-sub {
   font-size: 12px;
   color: #888;
-  margin-top: 4px;
 }
 
-/* TAG */
-.tag {
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.tag.vendas { background: #ffe3f6; color: #ff4ecd; }
-.tag.sac { background: #e3f0ff; color: #5b86ff; }
-.tag.financeiro { background: #e6ffe8; color: #2ecc71; }
-
-/* CHAT */
+/* =========================
+   CHAT
+========================= */
 .chat {
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
-/* HEADER */
+/* =========================
+   HEADER
+========================= */
 .header {
+  height: 70px;
   padding: 16px 20px;
-  background: #fff;
+  background: #ffffff;
   border-bottom: 1px solid #eee;
   display: flex;
-  justify-content: space-between;
-}
-
-.header-left {
-  display: flex;
-  gap: 10px;
   align-items: center;
 }
 
-.channel {
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 999px;
+.header strong {
+  display: block;
+  font-size: 15px;
+  color: #222;
 }
 
-.channel.vendas { background: #ffe3f6; color: #ff4ecd; }
-.channel.sac { background: #e3f0ff; color: #5b86ff; }
-.channel.financeiro { background: #e6ffe8; color: #2ecc71; }
-
-/* ACTIONS */
-.actions {
-  display: flex;
-  gap: 6px;
-}
-
-.chip {
-  border: none;
-  background: #f3f4f8;
-  padding: 6px 10px;
-  border-radius: 999px;
+.header span {
   font-size: 12px;
-  cursor: pointer;
+  color: #888;
 }
 
-.chip:hover {
-  background: #e9ebf2;
-}
-
-/* MESSAGES */
+/* =========================
+   MESSAGES
+========================= */
 .messages {
   flex: 1;
   padding: 24px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
-/* BUBBLES */
+/* =========================
+   BUBBLES
+========================= */
 .bubble {
-  max-width: 60%;
-  padding: 10px 14px;
-  border-radius: 18px;
-  font-size: 13px;
+  max-width: 65%;
+  padding: 12px 14px;
+  border-radius: 16px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
+/* cliente */
 .bubble.client {
-  background: #f1f1f1;
+  background: #ffffff;
+  color: #222;
+  align-self: flex-start;
+  border: 1px solid #eee;
 }
 
+/* agente */
 .bubble.me {
   background: #ff4ecd;
-  color: white;
+  color: #fff;
   align-self: flex-end;
+  box-shadow: 0 6px 16px rgba(255, 78, 205, 0.25);
 }
 
-/* INPUT */
+/* =========================
+   INPUT
+========================= */
 .input {
   padding: 14px;
-  background: #fff;
+  background: #ffffff;
   border-top: 1px solid #eee;
   display: flex;
+  gap: 10px;
 }
 
 .input input {
   flex: 1;
-  border: none;
-  background: #f3f4f8;
-  padding: 12px;
+  padding: 14px 16px;
   border-radius: 999px;
+  border: 1px solid #e5e5e5;
+  font-size: 14px;
+  outline: none;
+  transition: 0.2s;
+}
+
+.input input:focus {
+  border-color: #ff4ecd;
+  box-shadow: 0 0 0 2px rgba(255, 78, 205, 0.1);
 }
 
 .input button {
-  margin-left: 10px;
+  padding: 0 22px;
+  border-radius: 999px;
   border: none;
   background: #ff4ecd;
-  color: white;
-  padding: 10px 18px;
-  border-radius: 999px;
+  color: #fff;
+  font-weight: 500;
   cursor: pointer;
+  transition: 0.2s;
+}
+
+.input button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(255, 78, 205, 0.25);
+}
+
+.input button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================
+   EMPTY STATE
+========================= */
+.empty {
+  text-align: center;
+  color: #aaa;
+  font-size: 13px;
+  margin-top: 40px;
+}
+
+/* =========================
+   SCROLLBAR (premium)
+========================= */
+.messages::-webkit-scrollbar,
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages::-webkit-scrollbar-thumb,
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+}
+
+/* =========================
+   RESPONSIVO
+========================= */
+@media (max-width: 900px) {
+  .chat-app {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
 }

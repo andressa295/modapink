@@ -3,145 +3,211 @@
 import { useEffect, useRef, useState } from "react"
 import "../styles/chat.css"
 
-const API = "https://modapink.phand.com.br/bot"
+const API = process.env.NEXT_PUBLIC_API_URL!
 
-type Session = {
+type Conversation = {
   id: string
-  ready: boolean
+  customer_name: string
+  customer_phone: string
+  store_id: string
 }
 
 type Message = {
-  id: number
-  body: string
-  fromMe: boolean
-}
-
-type Conversation = {
-  contact: string
-  channel: "VENDAS" | "SAC" | "FINANCEIRO"
-  messages: Message[]
+  id: string
+  content: string
+  sender: "user" | "agent" | "bot"
+  created_at: string
 }
 
 export default function Conversas() {
-  const [sessions, setSessions] = useState<Session[]>([])
-  const [selectedSession, setSelectedSession] = useState<string | null>(null)
-
   const [conversations, setConversations] = useState<Conversation[]>([])
-  const [selectedConv, setSelectedConv] = useState<Conversation | null>(null)
+  const [selected, setSelected] = useState<Conversation | null>(null)
 
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
-  const [filter, setFilter] = useState("ALL")
+
+  const [loadingConversations, setLoadingConversations] = useState(true)
+  const [initialLoadingMessages, setInitialLoadingMessages] = useState(true)
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
   // ========================
-  // AUTO SCROLL (CORRIGIDO)
-  // ========================
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [selectedConv?.messages])
-
-  // ========================
-  // LOAD SESSIONS
-  // ========================
-  async function loadSessions() {
-    const res = await fetch(`${API}/sessions`, { cache: "no-store" })
-    const data = await res.json()
-
-    setSessions(data)
-
-    if (!selectedSession && data.length) {
-      setSelectedSession(data[0].id)
-    }
-  }
-
-  // ========================
-  // LOAD CONVERSAS (FIX)
+  // LOAD CONVERSAS
   // ========================
   async function loadConversations() {
-    if (!selectedSession) return
+    try {
+      const res = await fetch(`${API}/conversations`, { cache: "no-store" })
 
-    const res = await fetch(`${API}/conversations/${selectedSession}`, {
-      cache: "no-store"
-    })
+      if (!res.ok) throw new Error("Erro ao buscar conversas")
 
-    const data = await res.json()
+      const data = await res.json()
 
-    setConversations(data)
+      setConversations(data)
 
-    // 🔥 SINCRONIZA CONVERSA SELECIONADA
-    if (selectedConv) {
-      const updated = data.find(
-        (c: Conversation) => c.contact === selectedConv.contact
-      )
-
-      if (updated) {
-        setSelectedConv(updated)
+      if (!selected && data.length > 0) {
+        setSelected(data[0])
       }
-    } else if (data.length) {
-      setSelectedConv(data[0])
+
+    } catch (err) {
+      console.error("❌ conversas:", err)
+    } finally {
+      setLoadingConversations(false)
     }
   }
+
+  // ========================
+  // LOAD MESSAGES
+  // ========================
+  async function loadMessages(silent = false) {
+    if (!selected) return
+
+    try {
+      if (!silent && messages.length === 0) {
+        setInitialLoadingMessages(true)
+      }
+
+      const res = await fetch(
+        `${API}/messages?conversation_id=${selected.id}`,
+        { cache: "no-store" }
+      )
+
+      if (!res.ok) throw new Error("Erro ao buscar mensagens")
+
+      const data: Message[] = await res.json()
+
+      const lastLocal = messages[messages.length - 1]?.id
+      const lastRemote = data[data.length - 1]?.id
+
+      if (lastLocal !== lastRemote) {
+        setMessages(data)
+      }
+
+    } catch (err) {
+      console.error("❌ mensagens:", err)
+    } finally {
+      setInitialLoadingMessages(false)
+    }
+  }
+
+  // ========================
+  // INIT
+  // ========================
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
+  // ========================
+  // TROCA DE CONVERSA
+  // ========================
+  useEffect(() => {
+    if (!selected) return
+
+    setMessages([])
+    setInitialLoadingMessages(true)
+
+    loadMessages()
+  }, [selected?.id])
 
   // ========================
   // POLLING
   // ========================
   useEffect(() => {
-    loadSessions()
-    loadConversations()
+    if (!selected) return
 
     const interval = setInterval(() => {
-      loadSessions()
-      loadConversations()
+      loadMessages(true)
     }, 2000)
 
     return () => clearInterval(interval)
-  }, [selectedSession])
+  }, [selected?.id])
 
   // ========================
-  // ENVIAR
+  // AUTO SCROLL
+  // ========================
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
+
+  // ========================
+  // SEND MESSAGE
   // ========================
   async function sendMessage() {
-    if (!input.trim() || !selectedConv || !selectedSession) return
+    if (!input.trim() || !selected) return
+
+    if (!selected.store_id) {
+      console.error("❌ store_id inválido")
+      return
+    }
 
     const text = input
     setInput("")
 
-    await fetch(`${API}/send`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        sessionId: selectedSession,
-        contact: selectedConv.contact,
-        message: text
-      })
-    })
+    const tempId = "temp-" + Date.now()
 
-    // ❌ NÃO atualiza local manualmente
-    // ✔ deixa o polling atualizar corretamente
-  }
-
-  // ========================
-  // MUDAR CANAL
-  // ========================
-  async function changeChannel(channel: string) {
-    if (!selectedConv || !selectedSession) return
-
-    await fetch(
-      `${API}/conversations/${selectedSession}/${selectedConv.contact}/channel`,
+    // UI otimista
+    setMessages(prev => [
+      ...prev,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel })
+        id: tempId,
+        content: text,
+        sender: "agent",
+        created_at: new Date().toISOString()
       }
-    )
-  }
+    ])
 
-  const filtered = conversations.filter(c =>
-    filter === "ALL" ? true : c.channel === filter
-  )
+    try {
+      const res = await fetch(`${API}/send-message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          phone: selected.customer_phone,
+          message: text,
+          store_id: selected.store_id
+        })
+      })
+
+      let data: any = null
+
+      try {
+        data = await res.json()
+      } catch {
+        console.error("❌ resposta inválida da API")
+      }
+
+      // 🔥 CORREÇÃO PRINCIPAL
+      if (!res.ok) {
+        const errorMsg =
+          data?.error ||
+          data?.message ||
+          JSON.stringify(data) ||
+          "Erro desconhecido"
+
+        console.error("❌ ERRO REAL:", errorMsg)
+
+        // remove mensagem fake
+        setMessages(prev => prev.filter(m => m.id !== tempId))
+
+        // 💥 feedback visual opcional
+        alert(errorMsg)
+
+        return
+      }
+
+      // atualiza lista real
+      setTimeout(() => {
+        loadMessages(true)
+      }, 300)
+
+    } catch (err: any) {
+      console.error("❌ envio:", err?.message || err)
+
+      setMessages(prev => prev.filter(m => m.id !== tempId))
+
+      alert("Erro de conexão com servidor")
+    }
+  }
 
   return (
     <div className="chat-app">
@@ -149,77 +215,65 @@ export default function Conversas() {
       {/* SIDEBAR */}
       <div className="sidebar">
 
-        <div className="filters">
-          {["ALL", "VENDAS", "SAC", "FINANCEIRO"].map(f => (
-            <button
-              key={f}
-              className={filter === f ? "active" : ""}
-              onClick={() => setFilter(f)}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
+        {loadingConversations && (
+          <div className="empty">Carregando...</div>
+        )}
 
-        {filtered.map(c => (
+        {!loadingConversations && conversations.length === 0 && (
+          <div className="empty">Nenhuma conversa ainda</div>
+        )}
+
+        {conversations.map(c => (
           <div
-            key={c.contact}
-            className={`chat-item ${
-              selectedConv?.contact === c.contact ? "active" : ""
-            }`}
-            onClick={() => setSelectedConv(c)}
+            key={c.id}
+            className={`chat-item ${selected?.id === c.id ? "active" : ""}`}
+            onClick={() => setSelected(c)}
           >
-            <div className="chat-top">
-              <strong>{c.contact}</strong>
-              <span className={`tag ${c.channel.toLowerCase()}`}>
-                {c.channel}
-              </span>
-            </div>
-
-            <p>{c.messages.at(-1)?.body}</p>
+            <strong>{c.customer_name || "Cliente"}</strong>
+            <span className="chat-sub">{c.customer_phone}</span>
           </div>
         ))}
-
       </div>
 
       {/* CHAT */}
       <div className="chat">
 
+        {/* HEADER */}
         <div className="header">
-          <div className="header-left">
-            <strong>
-              {selectedConv?.contact || "Selecione uma conversa"}
-            </strong>
-
-            {selectedConv && (
-              <span className={`channel ${selectedConv.channel.toLowerCase()}`}>
-                {selectedConv.channel}
-              </span>
-            )}
-          </div>
-
-          <div className="actions">
-            {["VENDAS", "SAC", "FINANCEIRO"].map(c => (
-              <button key={c} className="chip" onClick={() => changeChannel(c)}>
-                {c}
-              </button>
-            ))}
-          </div>
+          {selected ? (
+            <div>
+              <strong>{selected.customer_name || "Cliente"}</strong>
+              <span>{selected.customer_phone}</span>
+            </div>
+          ) : (
+            <span>Selecione uma conversa</span>
+          )}
         </div>
 
+        {/* MESSAGES */}
         <div className="messages">
-          {selectedConv?.messages.map(m => (
+
+          {initialLoadingMessages && (
+            <div className="empty">Carregando mensagens...</div>
+          )}
+
+          {!initialLoadingMessages && messages.length === 0 && (
+            <div className="empty">Nenhuma mensagem</div>
+          )}
+
+          {messages.map(m => (
             <div
               key={m.id}
-              className={`bubble ${m.fromMe ? "me" : "client"}`}
+              className={`bubble ${m.sender === "user" ? "client" : "me"}`}
             >
-              {m.body}
+              {m.content}
             </div>
           ))}
 
           <div ref={messagesEndRef} />
         </div>
 
+        {/* INPUT */}
         <div className="input">
           <input
             value={input}
@@ -228,15 +282,18 @@ export default function Conversas() {
             onKeyDown={e => {
               if (e.key === "Enter") sendMessage()
             }}
+            disabled={!selected}
           />
 
-          <button onClick={sendMessage}>
+          <button
+            onClick={sendMessage}
+            disabled={!selected || !input.trim()}
+          >
             Enviar
           </button>
         </div>
 
       </div>
-
     </div>
   )
 }

@@ -3,8 +3,6 @@ export async function POST(req: Request) {
 
   console.log("LGPD webhook:", body)
 
-  // 👉 depois você implementa lógica real
-  // por enquanto só responde OK
 
   return new Response("ok")
 }
