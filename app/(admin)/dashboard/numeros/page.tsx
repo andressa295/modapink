@@ -1,103 +1,158 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import "../styles/numeros.css"
 
-type Store = {
+type Session = {
   id: string
-  name: string
-  status: "online" | "offline"
-  phone_number_id: string
+  status: "connecting" | "ready" | "disconnected"
+  phone?: string
 }
 
 const API = "https://api.modapink.phand.com.br"
 
 export default function Numeros() {
-  const [stores, setStores] = useState<Store[]>([])
+  const [sessions, setSessions] = useState<Session[]>([])
   const [showModal, setShowModal] = useState(false)
+  const [sessionId, setSessionId] = useState("")
+  const [qr, setQr] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const [name, setName] = useState("")
-  const [phoneId, setPhoneId] = useState("")
-  const [token, setToken] = useState("")
+  // 🔥 refs pra controlar interval (evita bug)
+  const qrIntervalRef = useRef<any>(null)
+  const statusIntervalRef = useRef<any>(null)
 
   // =======================
-  // LOAD
+  // LOAD SESSIONS
   // =======================
-  async function loadStores() {
-    const res = await fetch(`${API}/stores`, { cache: "no-store" })
+  async function loadSessions() {
+    const res = await fetch(`${API}/sessions`, { cache: "no-store" })
     const data = await res.json()
-    setStores(data)
+    setSessions(data)
   }
 
   // =======================
-  // CREATE
+  // CREATE SESSION
   // =======================
-  async function createStore() {
-    await fetch(`${API}/stores`, {
+  async function createSession() {
+    if (!sessionId.trim()) return
+
+    setLoading(true)
+    setQr(null)
+
+    await fetch(`${API}/sessions/create`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name,
-        phone_number_id: phoneId,
-        access_token: token
-      })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId })
     })
 
-    setShowModal(false)
-    setName("")
-    setPhoneId("")
-    setToken("")
+    // 🔥 QR POLLING
+    qrIntervalRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/sessions/qr/${sessionId}`)
+        if (!res.ok) return
 
-    loadStores()
+        const data = await res.json()
+
+        if (data.qr) {
+          setQr(data.qr)
+          setLoading(false)
+        }
+      } catch {}
+    }, 1500)
+
+    // 🔥 STATUS POLLING (detectar quando conecta)
+    statusIntervalRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`${API}/sessions/status/${sessionId}`)
+        if (!res.ok) return
+
+        const data = await res.json()
+
+        if (data.status === "ready") {
+          clearAllIntervals()
+
+          setQr(null)
+          setShowModal(false)
+          setSessionId("")
+
+          loadSessions()
+        }
+      } catch {}
+    }, 2000)
+
+    loadSessions()
+  }
+
+  // =======================
+  // CLEAR INTERVALS
+  // =======================
+  function clearAllIntervals() {
+    if (qrIntervalRef.current) {
+      clearInterval(qrIntervalRef.current)
+    }
+
+    if (statusIntervalRef.current) {
+      clearInterval(statusIntervalRef.current)
+    }
   }
 
   // =======================
   // DELETE
   // =======================
-  async function removeStore(id: string) {
-    await fetch(`${API}/stores/${id}`, {
+  async function removeSession(id: string) {
+    await fetch(`${API}/sessions/${id}`, {
       method: "DELETE"
     })
 
-    loadStores()
+    loadSessions()
   }
 
+  // =======================
+  // INIT
+  // =======================
   useEffect(() => {
-    loadStores()
+    loadSessions()
+
+    return () => {
+      clearAllIntervals()
+    }
   }, [])
 
   return (
     <div className="numbers-page">
 
       <div className="numbers-header">
-        <h1>Números de WhatsApp</h1>
+        <h1>WhatsApp</h1>
 
         <button onClick={() => setShowModal(true)}>
-          + Adicionar Número
+          + Conectar número
         </button>
       </div>
 
       <div className="numbers-grid">
-        {stores.length === 0 && (
+        {sessions.length === 0 && (
           <p className="empty">Nenhum número conectado</p>
         )}
 
-        {stores.map((s) => (
+        {sessions.map((s) => (
           <div key={s.id} className="card">
 
-            <div className="card-title">{s.name}</div>
+            <div className="card-title">
+              {s.id}
+            </div>
 
             <div className="card-id">
-              {s.phone_number_id}
+              {s.phone || "Aguardando conexão"}
             </div>
 
-            <div className="status online">
-              🟢 Online
+            <div className={`status ${s.status}`}>
+              {s.status === "ready" && "🟢 Online"}
+              {s.status === "connecting" && "🟡 Conectando..."}
+              {s.status === "disconnected" && "🔴 Offline"}
             </div>
 
-            <button onClick={() => removeStore(s.id)}>
+            <button onClick={() => removeSession(s.id)}>
               Remover
             </button>
 
@@ -110,32 +165,41 @@ export default function Numeros() {
         <div className="modal">
           <div className="modal-box">
 
-            <h2>Adicionar Número</h2>
+            <h2>Conectar WhatsApp</h2>
 
             <input
-              placeholder="Nome (ex: Vendas)"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              placeholder="ID da sessão (ex: principal)"
+              value={sessionId}
+              onChange={(e) => setSessionId(e.target.value)}
             />
 
-            <input
-              placeholder="Phone Number ID (Meta)"
-              value={phoneId}
-              onChange={(e) => setPhoneId(e.target.value)}
-            />
-
-            <input
-              placeholder="Access Token"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-            />
-
-            <button onClick={createStore}>
-              Salvar
+            <button onClick={createSession}>
+              Gerar QR
             </button>
 
-            <button onClick={() => setShowModal(false)}>
-              Cancelar
+            {loading && (
+              <p className="loading">
+                Gerando QR...
+              </p>
+            )}
+
+            {qr && (
+              <div className="qr-box">
+                <img src={qr} />
+                <p>Escaneie no WhatsApp</p>
+              </div>
+            )}
+
+            <button
+              className="close"
+              onClick={() => {
+                clearAllIntervals()
+                setShowModal(false)
+                setQr(null)
+                setSessionId("")
+              }}
+            >
+              Fechar
             </button>
 
           </div>

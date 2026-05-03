@@ -1,83 +1,88 @@
-/* =========================
-   RESET
-========================= */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
 }
 
 .chat-app {
-  display: grid;
-  grid-template-columns: 320px 1fr;
+  display: flex;
   height: 100vh;
-  background: #faf9f6;
   font-family: "Poppins", sans-serif;
+  background: #FAF9F6;
 }
 
 /* =========================
    SIDEBAR
 ========================= */
+
 .sidebar {
+  width: 320px;
   background: #ffffff;
   border-right: 1px solid #eee;
-  display: flex;
-  flex-direction: column;
+  padding: 20px;
   overflow-y: auto;
 }
 
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 10px;
+}
+
 .chat-item {
-  padding: 16px 18px;
+  padding: 14px 14px;
+  border-radius: 12px;
   cursor: pointer;
-  border-bottom: 1px solid #f5f5f5;
+  margin-bottom: 10px;
   transition: all 0.2s ease;
 }
 
 .chat-item:hover {
-  background: #fafafa;
+  background: #f5f5f5;
 }
 
 .chat-item.active {
-  background: rgba(255, 78, 205, 0.08);
-  border-left: 3px solid #ff4ecd;
+  background: rgba(230, 0, 126, 0.08);
+  border-left: 3px solid #e6007e;
 }
 
 .chat-item strong {
   display: block;
   font-size: 14px;
+  font-weight: 500;
   color: #222;
 }
 
-.chat-sub {
+.chat-item span {
   font-size: 12px;
   color: #888;
 }
 
 /* =========================
-   CHAT
+   CHAT AREA
 ========================= */
+
 .chat {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  height: 100%;
 }
 
-/* =========================
-   HEADER
-========================= */
+/* HEADER */
+
 .header {
-  height: 70px;
-  padding: 16px 20px;
-  background: #ffffff;
+  padding: 18px 24px;
+  background: #fff;
   border-bottom: 1px solid #eee;
-  display: flex;
-  align-items: center;
 }
 
 .header strong {
   display: block;
   font-size: 15px;
-  color: #222;
+  font-weight: 600;
 }
 
 .header span {
@@ -88,123 +93,128 @@
 /* =========================
    MESSAGES
 ========================= */
+
 .messages {
   flex: 1;
-  padding: 24px;
+  padding: 30px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+}
+
+/* Scroll bonito */
+
+.messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 10px;
 }
 
 /* =========================
    BUBBLES
 ========================= */
+
 .bubble {
   max-width: 65%;
-  padding: 12px 14px;
+  padding: 12px 16px;
   border-radius: 16px;
   font-size: 14px;
   line-height: 1.4;
   word-break: break-word;
+  transition: 0.2s;
 }
 
-/* cliente */
+/* CLIENTE */
+
 .bubble.client {
   background: #ffffff;
-  color: #222;
   align-self: flex-start;
-  border: 1px solid #eee;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.05);
 }
 
-/* agente */
+/* VOCÊ */
+
 .bubble.me {
-  background: #ff4ecd;
-  color: #fff;
+  background: #e6007e;
+  color: white;
   align-self: flex-end;
-  box-shadow: 0 6px 16px rgba(255, 78, 205, 0.25);
+  box-shadow: 0 6px 18px rgba(230, 0, 126, 0.25);
 }
 
 /* =========================
    INPUT
 ========================= */
+
 .input {
-  padding: 14px;
+  display: flex;
+  padding: 18px;
   background: #ffffff;
   border-top: 1px solid #eee;
-  display: flex;
   gap: 10px;
 }
 
 .input input {
   flex: 1;
-  padding: 14px 16px;
-  border-radius: 999px;
-  border: 1px solid #e5e5e5;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  font-family: "Poppins";
   font-size: 14px;
   outline: none;
   transition: 0.2s;
 }
 
 .input input:focus {
-  border-color: #ff4ecd;
-  box-shadow: 0 0 0 2px rgba(255, 78, 205, 0.1);
+  border-color: #e6007e;
+  box-shadow: 0 0 0 2px rgba(230, 0, 126, 0.1);
 }
 
 .input button {
-  padding: 0 22px;
-  border-radius: 999px;
+  background: #e6007e;
+  color: white;
   border: none;
-  background: #ff4ecd;
-  color: #fff;
-  font-weight: 500;
+  padding: 12px 18px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: 0.2s;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .input button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 14px rgba(255, 78, 205, 0.25);
+  box-shadow: 0 6px 20px rgba(230, 0, 126, 0.25);
 }
 
 .input button:disabled {
-  opacity: 0.5;
+  background: #ccc;
   cursor: not-allowed;
 }
 
 /* =========================
-   EMPTY STATE
+   EMPTY STATES
 ========================= */
+
 .empty {
   text-align: center;
-  color: #aaa;
+  color: #999;
   font-size: 13px;
   margin-top: 40px;
 }
 
 /* =========================
-   SCROLLBAR (premium)
-========================= */
-.messages::-webkit-scrollbar,
-.sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.messages::-webkit-scrollbar-thumb,
-.sidebar::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.08);
-  border-radius: 10px;
-}
-
-/* =========================
    RESPONSIVO
 ========================= */
+
 @media (max-width: 900px) {
-  .chat-app {
-    grid-template-columns: 1fr;
+  .sidebar {
+    width: 240px;
   }
 
-  .sidebar {
-    display: none;
+  .bubble {
+    max-width: 80%;
   }
 }

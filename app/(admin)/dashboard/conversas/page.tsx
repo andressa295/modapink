@@ -5,208 +5,135 @@ import "../styles/chat.css"
 
 const API = process.env.NEXT_PUBLIC_API_URL!
 
-type Conversation = {
-  id: string
-  customer_name: string
-  customer_phone: string
-  store_id: string
-}
-
-type Message = {
-  id: string
-  content: string
-  sender: "user" | "agent" | "bot"
-  created_at: string
-}
-
 export default function Conversas() {
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [selected, setSelected] = useState<Conversation | null>(null)
-
-  const [messages, setMessages] = useState<Message[]>([])
+  const [conversations, setConversations] = useState<any[]>([])
+  const [selected, setSelected] = useState<any>(null)
+  const [messages, setMessages] = useState<any[]>([])
   const [input, setInput] = useState("")
+  const [loadingMessages, setLoadingMessages] = useState(false)
+  const [sending, setSending] = useState(false)
 
-  const [loadingConversations, setLoadingConversations] = useState(true)
-  const [initialLoadingMessages, setInitialLoadingMessages] = useState(true)
+  const messagesRef = useRef<HTMLDivElement | null>(null)
+  const shouldScrollRef = useRef(true)
 
-  const messagesEndRef = useRef<HTMLDivElement | null>(null)
-
-  // ========================
+  // ======================
   // LOAD CONVERSAS
-  // ========================
+  // ======================
   async function loadConversations() {
-    try {
-      const res = await fetch(`${API}/conversations`, { cache: "no-store" })
+    const res = await fetch(`${API}/conversations`, { cache: "no-store" })
+    const data = await res.json()
 
-      if (!res.ok) throw new Error("Erro ao buscar conversas")
+    setConversations(data)
 
-      const data = await res.json()
-
-      setConversations(data)
-
-      if (!selected && data.length > 0) {
-        setSelected(data[0])
-      }
-
-    } catch (err) {
-      console.error("❌ conversas:", err)
-    } finally {
-      setLoadingConversations(false)
+    if (!selected && data.length > 0) {
+      setSelected(data[0])
     }
   }
 
-  // ========================
+  // ======================
   // LOAD MESSAGES
-  // ========================
-  async function loadMessages(silent = false) {
-    if (!selected) return
+  // ======================
+  async function loadMessages(conversationId?: string) {
+    const id = conversationId || selected?.id
+    if (!id) return
 
-    try {
-      if (!silent && messages.length === 0) {
-        setInitialLoadingMessages(true)
-      }
+    setLoadingMessages(true)
 
-      const res = await fetch(
-        `${API}/messages?conversation_id=${selected.id}`,
-        { cache: "no-store" }
-      )
+    const res = await fetch(
+      `${API}/messages?conversation_id=${id}`,
+      { cache: "no-store" }
+    )
 
-      if (!res.ok) throw new Error("Erro ao buscar mensagens")
+    const data = await res.json()
 
-      const data: Message[] = await res.json()
+    const lastLocal = messages[messages.length - 1]?.id
+    const lastRemote = data[data.length - 1]?.id
 
-      const lastLocal = messages[messages.length - 1]?.id
-      const lastRemote = data[data.length - 1]?.id
-
-      if (lastLocal !== lastRemote) {
-        setMessages(data)
-      }
-
-    } catch (err) {
-      console.error("❌ mensagens:", err)
-    } finally {
-      setInitialLoadingMessages(false)
+    if (lastLocal !== lastRemote) {
+      setMessages(data)
     }
+
+    setLoadingMessages(false)
   }
 
-  // ========================
+  // ======================
   // INIT
-  // ========================
+  // ======================
   useEffect(() => {
     loadConversations()
   }, [])
 
-  // ========================
+  // ======================
   // TROCA DE CONVERSA
-  // ========================
+  // ======================
   useEffect(() => {
-    if (!selected) return
+    if (selected) {
+      setMessages([])
+      loadMessages(selected.id)
+    }
+  }, [selected])
 
-    setMessages([])
-    setInitialLoadingMessages(true)
-
-    loadMessages()
-  }, [selected?.id])
-
-  // ========================
+  // ======================
   // POLLING
-  // ========================
+  // ======================
   useEffect(() => {
-    if (!selected) return
-
     const interval = setInterval(() => {
-      loadMessages(true)
-    }, 2000)
+      loadConversations()
+      loadMessages()
+    }, 2500)
 
     return () => clearInterval(interval)
-  }, [selected?.id])
+  }, [selected])
 
-  // ========================
-  // AUTO SCROLL
-  // ========================
+  // ======================
+  // SCROLL INTELIGENTE
+  // ======================
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    if (!messagesRef.current) return
+
+    if (shouldScrollRef.current) {
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight
+    }
   }, [messages])
 
-  // ========================
-  // SEND MESSAGE
-  // ========================
-  async function sendMessage() {
-    if (!input.trim() || !selected) return
+  function handleScroll() {
+    if (!messagesRef.current) return
 
-    if (!selected.store_id) {
-      console.error("❌ store_id inválido")
-      return
-    }
+    const { scrollTop, scrollHeight, clientHeight } = messagesRef.current
+
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
+    shouldScrollRef.current = isNearBottom
+  }
+
+  // ======================
+  // SEND
+  // ======================
+  async function sendMessage() {
+    if (!input.trim() || !selected || sending) return
 
     const text = input
     setInput("")
-
-    const tempId = "temp-" + Date.now()
-
-    // UI otimista
-    setMessages(prev => [
-      ...prev,
-      {
-        id: tempId,
-        content: text,
-        sender: "agent",
-        created_at: new Date().toISOString()
-      }
-    ])
+    setSending(true)
 
     try {
-      const res = await fetch(`${API}/send-message`, {
+      await fetch(`${API}/send-message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
           phone: selected.customer_phone,
-          message: text,
-          store_id: selected.store_id
+          message: text
         })
       })
 
-      let data: any = null
-
-      try {
-        data = await res.json()
-      } catch {
-        console.error("❌ resposta inválida da API")
-      }
-
-      // 🔥 CORREÇÃO PRINCIPAL
-      if (!res.ok) {
-        const errorMsg =
-          data?.error ||
-          data?.message ||
-          JSON.stringify(data) ||
-          "Erro desconhecido"
-
-        console.error("❌ ERRO REAL:", errorMsg)
-
-        // remove mensagem fake
-        setMessages(prev => prev.filter(m => m.id !== tempId))
-
-        // 💥 feedback visual opcional
-        alert(errorMsg)
-
-        return
-      }
-
-      // atualiza lista real
-      setTimeout(() => {
-        loadMessages(true)
-      }, 300)
-
-    } catch (err: any) {
-      console.error("❌ envio:", err?.message || err)
-
-      setMessages(prev => prev.filter(m => m.id !== tempId))
-
-      alert("Erro de conexão com servidor")
+      shouldScrollRef.current = true
+      await loadMessages()
+    } catch (err) {
+      console.error("Erro ao enviar mensagem")
     }
+
+    setSending(false)
   }
 
   return (
@@ -214,13 +141,8 @@ export default function Conversas() {
 
       {/* SIDEBAR */}
       <div className="sidebar">
-
-        {loadingConversations && (
-          <div className="empty">Carregando...</div>
-        )}
-
-        {!loadingConversations && conversations.length === 0 && (
-          <div className="empty">Nenhuma conversa ainda</div>
+        {conversations.length === 0 && (
+          <p className="empty">Nenhuma conversa ainda</p>
         )}
 
         {conversations.map(c => (
@@ -230,7 +152,7 @@ export default function Conversas() {
             onClick={() => setSelected(c)}
           >
             <strong>{c.customer_name || "Cliente"}</strong>
-            <span className="chat-sub">{c.customer_phone}</span>
+            <span>{c.customer_phone}</span>
           </div>
         ))}
       </div>
@@ -241,24 +163,27 @@ export default function Conversas() {
         {/* HEADER */}
         <div className="header">
           {selected ? (
-            <div>
+            <>
               <strong>{selected.customer_name || "Cliente"}</strong>
               <span>{selected.customer_phone}</span>
-            </div>
+            </>
           ) : (
             <span>Selecione uma conversa</span>
           )}
         </div>
 
         {/* MESSAGES */}
-        <div className="messages">
-
-          {initialLoadingMessages && (
-            <div className="empty">Carregando mensagens...</div>
+        <div
+          className="messages"
+          ref={messagesRef}
+          onScroll={handleScroll}
+        >
+          {loadingMessages && (
+            <p className="empty">Carregando...</p>
           )}
 
-          {!initialLoadingMessages && messages.length === 0 && (
-            <div className="empty">Nenhuma mensagem</div>
+          {!loadingMessages && messages.length === 0 && (
+            <p className="empty">Nenhuma mensagem</p>
           )}
 
           {messages.map(m => (
@@ -269,8 +194,6 @@ export default function Conversas() {
               {m.content}
             </div>
           ))}
-
-          <div ref={messagesEndRef} />
         </div>
 
         {/* INPUT */}
@@ -279,17 +202,13 @@ export default function Conversas() {
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Digite uma mensagem..."
-            onKeyDown={e => {
+            onKeyDown={(e) => {
               if (e.key === "Enter") sendMessage()
             }}
-            disabled={!selected}
           />
 
-          <button
-            onClick={sendMessage}
-            disabled={!selected || !input.trim()}
-          >
-            Enviar
+          <button onClick={sendMessage} disabled={sending}>
+            {sending ? "..." : "Enviar"}
           </button>
         </div>
 
