@@ -21,187 +21,213 @@
   color: #1f1f1f;
 }
 
-.numbers-header button {
+.btn-add {
   background: #e6007e;
   color: white;
   border: none;
-  padding: 12px 18px;
+  padding: 12px 24px;
   border-radius: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: 0.2s;
+  transition: 0.3s;
 }
 
-.numbers-header button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(230, 0, 126, 0.2);
+.btn-add:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(230, 0, 126, 0.25);
 }
 
-/* GRID */
+/* GRID DE CARDS */
 .numbers-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 25px;
 }
 
-/* CARD */
+.empty-state {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px;
+  color: #888;
+  background: #fff;
+  border-radius: 20px;
+  border: 2px dashed #eee;
+}
+
+/* CARD INDIVIDUAL */
 .card {
   background: white;
-  border-radius: 16px;
-  padding: 22px;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.05);
-  transition: 0.2s;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(0,0,0,0.02);
+  transition: 0.3s;
 }
 
 .card:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px);
+  box-shadow: 0 15px 45px rgba(0,0,0,0.07);
 }
 
-.card-title {
-  font-weight: 600;
-  font-size: 16px;
-  margin-bottom: 6px;
-}
-
-.card-id {
-  font-size: 13px;
-  color: #888;
-  margin-bottom: 14px;
-}
-
-/* STATUS */
-.status {
-  font-size: 13px;
-  font-weight: 500;
-  margin-bottom: 14px;
-}
-
-.status.ready {
-  color: #00b894;
-}
-
-.status.connecting {
-  color: #f39c12;
-}
-
-.status.disconnected {
-  color: #e74c3c;
-}
-
-/* BOTÃO */
-.card button {
-  width: 100%;
-  background: #f4f4f4;
-  border: none;
-  padding: 10px;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-.card button:hover {
-  background: #ececec;
-}
-
-/* EMPTY */
-.empty {
-  color: #999;
-  font-size: 14px;
-}
-
-/* MODAL */
-.modal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* BOX */
-.modal-box {
-  background: white;
-  padding: 32px;
-  border-radius: 18px;
-  width: 360px;
-  text-align: center;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.1);
-}
-
-.modal-box h2 {
-  margin-bottom: 18px;
-  font-size: 20px;
+.card-header .badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #e6007e;
+  background: rgba(230, 0, 126, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
   font-weight: 600;
 }
 
-/* INPUT */
-.modal-box input {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 14px;
-  border-radius: 10px;
-  border: 1px solid #eee;
-  font-family: "Poppins";
-  outline: none;
-}
-
-.modal-box input:focus {
-  border-color: #e6007e;
-}
-
-/* BOTÕES */
-.modal-box button {
-  width: 100%;
-  padding: 12px;
-  margin-bottom: 10px;
-  border: none;
-  border-radius: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  background: #e6007e;
-  color: white;
-  transition: 0.2s;
-}
-
-.modal-box button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(230,0,126,0.2);
-}
-
-.modal-box .close {
-  background: #eee;
+.card-header h3 {
+  margin-top: 8px;
+  font-size: 18px;
   color: #333;
 }
 
-/* LOADING */
-.loading {
-  font-size: 13px;
-  color: #888;
-  margin-top: 10px;
+.card-body {
+  margin: 20px 0;
 }
 
-/* QR BOX (AGORA PERFEITO) */
-.qr-box {
-  margin-top: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.qr-box img {
-  width: 220px;
-  height: 220px;
-  object-fit: contain;
-  border-radius: 16px;
-  padding: 14px;
-  background: #fff;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-
-.qr-box p {
-  margin-top: 10px;
-  font-size: 13px;
+.card-body .phone {
+  font-size: 15px;
   color: #666;
+  margin-bottom: 10px;
+}
+
+/* STATUS COLORS */
+.status-indicator {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.status-indicator.ready { color: #00b894; }
+.status-indicator.connecting { color: #f39c12; }
+.status-indicator.disconnected { color: #e74c3c; }
+
+.btn-delete {
+  width: 100%;
+  background: #fdf2f2;
+  color: #e74c3c;
+  border: none;
+  padding: 10px;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-delete:hover {
+  background: #fee2e2;
+}
+
+/* MODAL OVERLAY */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background: white;
+  padding: 40px;
+  border-radius: 24px;
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 25px 70px rgba(0,0,0,0.15);
+}
+
+.modal-content h2 {
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.modal-content p {
+  color: #777;
+  font-size: 14px;
+  margin-bottom: 25px;
+}
+
+/* SELECT ESTILIZADO */
+.select-session {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #ddd;
+  background: #f9f9f9;
+  font-family: "Poppins";
+  font-size: 15px;
+  margin-bottom: 20px;
+  outline: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.select-session:focus {
+  border-color: #e6007e;
+  background: #fff;
+}
+
+.btn-primary {
+  width: 100%;
+  background: #e6007e;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-close {
+  margin-top: 15px;
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 14px;
+  text-decoration: underline;
+}
+
+/* QR CODE CONTAINER */
+.qr-container {
+  margin-top: 25px;
+  animation: fadeIn 0.5s ease;
+}
+
+.qr-container img {
+  width: 240px;
+  height: 240px;
+  background: white;
+  padding: 15px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  margin-bottom: 15px;
+}
+
+.qr-container p {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #555;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

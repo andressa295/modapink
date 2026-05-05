@@ -166,3 +166,26 @@
 ::-webkit-scrollbar-thumb {
   background: #ccc;
 }
+.vendedoras-tabs {
+  display: flex;
+  gap: 5px;
+  padding: 10px;
+  background: #f0f2f5;
+  border-bottom: 1px solid #ddd;
+  overflow-x: auto;
+}
+
+.vendedoras-tabs button {
+  padding: 8px 12px;
+  border-radius: 20px;
+  border: none;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.vendedoras-tabs button.active {
+  background: #25d366; /* Cor do WhatsApp */
+  color: white;
+}
