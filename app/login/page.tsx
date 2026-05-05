@@ -4,10 +4,12 @@ import { useState } from "react"
 import styles from "./login.module.css"
 import Image from "next/image"
 import SoftParticles from "../components/SoftParticles"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
 export default function AdminLoginPage() {
+  const supabase = createClient()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -19,10 +21,10 @@ export default function AdminLoginPage() {
     setLoading(true)
 
     try {
-      // 🔥 LIMPA QUALQUER SESSÃO QUEBRADA
+      // 🔥 limpa sessão anterior
       await supabase.auth.signOut()
 
-      // 🔐 LOGIN
+      // 🔐 login
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -34,18 +36,18 @@ export default function AdminLoginPage() {
         return
       }
 
-      // 🔥 GARANTE QUE A SESSÃO FOI SETADA
+      // 🔐 garante sessão
       const {
         data: { session },
       } = await supabase.auth.getSession()
 
       if (!session) {
-        alert("Erro ao iniciar sessão. Tente novamente.")
+        alert("Erro ao iniciar sessão")
         setLoading(false)
         return
       }
 
-      // 🔐 BUSCA ROLE COM SEGURANÇA
+      // 🔐 verifica role
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
@@ -53,7 +55,7 @@ export default function AdminLoginPage() {
         .maybeSingle()
 
       if (profileError) {
-        console.error("Erro ao buscar perfil:", profileError)
+        console.error(profileError)
         alert("Erro ao validar usuário")
         setLoading(false)
         return
@@ -66,12 +68,12 @@ export default function AdminLoginPage() {
         return
       }
 
-      // 🔥 REDIRECT FORÇADO (GARANTE COOKIE)
+      // 🚀 redirect
       window.location.href = "/dashboard"
 
     } catch (err) {
       console.error("Erro inesperado:", err)
-      alert("Erro inesperado ao fazer login")
+      alert("Erro inesperado")
       setLoading(false)
     }
   }

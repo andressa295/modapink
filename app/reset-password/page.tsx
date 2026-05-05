@@ -1,12 +1,14 @@
 "use client"
 
 import { useState } from "react"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import styles from "./reset-password.module.css"
 
 export default function ResetPassword() {
+  const supabase = createClient()
+
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -29,30 +31,35 @@ export default function ResetPassword() {
 
     setLoading(true)
 
-    const { error } = await supabase.auth.updateUser({
-      password
-    })
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password
+      })
 
-    setLoading(false)
+      if (error) {
+        setError("Erro ao definir senha. Tente novamente.")
+        setLoading(false)
+        return
+      }
 
-    if (error) {
-      setError("Erro ao definir senha. Tente novamente.")
-      return
+      setSuccess(true)
+
+      setTimeout(() => {
+        router.push("/login")
+      }, 1500)
+
+    } catch (err) {
+      console.error("Erro reset:", err)
+      setError("Erro inesperado")
+    } finally {
+      setLoading(false)
     }
-
-    setSuccess(true)
-
-    // redireciona pro login
-    setTimeout(() => {
-      router.push("/login")
-    }, 1500)
   }
 
   return (
     <div className={styles.container}>
       <div className={styles.card}>
 
-        {/* HEADER */}
         <div className={styles.header}>
           <div className={styles.logoArea}>
             <Image

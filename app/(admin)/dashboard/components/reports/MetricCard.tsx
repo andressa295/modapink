@@ -1,5 +1,4 @@
 import { ReactNode } from "react"
-import "../styles/chat.css"
 
 type MetricCardProps = {
   title: string
