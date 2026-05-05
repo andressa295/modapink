@@ -195,3 +195,24 @@
     display: none;
   }
 }
+.chat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-info .top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.chat-info .preview {
+  font-size: 12px;
+  color: #999;
+  margin-top: 2px;
+}
+
+.time {
+  font-size: 11px;
+  color: #666;
+}

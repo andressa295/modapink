@@ -20,7 +20,6 @@ export default function Conversas() {
 
   const messagesRef = useRef<HTMLDivElement | null>(null)
   const shouldScrollRef = useRef(true)
-
   const channelRef = useRef<any>(null)
 
   // ======================
@@ -31,7 +30,11 @@ export default function Conversas() {
       const res = await fetch(`${API}/conversations`, { cache: "no-store" })
       const data = await res.json()
 
-      const list = Array.isArray(data) ? data : data?.data || []
+      const list = (Array.isArray(data) ? data : data?.data || [])
+        .sort((a: any, b: any) =>
+  new Date(b.last_message_at).getTime() -
+  new Date(a.last_message_at).getTime()
+)
 
       setConversations(list)
 
@@ -71,7 +74,6 @@ export default function Conversas() {
   useEffect(() => {
     if (!selected) return
 
-    // limpa canal anterior
     if (channelRef.current) {
       supabase.removeChannel(channelRef.current)
       channelRef.current = null
@@ -93,11 +95,9 @@ export default function Conversas() {
           setMessages((prev) => {
             const exists = prev.some((m) => m.id === newMsg.id)
             if (exists) return prev
-
             return [...prev, newMsg]
           })
 
-          // 🔥 atualiza sidebar (prioridade)
           loadConversations()
         }
       )
@@ -131,7 +131,7 @@ export default function Conversas() {
   }, [selected])
 
   // ======================
-  // FALLBACK (se realtime falhar)
+  // FALLBACK POLLING
   // ======================
   useEffect(() => {
     if (!selected) return
@@ -177,7 +177,6 @@ export default function Conversas() {
 
     const tempId = Date.now()
 
-    // UX instantânea
     setMessages((prev) => [
       ...prev,
       {
@@ -219,8 +218,26 @@ export default function Conversas() {
             }`}
             onClick={() => setSelected(c)}
           >
-            <strong>{c.customer_name || "Cliente"}</strong>
-            <span>{c.phone}</span>
+
+            <div className="chat-info">
+              <div className="top">
+                <strong>{c.customer_name || "Cliente"}</strong>
+
+                <span className="time">
+                  {c.last_message_at
+                    ? new Date(c.last_message_at).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      })
+                    : ""}
+                </span>
+              </div>
+
+              <p className="preview">
+                {c.last_message || "Sem mensagens"}
+              </p>
+            </div>
+
           </div>
         ))}
       </div>

@@ -3,7 +3,6 @@ import { normalizePhone } from "../../../utils/phone"
 
 export async function GET(req: Request) {
   try {
-    // 🔥 CRIAR CLIENT DENTRO DA FUNÇÃO (OBRIGATÓRIO)
     const supabase = createClient(
       process.env.SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -17,13 +16,13 @@ export async function GET(req: Request) {
     // ========================
     // 🏪 LOJAS
     // ========================
-    const { data: stores, error } = await supabase
+    const { data: stores, error: storeError } = await supabase
       .from("stores")
       .select("*")
 
-    if (error || !stores) {
-      console.error("❌ erro lojas:", error)
-      return new Response("Erro ao buscar lojas", { status: 500 })
+    if (storeError || !stores) {
+      console.error("❌ erro lojas:", storeError)
+      return Response.json([])
     }
 
     // ========================
@@ -46,7 +45,7 @@ export async function GET(req: Request) {
     const allOrders: any[] = []
 
     // ========================
-    // 🔄 LOOP
+    // 🔄 LOOP NAS LOJAS
     // ========================
     for (const store of stores) {
       try {
@@ -72,12 +71,14 @@ export async function GET(req: Request) {
 
         clearTimeout(timeout)
 
-        const orders = await res.json()
-
-        if (!res.ok || !Array.isArray(orders)) {
-          console.error("❌ erro nuvemshop:", orders)
+        if (!res.ok) {
+          console.error("❌ erro nuvemshop:", await res.text())
           continue
         }
+
+        const orders = await res.json()
+
+        if (!Array.isArray(orders)) continue
 
         for (const o of orders) {
           const phoneRaw =
@@ -135,6 +136,9 @@ export async function GET(req: Request) {
             updated_at: new Date().toISOString(),
           }
 
+          // ========================
+          // FRONT FORMAT
+          // ========================
           allOrders.push({
             id: o.number,
             customer: mapped.customer_name,
@@ -148,6 +152,9 @@ export async function GET(req: Request) {
             whatsapp_number: whatsappNumber,
           })
 
+          // ========================
+          // UPSERT (SEM TRAVAR)
+          // ========================
           const { error: upsertError } = await supabase
             .from("orders")
             .upsert(mapped, {
@@ -168,6 +175,6 @@ export async function GET(req: Request) {
 
   } catch (err) {
     console.error("💥 erro geral:", err)
-    return new Response("Erro interno", { status: 500 })
+    return Response.json([])
   }
 }

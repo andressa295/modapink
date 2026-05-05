@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState, useRef } from "react"
 import "../styles/pedidos.css"
 
+// ======================
+// TYPES
+// ======================
 type Order = {
   id: number
   customer: string
@@ -30,7 +33,7 @@ export default function Pedidos() {
   const fetchingRef = useRef(false)
 
   // ======================
-  // FETCH
+  // FETCH (CORRIGIDO)
   // ======================
   async function loadOrders(pageNumber = 1, append = false) {
     if (fetchingRef.current) return
@@ -41,6 +44,11 @@ export default function Pedidos() {
       else setLoading(true)
 
       const res = await fetch(`/api/orders?page=${pageNumber}`)
+
+      if (!res.ok) {
+        throw new Error("Erro na API")
+      }
+
       const data = await res.json()
 
       if (!Array.isArray(data) || data.length === 0) {
@@ -48,12 +56,23 @@ export default function Pedidos() {
         return
       }
 
-      setOrders(prev =>
-        append ? [...prev, ...data] : data
-      )
+      setOrders(prev => {
+        if (!append) return data
+
+        // 🔥 evita duplicação
+        const existingIds = new Set(prev.map(o => o.id))
+        const filtered = data.filter(o => !existingIds.has(o.id))
+
+        return [...prev, ...filtered]
+      })
 
     } catch (err) {
       console.error("❌ erro pedidos:", err)
+
+      if (!append) {
+        setOrders([])
+      }
+
     } finally {
       setLoading(false)
       setLoadingMore(false)
@@ -69,7 +88,7 @@ export default function Pedidos() {
   }, [])
 
   // ======================
-  // AUTO REFRESH (INTELIGENTE)
+  // AUTO REFRESH
   // ======================
   useEffect(() => {
     const interval = setInterval(() => {
@@ -82,7 +101,7 @@ export default function Pedidos() {
   }, [page])
 
   // ======================
-  // SCROLL INFINITO (CORRIGIDO)
+  // SCROLL INFINITO
   // ======================
   useEffect(() => {
     function handleScroll() {
@@ -220,8 +239,8 @@ export default function Pedidos() {
               <div>#{order.id}</div>
 
               <div>
-                <strong>{order.customer}</strong>
-                {order.phone && <span>{order.phone}</span>}
+                <strong>{order.customer || "Cliente"}</strong>
+                <span>{order.phone || "Sem telefone"}</span>
               </div>
 
               <div>
@@ -231,7 +250,6 @@ export default function Pedidos() {
               </div>
 
               <div>{getShipping(order.shipping_method)}</div>
-
               <div>{formatCurrency(order.total)}</div>
               <div>{formatDate(order.date)}</div>
 
@@ -241,7 +259,11 @@ export default function Pedidos() {
 
       </div>
 
-      {loadingMore && <div className="loading-more">Carregando mais...</div>}
+      {loadingMore && (
+        <div className="loading-more">
+          Carregando mais pedidos...
+        </div>
+      )}
 
     </div>
   )
