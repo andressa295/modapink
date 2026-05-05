@@ -1,13 +1,14 @@
 import { createClient } from "@supabase/supabase-js"
 import { normalizePhone } from "../../../utils/phone"
 
-const supabase = createClient(
-  process.env.SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function GET(req: Request) {
   try {
+    // 🔥 CRIAR CLIENT DENTRO DA FUNÇÃO (OBRIGATÓRIO)
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
     const { searchParams } = new URL(req.url)
 
     const page = Number(searchParams.get("page") || 1)
@@ -54,9 +55,6 @@ export async function GET(req: Request) {
           continue
         }
 
-        // ========================
-        // ⏱ FETCH COM TIMEOUT
-        // ========================
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 8000)
 
@@ -81,9 +79,6 @@ export async function GET(req: Request) {
           continue
         }
 
-        // ========================
-        // 🔄 PROCESSAMENTO
-        // ========================
         for (const o of orders) {
           const phoneRaw =
             o.customer?.phone ||
