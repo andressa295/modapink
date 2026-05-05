@@ -1,218 +1,168 @@
-/* =========================
-   BASE
-========================= */
+/* ========================= */
+/* CONTAINER */
+/* ========================= */
 .chat-app {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  height: 100vh;
-  background: #f7f7f8;
-  font-family: "Poppins", sans-serif;
-}
-
-/* =========================
-   SIDEBAR
-========================= */
-.sidebar {
-  background: #ffffff;
-  border-right: 1px solid #eee;
   display: flex;
-  flex-direction: column;
-  overflow-y: auto;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: #e5ddd5;
 }
 
+/* ========================= */
+/* SIDEBAR CHAT (ISOLADA) */
+/* ========================= */
+.chat-sidebar {
+  width: 320px;
+  min-width: 320px;
+  max-width: 320px;
+
+  background: #ffffff;
+  border-right: 1px solid #e5e7eb;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  flex-shrink: 0;
+}
+
+/* ITEM */
 .chat-item {
-  padding: 16px;
-  border-bottom: 1px solid #f1f1f1;
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  border-bottom: 1px solid #f1f1f1;
 }
 
 .chat-item:hover {
-  background: #f5f7ff;
+  background: #f5f6f6;
 }
 
 .chat-item.active {
-  background: #eef2ff;
+  background: #e9edef;
 }
 
-.chat-item strong {
-  display: block;
-  font-size: 14px;
-  color: #111;
+/* AVATAR */
+.avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
-.chat-item span {
-  font-size: 12px;
-  color: #666;
-}
-
-/* =========================
-   CHAT AREA
-========================= */
-.chat {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-/* =========================
-   HEADER
-========================= */
-.header {
-  padding: 16px;
-  border-bottom: 1px solid #eee;
-  background: #fff;
-}
-
-.header strong {
-  display: block;
-  font-size: 15px;
-  color: #111;
-}
-
-.header span {
-  font-size: 12px;
-  color: #666;
-}
-
-/* =========================
-   MESSAGES
-========================= */
-.messages {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  background: #f7f7f8;
-}
-
-/* =========================
-   BUBBLES
-========================= */
-.bubble {
-  max-width: 65%;
-  padding: 12px 14px;
-  border-radius: 14px;
-  font-size: 14px;
-  line-height: 1.4;
-  word-break: break-word;
-}
-
-/* CLIENT */
-.bubble.client {
-  background: #ffffff;
-  align-self: flex-start;
-  border: 1px solid #eee;
-}
-
-/* YOU */
-.bubble.me {
-  background: #5b86ff;
-  color: #fff;
-  align-self: flex-end;
-}
-
-/* =========================
-   INPUT
-========================= */
-.input {
-  display: flex;
-  padding: 14px;
-  gap: 10px;
-  border-top: 1px solid #eee;
-  background: #fff;
-}
-
-.input input {
-  flex: 1;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  padding: 12px;
-  font-size: 14px;
-  outline: none;
-  transition: border 0.2s;
-}
-
-.input input:focus {
-  border-color: #5b86ff;
-}
-
-.input button {
-  background: #5b86ff;
-  color: #fff;
-  border: none;
-  padding: 0 18px;
-  border-radius: 10px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.input button:hover {
-  background: #4a6de0;
-}
-
-.input button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* =========================
-   STATES
-========================= */
-.empty {
-  text-align: center;
-  font-size: 13px;
-  color: #888;
-  margin-top: 20px;
-}
-
-/* =========================
-   SCROLLBAR (premium)
-========================= */
-.messages::-webkit-scrollbar,
-.sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.messages::-webkit-scrollbar-thumb,
-.sidebar::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 10px;
-}
-
-/* =========================
-   RESPONSIVO
-========================= */
-@media (max-width: 900px) {
-  .chat-app {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    display: none;
-  }
-}
+/* INFO */
 .chat-info {
-  display: flex;
-  flex-direction: column;
+  flex: 1;
 }
 
 .chat-info .top {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
 }
 
-.chat-info .preview {
-  font-size: 12px;
-  color: #999;
-  margin-top: 2px;
+.chat-info strong {
+  font-size: 14px;
+  color: #111b21;
 }
 
 .time {
-  font-size: 11px;
-  color: #666;
+  font-size: 12px;
+  color: #667781;
+}
+
+.preview {
+  font-size: 13px;
+  color: #667781;
+}
+
+/* ========================= */
+/* CHAT AREA */
+/* ========================= */
+.chat {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: #efeae2;
+}
+
+/* HEADER */
+.header {
+  height: 60px;
+  background: #f0f2f5;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+.avatar-header {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+/* MESSAGES */
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bubble {
+  max-width: 60%;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.bubble.client {
+  background: #ffffff;
+  align-self: flex-start;
+}
+
+.bubble.me {
+  background: #d9fdd3;
+  align-self: flex-end;
+}
+
+/* INPUT */
+.input {
+  height: 60px;
+  background: #f0f2f5;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 10px;
+  border-top: 1px solid #ddd;
+}
+
+.input input {
+  flex: 1;
+  height: 42px;
+  border-radius: 20px;
+  border: none;
+  padding: 0 16px;
+}
+
+.input button {
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 20px;
+  border: none;
+  background: #25d366;
+  color: white;
+}
+
+/* SCROLL */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
 }

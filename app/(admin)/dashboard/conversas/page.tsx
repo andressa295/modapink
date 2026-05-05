@@ -11,39 +11,57 @@ const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// ======================
+// TYPES
+// ======================
+type Conversation = {
+  id: string
+  phone: string
+  customer_name?: string
+  avatar_url?: string
+  last_message?: string
+  updated_at?: string
+}
+
+type Message = {
+  id: string
+  content: string
+  sender: "user" | "agent" | "bot"
+}
+
+// ======================
+// COMPONENT
+// ======================
 export default function Conversas() {
-  const [conversations, setConversations] = useState<any[]>([])
-  const [selected, setSelected] = useState<any>(null)
-  const [messages, setMessages] = useState<any[]>([])
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [selected, setSelected] = useState<Conversation | null>(null)
+  const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [sending, setSending] = useState(false)
 
   const messagesRef = useRef<HTMLDivElement | null>(null)
-  const shouldScrollRef = useRef(true)
-  const channelRef = useRef<any>(null)
 
   // ======================
   // LOAD CONVERSAS
   // ======================
   async function loadConversations() {
-    try {
-      const res = await fetch(`${API}/conversations`, { cache: "no-store" })
-      const data = await res.json()
+    const res = await fetch(`${API}/conversations`, { cache: "no-store" })
+    const data = await res.json()
 
-      const list = (Array.isArray(data) ? data : data?.data || [])
-        .sort((a: any, b: any) =>
-  new Date(b.last_message_at).getTime() -
-  new Date(a.last_message_at).getTime()
-)
+    const list: Conversation[] = Array.isArray(data)
+      ? data
+      : data?.data || []
 
-      setConversations(list)
+    list.sort(
+      (a, b) =>
+        new Date(b.updated_at || "").getTime() -
+        new Date(a.updated_at || "").getTime()
+    )
 
-      if (!selected && list.length > 0) {
-        setSelected(list[0])
-      }
+    setConversations(list)
 
-    } catch (err) {
-      console.error("❌ erro conversations:", err)
+    if (list.length > 0 && !selected) {
+      setSelected(list[0])
     }
   }
 
@@ -51,33 +69,30 @@ export default function Conversas() {
   // LOAD MESSAGES
   // ======================
   async function loadMessages(id: string) {
-    try {
-      const res = await fetch(
-        `${API}/messages?conversation_id=${id}`,
-        { cache: "no-store" }
-      )
+    const res = await fetch(`${API}/messages?conversation_id=${id}`)
+    const data = await res.json()
 
-      const data = await res.json()
-
-      if (Array.isArray(data)) {
-        setMessages(data)
-      }
-
-    } catch (err) {
-      console.error("❌ erro messages:", err)
+    if (Array.isArray(data)) {
+      setMessages(data)
     }
   }
+
+  // ======================
+  // INIT
+  // ======================
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
+  useEffect(() => {
+    if (selected) loadMessages(selected.id)
+  }, [selected])
 
   // ======================
   // REALTIME
   // ======================
   useEffect(() => {
     if (!selected) return
-
-    if (channelRef.current) {
-      supabase.removeChannel(channelRef.current)
-      channelRef.current = null
-    }
 
     const channel = supabase
       .channel(`messages-${selected.id}`)
@@ -90,101 +105,43 @@ export default function Conversas() {
           filter: `conversation_id=eq.${selected.id}`
         },
         (payload) => {
-          const newMsg = payload.new
+  const newMessage: Message = {
+    id: payload.new.id,
+    content: payload.new.content,
+    sender: payload.new.sender
+  }
 
-          setMessages((prev) => {
-            const exists = prev.some((m) => m.id === newMsg.id)
-            if (exists) return prev
-            return [...prev, newMsg]
-          })
+  setMessages((prev) => [...prev, newMessage])
 
-          loadConversations()
-        }
+  loadConversations()
+}
       )
       .subscribe()
 
-    channelRef.current = channel
-
     return () => {
-      if (channelRef.current) {
-        supabase.removeChannel(channelRef.current)
-        channelRef.current = null
-      }
+      supabase.removeChannel(channel)
     }
-
-  }, [selected])
-
-  // ======================
-  // INIT
-  // ======================
-  useEffect(() => {
-    loadConversations()
-  }, [])
-
-  // ======================
-  // TROCA DE CONVERSA
-  // ======================
-  useEffect(() => {
-    if (selected) {
-      loadMessages(selected.id)
-    }
-  }, [selected])
-
-  // ======================
-  // FALLBACK POLLING
-  // ======================
-  useEffect(() => {
-    if (!selected) return
-
-    const interval = setInterval(() => {
-      loadMessages(selected.id)
-    }, 5000)
-
-    return () => clearInterval(interval)
-
   }, [selected])
 
   // ======================
   // SCROLL
   // ======================
   useEffect(() => {
-    if (!messagesRef.current) return
-
-    if (shouldScrollRef.current) {
+    if (messagesRef.current) {
       messagesRef.current.scrollTop =
         messagesRef.current.scrollHeight
     }
   }, [messages])
 
-  function handleScroll() {
-    if (!messagesRef.current) return
-
-    const { scrollTop, scrollHeight, clientHeight } = messagesRef.current
-
-    shouldScrollRef.current =
-      scrollHeight - scrollTop - clientHeight < 100
-  }
-
   // ======================
-  // SEND MESSAGE
+  // SEND
   // ======================
   async function sendMessage() {
-    if (!input.trim() || !selected || sending) return
+    if (!input.trim() || !selected) return
 
     const text = input
     setInput("")
     setSending(true)
-
-    const tempId = Date.now()
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: tempId,
-        content: text,
-        sender: "agent"
-      }
-    ])
 
     try {
       await fetch(`${API}/send-message`, {
@@ -197,9 +154,8 @@ export default function Conversas() {
           message: text
         })
       })
-
     } catch (err) {
-      console.error("❌ erro enviar")
+      console.error("erro envio:", err)
     }
 
     setSending(false)
@@ -210,7 +166,8 @@ export default function Conversas() {
 
       {/* SIDEBAR */}
       <div className="sidebar">
-        {conversations.map((c) => (
+
+        {conversations.map((c: Conversation) => (
           <div
             key={c.id}
             className={`chat-item ${
@@ -219,27 +176,35 @@ export default function Conversas() {
             onClick={() => setSelected(c)}
           >
 
+            <img
+              src={c.avatar_url || "/placeholder.png"}
+              className="avatar"
+            />
+
             <div className="chat-info">
+
               <div className="top">
-                <strong>{c.customer_name || "Cliente"}</strong>
+                <strong>
+                  {c.customer_name || c.phone}
+                </strong>
 
                 <span className="time">
-                  {c.last_message_at
-                    ? new Date(c.last_message_at).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })
-                    : ""}
+                  {c.updated_at &&
+                    new Date(c.updated_at).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit"
+                    })}
                 </span>
               </div>
 
               <p className="preview">
                 {c.last_message || "Sem mensagens"}
               </p>
-            </div>
 
+            </div>
           </div>
         ))}
+
       </div>
 
       {/* CHAT */}
@@ -248,18 +213,21 @@ export default function Conversas() {
         <div className="header">
           {selected && (
             <>
-              <strong>{selected.customer_name || "Cliente"}</strong>
-              <span>{selected.phone}</span>
+              <img
+                src={selected.avatar_url || "/placeholder.png"}
+                className="avatar-header"
+              />
+
+              <div>
+                <strong>{selected.customer_name || selected.phone}</strong>
+                <span>{selected.phone}</span>
+              </div>
             </>
           )}
         </div>
 
-        <div
-          className="messages"
-          ref={messagesRef}
-          onScroll={handleScroll}
-        >
-          {messages.map((m) => (
+        <div className="messages" ref={messagesRef}>
+          {messages.map((m: Message) => (
             <div
               key={m.id}
               className={`bubble ${
@@ -281,7 +249,7 @@ export default function Conversas() {
             }
           />
 
-          <button onClick={sendMessage}>
+          <button onClick={sendMessage} disabled={sending}>
             {sending ? "..." : "Enviar"}
           </button>
         </div>
