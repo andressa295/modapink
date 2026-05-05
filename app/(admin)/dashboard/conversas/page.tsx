@@ -45,23 +45,33 @@ export default function Conversas() {
   // LOAD CONVERSAS
   // ======================
   async function loadConversations() {
-    const res = await fetch(`${API}/conversations`, { cache: "no-store" })
-    const data = await res.json()
+    try {
+      const res = await fetch(`${API}/conversations`, { cache: "no-store" })
+      const data = await res.json()
 
-    const list: Conversation[] = Array.isArray(data)
-      ? data
-      : data?.data || []
+      const list: Conversation[] = Array.isArray(data)
+        ? data
+        : data?.data || []
 
-    list.sort(
-      (a, b) =>
-        new Date(b.updated_at || "").getTime() -
-        new Date(a.updated_at || "").getTime()
-    )
+      // Ordena para garantir que a última mensagem atualizada fique no topo
+      list.sort(
+        (a, b) =>
+          new Date(b.updated_at || "").getTime() -
+          new Date(a.updated_at || "").getTime()
+      )
 
-    setConversations(list)
+      setConversations(list)
 
-    if (list.length > 0 && !selected) {
-      setSelected(list[0])
+      // Seleciona a primeira automaticamente ao carregar, se não tiver nenhuma selecionada
+      setConversations((currentList) => {
+        if (currentList.length > 0 && !selected) {
+          setSelected(currentList[0]);
+        }
+        return currentList;
+      });
+
+    } catch (err) {
+      console.error("Erro ao carregar conversas:", err)
     }
   }
 
@@ -69,33 +79,68 @@ export default function Conversas() {
   // LOAD MESSAGES
   // ======================
   async function loadMessages(id: string) {
-    const res = await fetch(`${API}/messages?conversation_id=${id}`)
-    const data = await res.json()
+    try {
+      const res = await fetch(`${API}/messages?conversation_id=${id}`)
+      const data = await res.json()
 
-    if (Array.isArray(data)) {
-      setMessages(data)
+      if (Array.isArray(data)) {
+        setMessages(data)
+      }
+    } catch (err) {
+      console.error("Erro ao carregar mensagens:", err)
     }
   }
 
   // ======================
-  // INIT
+  // INIT E REALTIME DA LISTA GERAL
   // ======================
   useEffect(() => {
+    // 1. Carrega a lista a primeira vez que a tela abre
     loadConversations()
-  }, [])
 
-  useEffect(() => {
-    if (selected) loadMessages(selected.id)
-  }, [selected])
+    // 2. 🔥 O PULO DO GATO: O "Espião" da tabela de conversas
+    // Isso garante que se mudar foto, nome, ou o last_message, a lista atualiza na hora!
+    const channelConversations = supabase
+      .channel('lista-de-conversas')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'conversations' },
+        (payload) => {
+  // 🔥 Dizemos ao TypeScript para aceitar os dados que vieram do banco
+  const novoDado = payload.new as any; 
+  
+  console.log("🔄 Conversa atualizada/criada no banco!", novoDado);
+  
+  loadConversations();
+  
+  setSelected((prevSelected) => {
+    // 🔥 Agora usamos "novoDado.id"
+    if (prevSelected && prevSelected.id === novoDado.id) {
+      return { ...prevSelected, ...novoDado } as Conversation;
+    }
+    return prevSelected;
+  });
+}
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channelConversations)
+    }
+  }, []) // Roda só uma vez ao montar a tela
 
   // ======================
-  // REALTIME
+  // REALTIME DO CHAT ABERTO (MENSAGENS)
   // ======================
   useEffect(() => {
     if (!selected) return
 
-    const channel = supabase
-      .channel(`messages-${selected.id}`)
+    // Carrega o histórico da conversa que foi clicada
+    loadMessages(selected.id)
+
+    // 3. O "Espião" das mensagens da conversa específica
+    const channelMessages = supabase
+      .channel(`mensagens-${selected.id}`)
       .on(
         "postgres_changes",
         {
@@ -105,31 +150,29 @@ export default function Conversas() {
           filter: `conversation_id=eq.${selected.id}`
         },
         (payload) => {
-  const newMessage: Message = {
-    id: payload.new.id,
-    content: payload.new.content,
-    sender: payload.new.sender
-  }
+          console.log("📩 Nova mensagem chegou!", payload.new);
+          const newMessage: Message = {
+            id: payload.new.id,
+            content: payload.new.content,
+            sender: payload.new.sender
+          }
 
-  setMessages((prev) => [...prev, newMessage])
-
-  loadConversations()
-}
+          setMessages((prev) => [...prev, newMessage])
+        }
       )
       .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+      supabase.removeChannel(channelMessages)
     }
-  }, [selected])
+  }, [selected?.id]) // Recria o espião toda vez que clicar em outro contato
 
   // ======================
-  // SCROLL
+  // SCROLL AUTOMÁTICO
   // ======================
   useEffect(() => {
     if (messagesRef.current) {
-      messagesRef.current.scrollTop =
-        messagesRef.current.scrollHeight
+      messagesRef.current.scrollTop = messagesRef.current.scrollHeight
     }
   }, [messages])
 
@@ -166,7 +209,6 @@ export default function Conversas() {
 
       {/* SIDEBAR */}
       <div className="sidebar">
-
         {conversations.map((c: Conversation) => (
           <div
             key={c.id}
@@ -175,14 +217,13 @@ export default function Conversas() {
             }`}
             onClick={() => setSelected(c)}
           >
-
             <img
               src={c.avatar_url || "/placeholder.png"}
               className="avatar"
+              alt="Avatar"
             />
 
             <div className="chat-info">
-
               <div className="top">
                 <strong>
                   {c.customer_name || c.phone}
@@ -200,22 +241,20 @@ export default function Conversas() {
               <p className="preview">
                 {c.last_message || "Sem mensagens"}
               </p>
-
             </div>
           </div>
         ))}
-
       </div>
 
       {/* CHAT */}
       <div className="chat">
-
         <div className="header">
           {selected && (
             <>
               <img
                 src={selected.avatar_url || "/placeholder.png"}
                 className="avatar-header"
+                alt="Avatar"
               />
 
               <div>
