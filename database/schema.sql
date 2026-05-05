@@ -364,3 +364,46 @@ alter table messages add column if not exists store_id bigint;
 alter table stores add column name text;
 alter table stores add column phone_number_id text;
 alter table stores add column status text default 'online';
+
+ALTER TABLE customers RENAME COLUMN store_id_uuid TO store_id;
+ALTER TABLE conversations RENAME COLUMN store_id_uuid TO store_id;
+ALTER TABLE messages RENAME COLUMN store_id_uuid TO store_id;
+
+create table if not exists messages (
+  id uuid primary key default gen_random_uuid(),
+  content text,
+  sender text,
+  phone text,
+  conversation_id uuid,
+  created_at timestamp default now()
+);
+create table if not exists conversations (
+  id uuid primary key default gen_random_uuid(),
+  customer_phone text,
+  customer_name text,
+  avatar_url text,
+  last_message text,
+  updated_at timestamp default now()
+);
+alter table conversations
+add column if not exists customer_phone text;
+
+alter table conversations
+add column if not exists last_message text;
+
+alter table conversations
+add column if not exists updated_at timestamp default now();
+
+alter table messages
+add column if not exists content text;
+
+alter table messages
+add column if not exists sender text;
+
+alter table messages
+add column if not exists phone text;
+
+alter table messages
+add column if not exists conversation_id uuid;
+ALTER TABLE conversations
+RENAME COLUMN customer_phone TO phone;

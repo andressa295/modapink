@@ -2,59 +2,117 @@
 
 import { useEffect, useRef, useState } from "react"
 import "../styles/chat.css"
+import { createBrowserClient } from "@supabase/ssr"
 
 const API = process.env.NEXT_PUBLIC_API_URL!
+
+const supabase = createBrowserClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+)
 
 export default function Conversas() {
   const [conversations, setConversations] = useState<any[]>([])
   const [selected, setSelected] = useState<any>(null)
   const [messages, setMessages] = useState<any[]>([])
   const [input, setInput] = useState("")
-  const [loadingMessages, setLoadingMessages] = useState(false)
   const [sending, setSending] = useState(false)
 
   const messagesRef = useRef<HTMLDivElement | null>(null)
   const shouldScrollRef = useRef(true)
 
+  const channelRef = useRef<any>(null)
+
   // ======================
   // LOAD CONVERSAS
   // ======================
   async function loadConversations() {
-    const res = await fetch(`${API}/conversations`, { cache: "no-store" })
-    const data = await res.json()
+    try {
+      const res = await fetch(`${API}/conversations`, { cache: "no-store" })
+      const data = await res.json()
 
-    setConversations(data)
+      const list = Array.isArray(data) ? data : data?.data || []
 
-    if (!selected && data.length > 0) {
-      setSelected(data[0])
+      setConversations(list)
+
+      if (!selected && list.length > 0) {
+        setSelected(list[0])
+      }
+
+    } catch (err) {
+      console.error("❌ erro conversations:", err)
     }
   }
 
   // ======================
   // LOAD MESSAGES
   // ======================
-  async function loadMessages(conversationId?: string) {
-    const id = conversationId || selected?.id
-    if (!id) return
+  async function loadMessages(id: string) {
+    try {
+      const res = await fetch(
+        `${API}/messages?conversation_id=${id}`,
+        { cache: "no-store" }
+      )
 
-    setLoadingMessages(true)
+      const data = await res.json()
 
-    const res = await fetch(
-      `${API}/messages?conversation_id=${id}`,
-      { cache: "no-store" }
-    )
+      if (Array.isArray(data)) {
+        setMessages(data)
+      }
 
-    const data = await res.json()
+    } catch (err) {
+      console.error("❌ erro messages:", err)
+    }
+  }
 
-    const lastLocal = messages[messages.length - 1]?.id
-    const lastRemote = data[data.length - 1]?.id
+  // ======================
+  // REALTIME
+  // ======================
+  useEffect(() => {
+    if (!selected) return
 
-    if (lastLocal !== lastRemote) {
-      setMessages(data)
+    // limpa canal anterior
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current)
+      channelRef.current = null
     }
 
-    setLoadingMessages(false)
-  }
+    const channel = supabase
+      .channel(`messages-${selected.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${selected.id}`
+        },
+        (payload) => {
+          const newMsg = payload.new
+
+          setMessages((prev) => {
+            const exists = prev.some((m) => m.id === newMsg.id)
+            if (exists) return prev
+
+            return [...prev, newMsg]
+          })
+
+          // 🔥 atualiza sidebar (prioridade)
+          loadConversations()
+        }
+      )
+      .subscribe()
+
+    channelRef.current = channel
+
+    return () => {
+      if (channelRef.current) {
+        supabase.removeChannel(channelRef.current)
+        channelRef.current = null
+      }
+    }
+
+  }, [selected])
 
   // ======================
   // INIT
@@ -68,31 +126,33 @@ export default function Conversas() {
   // ======================
   useEffect(() => {
     if (selected) {
-      setMessages([])
       loadMessages(selected.id)
     }
   }, [selected])
 
   // ======================
-  // POLLING
+  // FALLBACK (se realtime falhar)
   // ======================
   useEffect(() => {
+    if (!selected) return
+
     const interval = setInterval(() => {
-      loadConversations()
-      loadMessages()
-    }, 2500)
+      loadMessages(selected.id)
+    }, 5000)
 
     return () => clearInterval(interval)
+
   }, [selected])
 
   // ======================
-  // SCROLL INTELIGENTE
+  // SCROLL
   // ======================
   useEffect(() => {
     if (!messagesRef.current) return
 
     if (shouldScrollRef.current) {
-      messagesRef.current.scrollTop = messagesRef.current.scrollHeight
+      messagesRef.current.scrollTop =
+        messagesRef.current.scrollHeight
     }
   }, [messages])
 
@@ -101,12 +161,12 @@ export default function Conversas() {
 
     const { scrollTop, scrollHeight, clientHeight } = messagesRef.current
 
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < 100
-    shouldScrollRef.current = isNearBottom
+    shouldScrollRef.current =
+      scrollHeight - scrollTop - clientHeight < 100
   }
 
   // ======================
-  // SEND
+  // SEND MESSAGE
   // ======================
   async function sendMessage() {
     if (!input.trim() || !selected || sending) return
@@ -115,6 +175,18 @@ export default function Conversas() {
     setInput("")
     setSending(true)
 
+    const tempId = Date.now()
+
+    // UX instantânea
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: tempId,
+        content: text,
+        sender: "agent"
+      }
+    ])
+
     try {
       await fetch(`${API}/send-message`, {
         method: "POST",
@@ -122,15 +194,13 @@ export default function Conversas() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          phone: selected.customer_phone,
+          phone: selected.phone,
           message: text
         })
       })
 
-      shouldScrollRef.current = true
-      await loadMessages()
     } catch (err) {
-      console.error("Erro ao enviar mensagem")
+      console.error("❌ erro enviar")
     }
 
     setSending(false)
@@ -141,18 +211,16 @@ export default function Conversas() {
 
       {/* SIDEBAR */}
       <div className="sidebar">
-        {conversations.length === 0 && (
-          <p className="empty">Nenhuma conversa ainda</p>
-        )}
-
-        {conversations.map(c => (
+        {conversations.map((c) => (
           <div
             key={c.id}
-            className={`chat-item ${selected?.id === c.id ? "active" : ""}`}
+            className={`chat-item ${
+              selected?.id === c.id ? "active" : ""
+            }`}
             onClick={() => setSelected(c)}
           >
             <strong>{c.customer_name || "Cliente"}</strong>
-            <span>{c.customer_phone}</span>
+            <span>{c.phone}</span>
           </div>
         ))}
       </div>
@@ -160,54 +228,43 @@ export default function Conversas() {
       {/* CHAT */}
       <div className="chat">
 
-        {/* HEADER */}
         <div className="header">
-          {selected ? (
+          {selected && (
             <>
               <strong>{selected.customer_name || "Cliente"}</strong>
-              <span>{selected.customer_phone}</span>
+              <span>{selected.phone}</span>
             </>
-          ) : (
-            <span>Selecione uma conversa</span>
           )}
         </div>
 
-        {/* MESSAGES */}
         <div
           className="messages"
           ref={messagesRef}
           onScroll={handleScroll}
         >
-          {loadingMessages && (
-            <p className="empty">Carregando...</p>
-          )}
-
-          {!loadingMessages && messages.length === 0 && (
-            <p className="empty">Nenhuma mensagem</p>
-          )}
-
-          {messages.map(m => (
+          {messages.map((m) => (
             <div
               key={m.id}
-              className={`bubble ${m.sender === "user" ? "client" : "me"}`}
+              className={`bubble ${
+                m.sender === "user" ? "client" : "me"
+              }`}
             >
               {m.content}
             </div>
           ))}
         </div>
 
-        {/* INPUT */}
         <div className="input">
           <input
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={(e) => setInput(e.target.value)}
             placeholder="Digite uma mensagem..."
-            onKeyDown={(e) => {
-              if (e.key === "Enter") sendMessage()
-            }}
+            onKeyDown={(e) =>
+              e.key === "Enter" && sendMessage()
+            }
           />
 
-          <button onClick={sendMessage} disabled={sending}>
+          <button onClick={sendMessage}>
             {sending ? "..." : "Enviar"}
           </button>
         </div>

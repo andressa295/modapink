@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import "./RecentConversations.css"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 
 type Conversation = {
   id: string
@@ -16,10 +16,11 @@ export default function RecentConversations() {
   const [conversations, setConversations] = useState<Conversation[]>([])
 
   useEffect(() => {
+    const supabase = createClient()
+
     async function loadConversations() {
 
-      // 🔥 busca últimas mensagens
-      const { data: messages } = await supabase
+      const { data: messages, error } = await supabase
         .from("messages")
         .select(`
           id,
@@ -34,12 +35,16 @@ export default function RecentConversations() {
         .order("created_at", { ascending: false })
         .limit(5)
 
+      if (error) {
+        console.error("Erro ao buscar conversas:", error)
+        return
+      }
+
       if (!messages) return
 
       const formatted = messages.map((msg: any) => {
 
         const date = new Date(msg.created_at)
-
         const diff = Math.floor((Date.now() - date.getTime()) / 60000)
 
         let time = "agora"
@@ -80,11 +85,8 @@ export default function RecentConversations() {
           <div key={conv.id} className="conversation-item">
 
             <div>
-
               <strong>{conv.name}</strong>
-
               <p>{conv.message}</p>
-
             </div>
 
             <span>{conv.time}</span>

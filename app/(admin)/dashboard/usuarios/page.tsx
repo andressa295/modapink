@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import "../styles/users.css"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 
 type User = {
   id: string
@@ -34,10 +34,12 @@ export default function Usuarios() {
 
   // 🔐 USER LOGADO
   useEffect(() => {
-    async function loadCurrentUser() {
-      const { data: { user } } = await supabase.auth.getUser()
+    const supabase = createClient()
 
-      if (!user) return
+    async function loadCurrentUser() {
+      const { data: { user }, error } = await supabase.auth.getUser()
+
+      if (error || !user) return
 
       setCurrentUserId(user.id)
 
@@ -55,9 +57,16 @@ export default function Usuarios() {
 
   // 📦 USERS
   async function loadUsers() {
-    const { data } = await supabase
+    const supabase = createClient()
+
+    const { data, error } = await supabase
       .from("profiles")
       .select("id, name, email, role")
+
+    if (error) {
+      console.error("Erro ao carregar usuários:", error)
+      return
+    }
 
     if (data) setUsers(data)
   }
@@ -78,6 +87,7 @@ export default function Usuarios() {
   }
 
   async function saveEdit(id: string) {
+    const supabase = createClient()
 
     if (currentUserRole !== "admin") {
       alert("Sem permissão")
@@ -98,7 +108,7 @@ export default function Usuarios() {
     loadUsers()
   }
 
-  // ➕ CREATE (AGORA CORRETO)
+  // ➕ CREATE
   async function createUser() {
 
     if (currentUserRole !== "admin") {
@@ -112,12 +122,12 @@ export default function Usuarios() {
     }
 
     const res = await fetch("/api/users/create", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify(createForm)
-})
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(createForm)
+    })
 
     const result = await res.json()
 
@@ -134,6 +144,7 @@ export default function Usuarios() {
 
   // 🗑️ DELETE
   async function deleteUser(id: string) {
+    const supabase = createClient()
 
     if (currentUserRole !== "admin") {
       alert("Sem permissão")
@@ -162,7 +173,6 @@ export default function Usuarios() {
   }
 
   return (
-
     <div>
 
       <div className="users-header">

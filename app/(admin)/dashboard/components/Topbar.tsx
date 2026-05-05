@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import "./styles/topbar.css"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 
 // 🔥 MOBILE NAV
 import MobileNav from "./layout/MobileNav"
@@ -40,8 +40,10 @@ export default function Topbar() {
     return () => clearInterval(interval)
   }, [])
 
-  // 👤 USUÁRIO REAL (SEM BUG)
+  // 👤 USUÁRIO REAL (CORRIGIDO)
   useEffect(() => {
+    const supabase = createClient()
+
     async function loadUser() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
@@ -65,6 +67,7 @@ export default function Topbar() {
         setUserName(profile.name || "Usuário")
 
       } catch (err) {
+        console.error("Erro ao carregar usuário:", err)
         setUserName("Usuário")
       }
     }

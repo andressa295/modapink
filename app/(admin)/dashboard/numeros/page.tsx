@@ -9,7 +9,7 @@ type Session = {
   phone?: string
 }
 
-const API = "https://api.modapink.phand.com.br"
+const API = process.env.NEXT_PUBLIC_API_URL!
 
 export default function Numeros() {
   const [sessions, setSessions] = useState<Session[]>([])
@@ -18,70 +18,21 @@ export default function Numeros() {
   const [qr, setQr] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  // 🔥 refs pra controlar interval (evita bug)
-  const qrIntervalRef = useRef<any>(null)
-  const statusIntervalRef = useRef<any>(null)
+  const qrIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const statusIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // =======================
-  // LOAD SESSIONS
+  // LOAD
   // =======================
   async function loadSessions() {
-    const res = await fetch(`${API}/sessions`, { cache: "no-store" })
-    const data = await res.json()
-    setSessions(data)
-  }
-
-  // =======================
-  // CREATE SESSION
-  // =======================
-  async function createSession() {
-    if (!sessionId.trim()) return
-
-    setLoading(true)
-    setQr(null)
-
-    await fetch(`${API}/sessions/create`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId })
-    })
-
-    // 🔥 QR POLLING
-    qrIntervalRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`${API}/sessions/qr/${sessionId}`)
-        if (!res.ok) return
-
-        const data = await res.json()
-
-        if (data.qr) {
-          setQr(data.qr)
-          setLoading(false)
-        }
-      } catch {}
-    }, 1500)
-
-    // 🔥 STATUS POLLING (detectar quando conecta)
-    statusIntervalRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`${API}/sessions/status/${sessionId}`)
-        if (!res.ok) return
-
-        const data = await res.json()
-
-        if (data.status === "ready") {
-          clearAllIntervals()
-
-          setQr(null)
-          setShowModal(false)
-          setSessionId("")
-
-          loadSessions()
-        }
-      } catch {}
-    }, 2000)
-
-    loadSessions()
+    try {
+      const res = await fetch(`${API}/sessions`, { cache: "no-store" })
+      const data = await res.json()
+      setSessions(data)
+    } catch (err) {
+      console.error("❌ erro loadSessions:", err)
+      setSessions([])
+    }
   }
 
   // =======================
@@ -90,10 +41,92 @@ export default function Numeros() {
   function clearAllIntervals() {
     if (qrIntervalRef.current) {
       clearInterval(qrIntervalRef.current)
+      qrIntervalRef.current = null
     }
 
     if (statusIntervalRef.current) {
       clearInterval(statusIntervalRef.current)
+      statusIntervalRef.current = null
+    }
+  }
+
+  // =======================
+  // CREATE SESSION
+  // =======================
+  async function createSession() {
+    if (!sessionId.trim() || loading) return
+
+    clearAllIntervals()
+    setLoading(true)
+    setQr(null)
+
+    try {
+      const res = await fetch(`${API}/sessions/create`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ sessionId })
+      })
+
+      // 🔥 NÃO BLOQUEIA MAIS COM ALERT
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok && !data?.ok) {
+        console.warn("⚠️ erro criar sessão:", data)
+        // continua fluxo mesmo assim
+      }
+
+      // pequeno delay
+      await new Promise(r => setTimeout(r, 1000))
+
+      // =======================
+      // QR POLLING
+      // =======================
+      qrIntervalRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`${API}/sessions/qr/${sessionId}`)
+
+          if (!res.ok) return
+
+          const data = await res.json()
+
+          if (data.qr) {
+            setQr(data.qr)
+            setLoading(false)
+
+            clearInterval(qrIntervalRef.current!)
+            qrIntervalRef.current = null
+          }
+        } catch {}
+      }, 1500)
+
+      // =======================
+      // STATUS POLLING
+      // =======================
+      statusIntervalRef.current = setInterval(async () => {
+        try {
+          const res = await fetch(`${API}/sessions/status/${sessionId}`)
+
+          if (!res.ok) return
+
+          const data = await res.json()
+
+          if (data.status === "ready") {
+            clearAllIntervals()
+
+            setQr(null)
+            setShowModal(false)
+            setSessionId("")
+
+            loadSessions()
+          }
+        } catch {}
+      }, 2000)
+
+    } catch (err) {
+      console.error("❌ erro createSession:", err)
+      setLoading(false)
     }
   }
 
@@ -101,22 +134,24 @@ export default function Numeros() {
   // DELETE
   // =======================
   async function removeSession(id: string) {
-    await fetch(`${API}/sessions/${id}`, {
-      method: "DELETE"
-    })
+    const confirmDelete = confirm("Remover essa sessão?")
+    if (!confirmDelete) return
 
-    loadSessions()
+    try {
+      await fetch(`${API}/sessions/${id}`, {
+        method: "DELETE"
+      })
+
+      loadSessions()
+    } catch (err) {
+      console.error("❌ erro removeSession:", err)
+    }
   }
 
-  // =======================
-  // INIT
-  // =======================
   useEffect(() => {
     loadSessions()
 
-    return () => {
-      clearAllIntervals()
-    }
+    return () => clearAllIntervals()
   }, [])
 
   return (
@@ -138,9 +173,7 @@ export default function Numeros() {
         {sessions.map((s) => (
           <div key={s.id} className="card">
 
-            <div className="card-title">
-              {s.id}
-            </div>
+            <div className="card-title">{s.id}</div>
 
             <div className="card-id">
               {s.phone || "Aguardando conexão"}
@@ -160,7 +193,6 @@ export default function Numeros() {
         ))}
       </div>
 
-      {/* MODAL */}
       {showModal && (
         <div className="modal">
           <div className="modal-box">
@@ -168,19 +200,17 @@ export default function Numeros() {
             <h2>Conectar WhatsApp</h2>
 
             <input
-              placeholder="ID da sessão (ex: principal)"
+              placeholder="ID (ex: principal)"
               value={sessionId}
               onChange={(e) => setSessionId(e.target.value)}
             />
 
-            <button onClick={createSession}>
-              Gerar QR
+            <button onClick={createSession} disabled={loading}>
+              {loading ? "Gerando..." : "Gerar QR"}
             </button>
 
             {loading && (
-              <p className="loading">
-                Gerando QR...
-              </p>
+              <p className="loading">Gerando QR...</p>
             )}
 
             {qr && (

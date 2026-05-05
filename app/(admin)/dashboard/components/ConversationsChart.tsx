@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import "./ConversationsChart.css"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 
 type ChartData = {
   day: string
@@ -14,12 +14,14 @@ export default function ConversationsChart() {
   const [data, setData] = useState<ChartData[]>([])
 
   useEffect(() => {
+    const supabase = createClient()
+
     async function loadData() {
 
       const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"]
       const today = new Date()
 
-      // 🔥 pega últimos 7 dias
+      // 🔥 últimos 7 dias (base)
       const last7Days: ChartData[] = []
 
       for (let i = 6; i >= 0; i--) {
@@ -32,15 +34,24 @@ export default function ConversationsChart() {
         })
       }
 
-      // 🔥 busca no banco
-      const { data: conversations } = await supabase
+      // 🔥 FILTRO REAL (últimos 7 dias)
+      const fromDate = new Date()
+      fromDate.setDate(today.getDate() - 6)
+
+      const { data: conversations, error } = await supabase
         .from("conversations")
         .select("created_at")
+        .gte("created_at", fromDate.toISOString())
+
+      if (error) {
+        console.error("Erro ao buscar dados:", error)
+        return
+      }
 
       if (!conversations) return
 
-      // 🔥 agrupa por dia
-      conversations.forEach((conv) => {
+      // 🔥 AGRUPAMENTO CORRETO
+      conversations.forEach((conv: any) => {
         const date = new Date(conv.created_at)
         const day = days[date.getDay()]
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useRef } from "react"
 import "../styles/pedidos.css"
 
 type Order = {
@@ -20,50 +20,77 @@ export default function Pedidos() {
   const [orders, setOrders] = useState<Order[]>([])
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState("all")
+
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
 
-  // 🚀 FETCH COM PAGINAÇÃO
+  const fetchingRef = useRef(false)
+
+  // ======================
+  // FETCH
+  // ======================
   async function loadOrders(pageNumber = 1, append = false) {
+    if (fetchingRef.current) return
+    fetchingRef.current = true
+
     try {
+      if (append) setLoadingMore(true)
+      else setLoading(true)
+
       const res = await fetch(`/api/orders?page=${pageNumber}`)
       const data = await res.json()
 
-      if (!data.length) {
+      if (!Array.isArray(data) || data.length === 0) {
         setHasMore(false)
         return
       }
 
-      setOrders(prev => append ? [...prev, ...data] : data)
+      setOrders(prev =>
+        append ? [...prev, ...data] : data
+      )
 
     } catch (err) {
-      console.error(err)
+      console.error("❌ erro pedidos:", err)
     } finally {
       setLoading(false)
+      setLoadingMore(false)
+      fetchingRef.current = false
     }
   }
 
+  // ======================
+  // INIT
+  // ======================
   useEffect(() => {
     loadOrders(1)
   }, [])
 
-  // 🔥 AUTO REFRESH (tempo real leve)
+  // ======================
+  // AUTO REFRESH (INTELIGENTE)
+  // ======================
   useEffect(() => {
     const interval = setInterval(() => {
-      loadOrders(1)
-    }, 10000) // 10s
+      if (page === 1) {
+        loadOrders(1)
+      }
+    }, 10000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [page])
 
-  // 🔥 SCROLL INFINITO
+  // ======================
+  // SCROLL INFINITO (CORRIGIDO)
+  // ======================
   useEffect(() => {
     function handleScroll() {
       if (
         window.innerHeight + window.scrollY >= document.body.offsetHeight - 200 &&
         hasMore &&
-        !loading
+        !loadingMore &&
+        !fetchingRef.current
       ) {
         const nextPage = page + 1
         setPage(nextPage)
@@ -73,8 +100,11 @@ export default function Pedidos() {
 
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
-  }, [page, hasMore, loading])
+  }, [page, hasMore, loadingMore])
 
+  // ======================
+  // FILTER
+  // ======================
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       const matchSearch =
@@ -88,7 +118,9 @@ export default function Pedidos() {
     })
   }, [orders, search, filter])
 
-  // 🔥 STATUS PAGAMENTO
+  // ======================
+  // HELPERS
+  // ======================
   const getStatus = (status: string) => {
     switch (status) {
       case "paid":
@@ -97,29 +129,19 @@ export default function Pedidos() {
       case "pending":
         return { label: "Pendente", className: "status-pending" }
       case "cancelled":
-        return { label: "Cancelado", className: "status-cancelled" }
       case "refunded":
-        return { label: "Reembolsado", className: "status-cancelled" }
+        return { label: "Cancelado", className: "status-cancelled" }
       default:
         return { label: "Em análise", className: "status-pending" }
     }
   }
 
-  // 🔥 ENVIO COMPLETO
-  const getShipping = (method?: string, status?: string) => {
+  const getShipping = (method?: string) => {
     if (!method) return "Não informado"
 
-    if (method.toLowerCase().includes("retirada")) {
-      return "Retirada na loja"
-    }
-
-    if (method.toLowerCase().includes("correios")) {
-      return "Correios"
-    }
-
-    if (method.toLowerCase().includes("transportadora")) {
-      return "Transportadora"
-    }
+    if (method.toLowerCase().includes("retirada")) return "Retirada"
+    if (method.toLowerCase().includes("correios")) return "Correios"
+    if (method.toLowerCase().includes("transportadora")) return "Transportadora"
 
     return method
   }
@@ -137,6 +159,9 @@ export default function Pedidos() {
     return orders.reduce((acc, o) => acc + (o.total || 0), 0)
   }, [orders])
 
+  // ======================
+  // RENDER
+  // ======================
   if (loading && orders.length === 0) {
     return <div className="loading">Carregando pedidos...</div>
   }
@@ -168,7 +193,6 @@ export default function Pedidos() {
         </div>
       </div>
 
-      {/* KPI */}
       <div className="orders-kpis">
         <div className="kpi">
           <span>Faturamento</span>
@@ -206,9 +230,7 @@ export default function Pedidos() {
                 </span>
               </div>
 
-              <div>
-                {getShipping(order.shipping_method, order.shipping)}
-              </div>
+              <div>{getShipping(order.shipping_method)}</div>
 
               <div>{formatCurrency(order.total)}</div>
               <div>{formatDate(order.date)}</div>
@@ -219,7 +241,7 @@ export default function Pedidos() {
 
       </div>
 
-      {loading && <div className="loading-more">Carregando mais...</div>}
+      {loadingMore && <div className="loading-more">Carregando mais...</div>}
 
     </div>
   )

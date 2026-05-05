@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import "./styles/sidebar.css"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 
 import {
   LayoutDashboard,
@@ -25,8 +25,10 @@ export default function Sidebar() {
 
   const router = useRouter()
 
-  // 🔐 BUSCAR USUÁRIO REAL (VERSÃO SEGURA)
+  // 🔐 BUSCAR USUÁRIO
   useEffect(() => {
+    const supabase = createClient()
+
     async function loadUser() {
       try {
         const { data: { user } } = await supabase.auth.getUser()
@@ -49,7 +51,8 @@ export default function Sidebar() {
 
         setUserName(profile.name || "Usuário")
 
-      } catch {
+      } catch (err) {
+        console.error("Erro user:", err)
         setUserName("Usuário")
       }
     }
@@ -59,7 +62,14 @@ export default function Sidebar() {
 
   // 🚪 LOGOUT
   async function handleLogout() {
+    const supabase = createClient()
+
     await supabase.auth.signOut()
+
+    // 🔥 limpa sessão bugada
+    localStorage.clear()
+    sessionStorage.clear()
+
     router.push("/login")
   }
 

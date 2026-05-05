@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import "./AutomationsUsage.css"
-import { supabase } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 
 type Automation = {
   id: string
@@ -15,17 +15,21 @@ export default function AutomationsUsage() {
   const [automations, setAutomations] = useState<Automation[]>([])
 
   useEffect(() => {
-    async function loadAutomations() {
+    const supabase = createClient()
 
-      const { data } = await supabase
+    async function loadAutomations() {
+      const { data, error } = await supabase
         .from("automations")
         .select("id, name, uses")
         .order("uses", { ascending: false })
         .limit(5)
 
-      if (!data) return
+      if (error) {
+        console.error("Erro ao buscar automações:", error)
+        return
+      }
 
-      setAutomations(data)
+      setAutomations(data ?? [])
     }
 
     loadAutomations()
@@ -55,7 +59,7 @@ export default function AutomationsUsage() {
             </div>
 
             <strong className="uses">
-              {item.uses}
+              {item.uses ?? 0}
             </strong>
 
           </div>
