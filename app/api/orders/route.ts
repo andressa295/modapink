@@ -11,7 +11,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url)
 
     const page = Number(searchParams.get("page") || 1)
-    const limit = 20
+    const limit = 100
 
     // ========================
     // 🏪 LOJAS
@@ -33,13 +33,17 @@ export async function GET(req: Request) {
       .select("*")
 
     function getSessionForStore(storeId: string) {
-      const storeSessions = sessions?.filter(s => s.store_id === storeId)
+      const storeSessions =
+        sessions?.filter((s) => s.store_id === storeId) || []
 
-      if (!storeSessions || storeSessions.length === 0) {
-        return sessions?.find(s => s.is_default) || null
+      if (storeSessions.length === 0) {
+        return sessions?.find((s) => s.is_default) || null
       }
 
-      return storeSessions.find(s => s.is_default) || storeSessions[0]
+      return (
+        storeSessions.find((s) => s.is_default) ||
+        storeSessions[0]
+      )
     }
 
     const allOrders: any[] = []
@@ -55,14 +59,18 @@ export async function GET(req: Request) {
         }
 
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 8000)
+
+        const timeout = setTimeout(() => {
+          controller.abort()
+        }, 15000)
 
         const res = await fetch(
           `https://api.nuvemshop.com.br/v1/${store.user_id}/orders?page=${page}&per_page=${limit}`,
           {
+            method: "GET",
             headers: {
-              Authorization: `Bearer ${store.access_token}`,
-              "User-Agent": "Phandshop/1.0",
+              Authentication: `bearer ${store.access_token}`,
+              "User-Agent": "Phandshop (contato@phand.com.br)",
               "Content-Type": "application/json"
             },
             signal: controller.signal
@@ -72,104 +80,249 @@ export async function GET(req: Request) {
         clearTimeout(timeout)
 
         if (!res.ok) {
-          console.error("❌ erro nuvemshop:", await res.text())
+          const errorText = await res.text()
+
+          console.error("❌ erro nuvemshop:", {
+            store: store.id,
+            status: res.status,
+            error: errorText
+          })
+
           continue
         }
 
         const orders = await res.json()
 
-        if (!Array.isArray(orders)) continue
+        if (!Array.isArray(orders)) {
+          console.error("❌ resposta inválida:", store.id)
+          continue
+        }
 
+        // ========================
+        // 🔄 LOOP PEDIDOS
+        // ========================
         for (const o of orders) {
-          const phoneRaw =
-            o.customer?.phone ||
-            o.contact_phone ||
-            o.billing_address?.phone ||
-            ""
+          try {
+            // ========================
+            // 📞 TELEFONE
+            // ========================
+            const phoneRaw =
+              o.customer?.phone ||
+              o.contact_phone ||
+              o.billing_address?.phone ||
+              o.shipping_address?.phone ||
+              ""
 
-          const phone = normalizePhone(phoneRaw)
+            const phone = normalizePhone(phoneRaw)
 
-          const session = getSessionForStore(store.id)
-          const whatsappNumber = session?.phone || null
+            if (!phone) {
+              console.warn(
+                "⚠️ pedido sem telefone:",
+                o.id
+              )
+              continue
+            }
 
-          const mapped = {
-            external_id: o.id.toString(),
-            order_number: o.number,
-            store_id: store.id,
+            // ========================
+            // 📲 SESSÃO
+            // ========================
+            const session = getSessionForStore(store.id)
 
-            customer_name: o.customer?.name || "Cliente",
-            customer_email: o.customer?.email || "",
-            customer_phone: phone,
+            const whatsappNumber =
+              session?.phone || null
 
-            payment_status: o.payment_status || "pending",
-            payment_method:
-              o.gateway_name ||
-              o.payment_details?.method ||
-              "unknown",
+            // ========================
+            // 💬 CONVERSA
+            // ========================
+            const { data: conversation } = await supabase
+              .from("conversations")
+              .select("id")
+              .eq("phone", phone)
+              .maybeSingle()
 
-            shipping_status: o.shipping_status || "pending",
-            shipping_method:
-              o.shipping_option ||
-              (o.shipping_address ? "Entrega" : "Retirada"),
+            // ========================
+            // 📦 PRODUTOS
+            // ========================
+            const items = (o.products || []).map(
+              (p: any) => ({
+                id: p.id,
+                name: p.name,
+                quantity: p.quantity,
+                price: Number(p.price) || 0,
 
-            total: Number(o.total) || 0,
-            currency: o.currency || "BRL",
+                image:
+                  p.image?.src ||
+                  p.images?.[0]?.src ||
+                  null,
 
-            address: [
+                raw: p
+              })
+            )
+
+            // ========================
+            // 📍 ENDEREÇO
+            // ========================
+            const address = [
               o.shipping_address?.address,
               o.shipping_address?.number,
-              o.shipping_address?.city
+              o.shipping_address?.city,
+              o.shipping_address?.province,
             ]
               .filter(Boolean)
-              .join(", "),
+              .join(", ")
 
-            items: (o.products || []).map((p: any) => ({
-              name: p.name,
-              quantity: p.quantity,
-              price: Number(p.price),
-            })),
+            // ========================
+            // 🧠 MAPEAMENTO
+            // ========================
+            const mapped = {
+              external_id: String(o.id),
 
-            raw: o,
-            whatsapp_number: whatsappNumber,
+              order_number: o.number,
 
-            created_at: o.created_at,
-            updated_at: new Date().toISOString(),
-          }
+              store_id: store.id,
 
-          // ========================
-          // FRONT FORMAT
-          // ========================
-          allOrders.push({
-            id: o.number,
-            customer: mapped.customer_name,
-            phone: phone,
-            status: mapped.payment_status,
-            shipping: mapped.shipping_status,
-            total: mapped.total,
-            date: o.created_at,
-            payment_method: mapped.payment_method,
-            shipping_method: mapped.shipping_method,
-            whatsapp_number: whatsappNumber,
-          })
+              conversation_id:
+                conversation?.id || null,
 
-          // ========================
-          // UPSERT (SEM TRAVAR)
-          // ========================
-          const { error: upsertError } = await supabase
-            .from("orders")
-            .upsert(mapped, {
-              onConflict: "external_id"
+              customer_name:
+                o.customer?.name ||
+                o.billing_address?.name ||
+                "Cliente",
+
+              customer_email:
+                o.customer?.email || "",
+
+              customer_phone: phone,
+
+              payment_status:
+                o.payment_status || "pending",
+
+              payment_method:
+                o.gateway_name ||
+                o.payment_details?.method ||
+                "unknown",
+
+              shipping_status:
+                o.shipping_status || "pending",
+
+              shipping_method:
+                o.shipping_option ||
+                (o.shipping_address
+                  ? "Entrega"
+                  : "Retirada"),
+
+              total: Number(o.total) || 0,
+
+              subtotal:
+                Number(o.subtotal) || 0,
+
+              currency:
+                o.currency || "BRL",
+
+              address,
+
+              items,
+
+              raw: o,
+
+              raw_products:
+                o.products || [],
+
+              whatsapp_number:
+                whatsappNumber,
+
+              created_at:
+                o.created_at ||
+                new Date().toISOString(),
+
+              updated_at:
+                new Date().toISOString(),
+            }
+
+            // ========================
+            // 📤 FRONT
+            // ========================
+            allOrders.push({
+              id: o.number,
+
+              customer:
+                mapped.customer_name,
+
+              phone,
+
+              status:
+                mapped.payment_status,
+
+              shipping:
+                mapped.shipping_status,
+
+              total: mapped.total,
+
+              subtotal:
+                mapped.subtotal,
+
+              date: mapped.created_at,
+
+              payment_method:
+                mapped.payment_method,
+
+              shipping_method:
+                mapped.shipping_method,
+
+              whatsapp_number:
+                whatsappNumber,
+
+              items
             })
 
-          if (upsertError) {
-            console.error("❌ erro upsert:", upsertError)
+            // ========================
+            // 💾 UPSERT
+            // ========================
+            const { error: upsertError } =
+              await supabase
+                .from("orders")
+                .upsert(mapped, {
+                  onConflict:
+                    "store_id,external_id"
+                })
+
+            if (upsertError) {
+              console.error(
+                "❌ erro upsert:",
+                {
+                  order: o.id,
+                  error: upsertError
+                }
+              )
+            }
+
+          } catch (orderError) {
+            console.error(
+              "❌ erro pedido:",
+              o?.id,
+              orderError
+            )
           }
         }
 
-      } catch (err) {
-        console.error("❌ erro loja:", store.id, err)
+      } catch (storeLoopError) {
+        console.error(
+          "❌ erro loja:",
+          store.id,
+          storeLoopError
+        )
       }
     }
+
+    // ========================
+    // 📊 ORDENA MAIS RECENTES
+    // ========================
+    allOrders.sort((a, b) => {
+      return (
+        new Date(b.date).getTime() -
+        new Date(a.date).getTime()
+      )
+    })
 
     return Response.json(allOrders)
 

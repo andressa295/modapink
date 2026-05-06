@@ -5,57 +5,233 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+const WEBHOOK_URL =
+  "https://modapink.phand.com.br/api/nuvemshop/webhook"
+
 export async function POST() {
   try {
-    // 🔥 1. BUSCA TODAS AS LOJAS
+    // =====================================================
+    // BUSCA STORES
+    // =====================================================
     const { data: stores, error } = await supabase
       .from("stores")
       .select("*")
 
     if (error) {
-      console.error("Erro ao buscar stores:", error)
-      return new Response("Erro ao buscar stores", { status: 500 })
+      console.error(
+        "❌ erro buscar stores:",
+        error
+      )
+
+      return new Response(
+        "Erro ao buscar stores",
+        {
+          status: 500
+        }
+      )
     }
 
     if (!stores || stores.length === 0) {
-      return new Response("Nenhuma loja encontrada", { status: 200 })
+      return new Response(
+        "Nenhuma loja encontrada",
+        {
+          status: 200
+        }
+      )
     }
 
-    // 🔥 2. REGISTRA WEBHOOK PARA CADA LOJA
+    const results: any[] = []
+
+    // =====================================================
+    // LOOP STORES
+    // =====================================================
     for (const store of stores) {
       try {
-        const res = await fetch(
-          `https://api.nuvemshop.com.br/v1/${store.user_id}/webhooks`,
-          {
-            method: "POST",
-            headers: {
-              Authentication: `bearer ${store.access_token}`,
-              "Content-Type": "application/json",
-              "User-Agent": "Phandshop/1.0 (contato@phand.com.br)",
-            },
-            body: JSON.stringify({
-              event: "orders/created",
-              url: "https://modapink.phand.com.br/api/nuvemshop/webhook",
-            }),
+        if (
+          !store.access_token ||
+          !store.user_id
+        ) {
+          console.warn(
+            "⚠️ loja sem credenciais:",
+            store.id
+          )
+
+          results.push({
+            store: store.id,
+            success: false,
+            reason: "sem credenciais"
+          })
+
+          continue
+        }
+
+        // =====================================================
+        // EVENTOS
+        // =====================================================
+        const events = [
+          "orders/created",
+          "orders/updated",
+          "products/created",
+          "products/updated"
+        ]
+
+        for (const event of events) {
+          try {
+            // =====================================================
+            // VERIFICA EXISTENTE
+            // =====================================================
+            const existingRes = await fetch(
+              `https://api.nuvemshop.com.br/v1/${store.user_id}/webhooks`,
+              {
+                method: "GET",
+                headers: {
+                  Authentication: `bearer ${store.access_token}`,
+                  "Content-Type":
+                    "application/json",
+
+                  "User-Agent":
+                    "Phandshop/1.0 (contato@phand.com.br)",
+                }
+              }
+            )
+
+            if (!existingRes.ok) {
+              console.error(
+                "❌ erro listar webhooks:",
+                store.id
+              )
+
+              continue
+            }
+
+            const existingHooks =
+              await existingRes.json()
+
+            const alreadyExists =
+              Array.isArray(existingHooks) &&
+              existingHooks.some(
+                (hook: any) =>
+                  hook.event === event &&
+                  hook.url === WEBHOOK_URL
+              )
+
+            // =====================================================
+            // IGNORA DUPLICADO
+            // =====================================================
+            if (alreadyExists) {
+              console.log(
+                `⚠️ webhook já existe: ${event}`
+              )
+
+              results.push({
+                store: store.store_id,
+                event,
+                success: true,
+                skipped: true
+              })
+
+              continue
+            }
+
+            // =====================================================
+            // CRIA WEBHOOK
+            // =====================================================
+            const res = await fetch(
+              `https://api.nuvemshop.com.br/v1/${store.user_id}/webhooks`,
+              {
+                method: "POST",
+
+                headers: {
+                  Authentication: `bearer ${store.access_token}`,
+
+                  "Content-Type":
+                    "application/json",
+
+                  "User-Agent":
+                    "Phandshop/1.0 (contato@phand.com.br)",
+                },
+
+                body: JSON.stringify({
+                  event,
+                  url: WEBHOOK_URL,
+                }),
+              }
+            )
+
+            const data = await res.json()
+
+            if (!res.ok) {
+              console.error(
+                `❌ erro webhook ${event}:`,
+                data
+              )
+
+              results.push({
+                store: store.store_id,
+                event,
+                success: false,
+                error: data
+              })
+
+              continue
+            }
+
+            console.log(
+              `✅ webhook criado: ${event}`
+            )
+
+            results.push({
+              store: store.store_id,
+              event,
+              success: true,
+              webhook_id: data.id
+            })
+
+          } catch (eventError) {
+            console.error(
+              `❌ erro evento ${event}:`,
+              eventError
+            )
+
+            results.push({
+              store: store.store_id,
+              event,
+              success: false
+            })
           }
+        }
+
+      } catch (storeError) {
+        console.error(
+          `❌ erro loja ${store.store_id}:`,
+          storeError
         )
 
-        const data = await res.json()
-
-        console.log(`✅ Webhook criado para loja ${store.store_id}:`, data)
-
-      } catch (err) {
-        console.error(`❌ Erro ao registrar webhook da loja ${store.store_id}:`, err)
+        results.push({
+          store: store.store_id,
+          success: false
+        })
       }
     }
 
-    return new Response("Webhooks registrados com sucesso 🚀", {
-      status: 200,
+    // =====================================================
+    // RETORNO
+    // =====================================================
+    return Response.json({
+      success: true,
+      total_stores: stores.length,
+      webhook_url: WEBHOOK_URL,
+      results
     })
 
   } catch (err) {
-    console.error("Erro geral:", err)
+    console.error("💥 erro geral:", err)
 
-    return new Response("Erro interno", { status: 500 })
+    return new Response(
+      "Erro interno",
+      {
+        status: 500
+      }
+    )
   }
 }

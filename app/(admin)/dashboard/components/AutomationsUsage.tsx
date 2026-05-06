@@ -11,64 +11,151 @@ type Automation = {
 }
 
 export default function AutomationsUsage() {
+  const [automations, setAutomations] = useState<
+    Automation[]
+  >([])
 
-  const [automations, setAutomations] = useState<Automation[]>([])
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const supabase = createClient()
 
+    let mounted = true
+
     async function loadAutomations() {
-      const { data, error } = await supabase
-        .from("automations")
-        .select("id, name, uses")
-        .order("uses", { ascending: false })
-        .limit(5)
+      try {
+        setLoading(true)
 
-      if (error) {
-        console.error("Erro ao buscar automações:", error)
-        return
+        const { data, error } = await supabase
+          .from("automations")
+          .select("id, name, uses")
+          .order("uses", {
+            ascending: false
+          })
+          .limit(5)
+
+        if (error) {
+          console.error(
+            "❌ erro ao buscar automações:",
+            error
+          )
+
+          return
+        }
+
+        if (!mounted) return
+
+        setAutomations(data || [])
+
+      } catch (err) {
+        console.error(
+          "💥 erro loadAutomations:",
+          err
+        )
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
       }
-
-      setAutomations(data ?? [])
     }
 
     loadAutomations()
+
+    // ========================================
+    // REALTIME
+    // ========================================
+    const channel = supabase
+      .channel("automations-usage")
+
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "automations",
+        },
+        (payload) => {
+          console.log(
+            "⚡ automação atualizada:",
+            payload
+          )
+
+          loadAutomations()
+        }
+      )
+
+      .subscribe()
+
+    return () => {
+      mounted = false
+
+      supabase.removeChannel(channel)
+    }
   }, [])
 
   return (
-
     <div className="dashboard-card">
+      <div className="card-header">
+        <h3>
+          Automações mais usadas
+        </h3>
 
-      <h3>Automações mais usadas</h3>
+        <span className="badge">
+          Top 5
+        </span>
+      </div>
 
       <div className="automation-list">
 
-        {automations.length === 0 && (
-          <p className="empty">
-            Nenhuma automação ainda
-          </p>
+        {/* ========================================
+            LOADING
+        ======================================== */}
+
+        {loading && (
+          <div className="empty">
+            Carregando...
+          </div>
         )}
 
-        {automations.map((item, index) => (
+        {/* ========================================
+            EMPTY
+        ======================================== */}
 
-          <div key={item.id} className="automation-item">
+        {!loading &&
+          automations.length === 0 && (
+            <p className="empty">
+              Nenhuma automação ainda
+            </p>
+          )}
 
-            <div className="automation-left">
-              <span className="rank">#{index + 1}</span>
-              <span className="name">{item.name}</span>
-            </div>
+        {/* ========================================
+            LISTA
+        ======================================== */}
 
-            <strong className="uses">
-              {item.uses ?? 0}
-            </strong>
+        {!loading &&
+          automations.map(
+            (item, index) => (
+              <div
+                key={item.id}
+                className="automation-item"
+              >
+                <div className="automation-left">
+                  <span className="rank">
+                    #{index + 1}
+                  </span>
 
-          </div>
+                  <span className="name">
+                    {item.name}
+                  </span>
+                </div>
 
-        ))}
-
+                <strong className="uses">
+                  {item.uses ?? 0}
+                </strong>
+              </div>
+            )
+          )}
       </div>
-
     </div>
-
   )
 }

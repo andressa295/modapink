@@ -3,42 +3,154 @@
 import { useEffect, useState } from "react"
 import "./WhatsappStatus.css"
 
-type Status = "online" | "offline" | "connecting"
+type Status =
+  | "online"
+  | "offline"
+  | "connecting"
+
+type StatusResponse = {
+  status?: Status
+  phone?: string | null
+  lastSeen?: string | null
+}
 
 export default function WhatsappStatus() {
+  // =======================
+  // HYDRATION FIX
+  // =======================
+  const [mounted, setMounted] =
+    useState(false)
 
-  const [status, setStatus] = useState<Status>("connecting")
-  const [lastSeen, setLastSeen] = useState("—")
-  const [phone, setPhone] = useState("+55 11 99999-9999")
+  // =======================
+  // STATES
+  // =======================
+  const [loading, setLoading] =
+    useState(true)
 
+  const [status, setStatus] =
+    useState<Status>("connecting")
+
+  const [phone, setPhone] =
+    useState("Não conectado")
+
+  const [lastSeen, setLastSeen] =
+    useState("—")
+
+  // =======================
+  // MOUNT
+  // =======================
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // =======================
+  // LOAD STATUS
+  // =======================
+  useEffect(() => {
+    if (!mounted) return
 
     async function loadStatus() {
       try {
-        const res = await fetch("http://localhost:3001/status")
-        const data = await res.json()
+        const res = await fetch(
+          "/bot/status",
+          {
+            cache: "no-store"
+          }
+        )
 
-        setStatus(data.status)
-        setPhone(data.phone || "+55 11 99999-9999")
+        if (!res.ok) {
+          throw new Error(
+            "Erro ao buscar status"
+          )
+        }
 
-        const date = new Date(data.lastSeen)
-        const diff = Math.floor((Date.now() - date.getTime()) / 60000)
+        const data: StatusResponse =
+          await res.json()
 
-        if (diff < 1) setLastSeen("agora")
-        else if (diff < 60) setLastSeen(`${diff} min atrás`)
-        else setLastSeen(`${Math.floor(diff / 60)}h atrás`)
+        // =======================
+        // STATUS
+        // =======================
+        setStatus(
+          data.status || "offline"
+        )
 
-      } catch {
+        // =======================
+        // PHONE
+        // =======================
+        setPhone(
+          data.phone ||
+            "Não conectado"
+        )
+
+        // =======================
+        // LAST SEEN
+        // =======================
+        if (!data.lastSeen) {
+          setLastSeen("—")
+        } else {
+          const date = new Date(
+            data.lastSeen
+          )
+
+          const diff = Math.floor(
+            (Date.now() -
+              date.getTime()) /
+              60000
+          )
+
+          if (diff < 1) {
+            setLastSeen("agora")
+          } else if (diff < 60) {
+            setLastSeen(
+              `${diff} min atrás`
+            )
+          } else {
+            setLastSeen(
+              `${Math.floor(
+                diff / 60
+              )}h atrás`
+            )
+          }
+        }
+
+      } catch (err) {
+        console.error(
+          "❌ erro status:",
+          err
+        )
+
         setStatus("offline")
+
+        setPhone("Não conectado")
+
+        setLastSeen("—")
+
+      } finally {
+        setLoading(false)
       }
     }
 
     loadStatus()
 
-    const interval = setInterval(loadStatus, 5000)
-    return () => clearInterval(interval)
+    // =======================
+    // AUTO UPDATE
+    // =======================
+    const interval = setInterval(
+      loadStatus,
+      5000
+    )
 
-  }, [])
+    return () =>
+      clearInterval(interval)
+
+  }, [mounted])
+
+  // =======================
+  // EVITA HYDRATION ERROR
+  // =======================
+  if (!mounted) {
+    return null
+  }
 
   const statusText = {
     online: "Online",
@@ -47,17 +159,31 @@ export default function WhatsappStatus() {
   }
 
   return (
-
     <div className="dashboard-card">
+      <div className="card-header">
+        <h3>
+          Status do WhatsApp
+        </h3>
 
-      <h3>Status do WhatsApp</h3>
+        {!loading && (
+          <span
+            className={`status-badge ${status}`}
+          >
+            {statusText[status]}
+          </span>
+        )}
+      </div>
 
       <div className="whatsapp-status">
+        <div
+          className={`status-indicator ${status}`}
+        />
 
-        <div className={`status-indicator ${status}`} />
-
-        <span>{statusText[status]}</span>
-
+        <span>
+          {loading
+            ? "Carregando..."
+            : statusText[status]}
+        </span>
       </div>
 
       <p className="whatsapp-number">
@@ -65,11 +191,10 @@ export default function WhatsappStatus() {
       </p>
 
       <small>
-        Última atividade: {lastSeen}
+        Última atividade:
+        {" "}
+        {lastSeen}
       </small>
-
     </div>
-
   )
-
 }
