@@ -6,7 +6,7 @@ const supabase = createClient(
 )
 
 const WEBHOOK_URL =
-  "https://modapink.phand.com.br/api/nuvemshop/webhook"
+  "https://api.modapink.phand.com.br/nuvemshop/webhook"
 
 export async function POST() {
   try {

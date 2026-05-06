@@ -52,7 +52,7 @@ export default function WhatsappStatus() {
     async function loadStatus() {
       try {
         const res = await fetch(
-          "/bot/status",
+          "https://api.modapink.phand.com.br/status",
           {
             cache: "no-store"
           }

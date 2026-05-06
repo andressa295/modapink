@@ -5,6 +5,7 @@ import "../styles/chat.css"
 import { createBrowserClient } from "@supabase/ssr"
 
 const API = process.env.NEXT_PUBLIC_API_URL!
+
 const supabase = createBrowserClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -17,7 +18,9 @@ type Conversation = {
   avatar_url?: string
   last_message?: string
   updated_at?: string
-  session_id: string 
+
+  // 🔥 NOVO
+  session_key: string
 }
 
 type Message = {
@@ -27,87 +30,158 @@ type Message = {
 }
 
 export default function Conversas() {
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [selected, setSelected] = useState<Conversation | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState("")
-  const [sending, setSending] = useState(false)
 
-  // 🔥 SISTEMA DE ABAS (ID das sessões que você criou no painel de números)
-  const [activeTab, setActiveTab] = useState("principal")
+  const [conversations, setConversations] =
+    useState<Conversation[]>([])
+
+  const [selected, setSelected] =
+    useState<Conversation | null>(null)
+
+  const [messages, setMessages] =
+    useState<Message[]>([])
+
+  const [input, setInput] =
+    useState("")
+
+  const [sending, setSending] =
+    useState(false)
+
+  // ======================
+  // ABAS
+  // ======================
+  const [activeTab, setActiveTab] =
+    useState("principal")
+
   const vendedoras = [
-    { id: "principal", nome: "🤖 Bot Principal" },
-    { id: "vendedora-1", nome: "Vendedora 1" },
-    { id: "vendedora-2", nome: "Vendedora 2" },
-    { id: "vendedora-3", nome: "Vendedora 3" },
+    {
+      id: "principal",
+      nome: "🤖 Bot Principal"
+    },
+    {
+      id: "vendedora-1",
+      nome: "Vendedora 1"
+    },
+    {
+      id: "vendedora-2",
+      nome: "Vendedora 2"
+    },
+    {
+      id: "vendedora-3",
+      nome: "Vendedora 3"
+    }
   ]
 
-  const messagesRef = useRef<HTMLDivElement | null>(null)
+  const messagesRef =
+    useRef<HTMLDivElement | null>(null)
 
-  // 🔥 Função para rolar o chat para o fim automaticamente
-  const scrollToBottom = () => {
-    if (messagesRef.current) {
-      messagesRef.current.scrollTop = messagesRef.current.scrollHeight
-    }
+  // ======================
+  // AUTO SCROLL
+  // ======================
+  function scrollToBottom() {
+
+    if (!messagesRef.current) return
+
+    messagesRef.current.scrollTop =
+      messagesRef.current.scrollHeight
   }
 
-  // Roda o scroll sempre que a lista de mensagens mudar
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
   // ======================
-  // CARREGA CONVERSAS DA VENDEDORA SELECIONADA
+  // LOAD CONVERSAS
   // ======================
   async function loadConversations() {
+
     try {
-      const res = await fetch(`${API}/conversations?session_id=${activeTab}`, { 
-        cache: "no-store",
-        headers: { "Pragma": "no-cache" }
-      })
+
+      const res = await fetch(
+        `${API}/conversations?session_key=${activeTab}`,
+        {
+          cache: "no-store",
+
+          headers: {
+            Pragma: "no-cache"
+          }
+        }
+      )
+
       const data = await res.json()
-      const list: Conversation[] = Array.isArray(data) ? data : data?.data || []
+
+      const list: Conversation[] =
+        Array.isArray(data)
+          ? data
+          : data?.data || []
 
       setConversations(list)
 
-      // Se mudar de aba e o chat aberto for de outra vendedora, fecha ele
-      if (selected && selected.session_id !== activeTab) {
+      // 🔥 FECHA CHAT
+      if (
+        selected &&
+        selected.session_key !== activeTab
+      ) {
         setSelected(null)
         setMessages([])
       }
+
     } catch (err) {
-      console.error("Erro ao carregar conversas:", err)
+
+      console.error(
+        "❌ erro conversas:",
+        err
+      )
     }
   }
 
+  // ======================
+  // LOAD MSGS
+  // ======================
   async function loadMessages(id: string) {
+
     try {
-      const res = await fetch(`${API}/messages?conversation_id=${id}`)
+
+      const res = await fetch(
+        `${API}/messages?conversation_id=${id}`
+      )
+
       const data = await res.json()
+
       if (Array.isArray(data)) {
         setMessages(data)
       }
+
     } catch (err) {
-      console.error("Erro ao carregar mensagens:", err)
+
+      console.error(
+        "❌ erro mensagens:",
+        err
+      )
     }
   }
 
   // ======================
-  // REALTIME: LISTA DE CONVERSAS (Sidebar)
+  // REALTIME SIDEBAR
   // ======================
   useEffect(() => {
+
     loadConversations()
 
-    // Ouve qualquer mudança na tabela de conversas para atualizar o preview da última mensagem
     const channel = supabase
-      .channel(`sidebar-realtime-${activeTab}`)
+      .channel(
+        `sidebar-${activeTab}`
+      )
       .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'conversations',
-          filter: `session_id=eq.${activeTab}` 
+        "postgres_changes",
+        {
+          event: "*",
+
+          schema: "public",
+
+          table: "conversations",
+
+          filter:
+            `session_key=eq.${activeTab}`
         },
         () => {
           loadConversations()
@@ -118,37 +192,62 @@ export default function Conversas() {
     return () => {
       supabase.removeChannel(channel)
     }
+
   }, [activeTab])
 
   // ======================
-  // REALTIME: CHAT ABERTO (Mensagens em tempo real)
+  // REALTIME MESSAGES
   // ======================
   useEffect(() => {
+
     if (!selected) return
+
     loadMessages(selected.id)
 
-    // Escuta novas mensagens inseridas no banco para este chat específico
     const channel = supabase
-      .channel(`chat-realtime-${selected.id}`)
+      .channel(
+        `chat-${selected.id}`
+      )
       .on(
-        'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'messages', 
-          filter: `conversation_id=eq.${selected.id}` 
+        "postgres_changes",
+        {
+          event: "INSERT",
+
+          schema: "public",
+
+          table: "messages",
+
+          filter:
+            `conversation_id=eq.${selected.id}`
         },
         (payload) => {
-          const novo = payload.new as any
-          // Adiciona a nova mensagem ao estado sem precisar de F5
+
+          const novo =
+            payload.new as any
+
           setMessages((prev) => {
-            // Evita duplicados caso a API e o Realtime rodem juntos
-            if (prev.find(m => m.id === novo.id)) return prev
-            return [...prev, { 
-              id: novo.id, 
-              content: novo.content, 
-              sender: novo.sender 
-            }]
+
+            const exists =
+              prev.find(
+                m => m.id === novo.id
+              )
+
+            if (exists) {
+              return prev
+            }
+
+            return [
+              ...prev,
+              {
+                id: novo.id,
+
+                content:
+                  novo.content,
+
+                sender:
+                  novo.sender
+              }
+            ]
           })
         }
       )
@@ -157,141 +256,332 @@ export default function Conversas() {
     return () => {
       supabase.removeChannel(channel)
     }
+
   }, [selected?.id])
 
   // ======================
-  // ENVIO DE MENSAGEM
+  // SEND MESSAGE
   // ======================
   async function sendMessage() {
-    if (!input.trim() || !selected || sending) return
-    
+
+    if (
+      !input.trim() ||
+      !selected ||
+      sending
+    ) return
+
     const text = input
-    setInput("") // Limpa o campo na hora para dar sensação de velocidade
+
+    setInput("")
+
     setSending(true)
 
     try {
-      const response = await fetch(`${API}/send-message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          phone: selected.phone,
-          message: text,
-          sessionId: activeTab // Envia pela vendedora da aba ativa
-        })
-      })
+
+      const response =
+        await fetch(
+          `${API}/send-message`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+
+            body: JSON.stringify({
+              phone:
+                selected.phone,
+
+              message: text,
+
+              sessionId:
+                activeTab
+            })
+          }
+        )
 
       if (!response.ok) {
-        throw new Error("Falha ao enviar")
+        throw new Error(
+          "Falha ao enviar"
+        )
       }
+
     } catch (err) {
-      console.error("Erro ao enviar:", err)
-      setInput(text) // Devolve o texto ao input se der erro
+
+      console.error(
+        "❌ erro envio:",
+        err
+      )
+
+      setInput(text)
+
     } finally {
+
       setSending(false)
     }
   }
 
   return (
     <div className="chat-app">
-      
-      {/* SIDEBAR - LISTA DE CHATS */}
+
+      {/* SIDEBAR */}
       <div className="sidebar">
-        
-        {/* SELETOR DE VENDEDORAS (ABAS) */}
+
+        {/* ABAS */}
         <div className="vendedoras-tabs">
+
           {vendedoras.map((v) => (
+
             <button
               key={v.id}
-              className={activeTab === v.id ? "active" : ""}
-              onClick={() => setActiveTab(v.id)}
+
+              className={
+                activeTab === v.id
+                  ? "active"
+                  : ""
+              }
+
+              onClick={() =>
+                setActiveTab(v.id)
+              }
             >
               {v.nome}
             </button>
+
           ))}
+
         </div>
 
+        {/* CONVERSAS */}
         <div className="conversations-list">
+
           {conversations.length === 0 ? (
-            <div className="no-chats">Nenhuma conversa nesta vendedora</div>
+
+            <div className="no-chats">
+              Nenhuma conversa
+            </div>
+
           ) : (
+
             conversations.map((c) => (
+
               <div
                 key={c.id}
-                className={`chat-item ${selected?.id === c.id ? "active" : ""}`}
-                onClick={() => setSelected(c)}
+
+                className={`chat-item ${
+                  selected?.id === c.id
+                    ? "active"
+                    : ""
+                }`}
+
+                onClick={() =>
+                  setSelected(c)
+                }
               >
-                <img 
-                  src={c.avatar_url || "/placeholder.png"} 
-                  className="avatar" 
-                  alt="Avatar" 
-                  onError={(e) => (e.currentTarget.src = "/placeholder.png")}
+
+                <img
+                  src={
+                    c.avatar_url ||
+                    "/placeholder.png"
+                  }
+
+                  className="avatar"
+
+                  alt="Avatar"
+
+                  onError={(e) => {
+                    e.currentTarget.src =
+                      "/placeholder.png"
+                  }}
                 />
+
                 <div className="chat-info">
+
                   <div className="top">
-                    {/* Exibe o Nome ou Telefone de forma limpa */}
-                    <strong>{c.customer_name || c.phone}</strong>
+
+                    <strong>
+                      {
+                        c.customer_name ||
+                        c.phone
+                      }
+                    </strong>
+
                     <span className="time">
-                      {c.updated_at && new Date(c.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+
+                      {c.updated_at &&
+                        new Date(
+                          c.updated_at
+                        ).toLocaleTimeString(
+                          [],
+                          {
+                            hour: "2-digit",
+                            minute:
+                              "2-digit"
+                          }
+                        )}
+
                     </span>
+
                   </div>
-                  <p className="preview">{c.last_message || "Sem mensagens"}</p>
+
+                  <p className="preview">
+                    {
+                      c.last_message ||
+                      "Sem mensagens"
+                    }
+                  </p>
+
                 </div>
+
               </div>
+
             ))
           )}
+
         </div>
+
       </div>
 
-      {/* CHAT CONTAINER - MENSAGENS */}
+      {/* CHAT */}
       <div className="chat">
+
         {selected ? (
+
           <>
+
+            {/* HEADER */}
             <div className="header">
-              <img 
-                src={selected.avatar_url || "/placeholder.png"} 
-                className="avatar-header" 
-                alt="Avatar" 
-                onError={(e) => (e.currentTarget.src = "/placeholder.png")}
+
+              <img
+                src={
+                  selected.avatar_url ||
+                  "/placeholder.png"
+                }
+
+                className="avatar-header"
+
+                alt="Avatar"
+
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "/placeholder.png"
+                }}
               />
+
               <div>
-                <strong>{selected.customer_name || selected.phone}</strong>
-                <span>{selected.phone}</span>
+
+                <strong>
+                  {
+                    selected.customer_name ||
+                    selected.phone
+                  }
+                </strong>
+
+                <span>
+                  {selected.phone}
+                </span>
+
               </div>
+
             </div>
 
-            <div className="messages" ref={messagesRef}>
+            {/* 🔥 SCROLL FIX */}
+            <div
+              className="messages"
+              ref={messagesRef}
+              style={{
+                overflowY: "auto",
+                height: "100%",
+                maxHeight:
+                  "calc(100vh - 180px)"
+              }}
+            >
+
               {messages.map((m) => (
-                <div key={m.id} className={`bubble ${m.sender === "user" ? "client" : "me"}`}>
+
+                <div
+                  key={m.id}
+
+                  className={`bubble ${
+                    m.sender === "user"
+                      ? "client"
+                      : "me"
+                  }`}
+                >
                   {m.content}
                 </div>
+
               ))}
+
             </div>
 
+            {/* INPUT */}
             <div className="input">
+
               <input
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Digite sua mensagem..."
-                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+
+                onChange={(e) =>
+                  setInput(
+                    e.target.value
+                  )
+                }
+
+                placeholder="Digite..."
+
+                onKeyDown={(e) => {
+
+                  if (
+                    e.key === "Enter" &&
+                    !e.shiftKey
+                  ) {
+                    sendMessage()
+                  }
+                }}
+
                 disabled={sending}
               />
-              <button 
-                onClick={sendMessage} 
-                disabled={sending || !input.trim()}
+
+              <button
+                onClick={sendMessage}
+
+                disabled={
+                  sending ||
+                  !input.trim()
+                }
               >
-                {sending ? "..." : "Enviar"}
+                {sending
+                  ? "..."
+                  : "Enviar"}
               </button>
+
             </div>
+
           </>
+
         ) : (
+
           <div className="no-chat">
+
             <div className="empty-state">
-              <h3>Selecione uma conversa</h3>
-              <p>Escolha um cliente ao lado para monitorar as mensagens em tempo real.</p>
+
+              <h3>
+                Selecione uma conversa
+              </h3>
+
+              <p>
+                Escolha um chat ao lado.
+              </p>
+
             </div>
+
           </div>
+
         )}
+
       </div>
+
     </div>
   )
 }
