@@ -1,5 +1,8 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 import {
   useEffect,
   useState
@@ -61,15 +64,21 @@ export default function ResetPassword() {
         const code =
           searchParams.get("code")
 
+        console.log(
+          "🔑 code:",
+          code
+        )
+
         // =========================================
         // EXCHANGE CODE
         // =========================================
         if (code) {
 
           const { error } =
-            await supabase.auth.exchangeCodeForSession(
-              code
-            )
+            await supabase.auth
+              .exchangeCodeForSession(
+                code
+              )
 
           if (error) {
 
@@ -86,6 +95,10 @@ export default function ResetPassword() {
 
             return
           }
+
+          console.log(
+            "✅ sessão recovery criada"
+          )
         }
 
         // =========================================
@@ -93,7 +106,13 @@ export default function ResetPassword() {
         // =========================================
         const {
           data: { session }
-        } = await supabase.auth.getSession()
+        } = await supabase.auth
+          .getSession()
+
+        console.log(
+          "🧠 session:",
+          session
+        )
 
         if (!session) {
 
@@ -132,6 +151,9 @@ export default function ResetPassword() {
 
     setError("")
 
+    // =========================================
+    // VALIDATIONS
+    // =========================================
     if (password.length < 6) {
 
       return setError(
@@ -152,15 +174,23 @@ export default function ResetPassword() {
 
     try {
 
-      const { error } =
-        await supabase.auth.updateUser({
+      console.log(
+        "💾 salvando senha..."
+      )
 
-          password
-        })
+      const { error } =
+        await supabase.auth
+          .updateUser({
+
+            password
+          })
 
       if (error) {
 
-        console.error(error)
+        console.error(
+          "❌ erro update:",
+          error
+        )
 
         setError(
           error.message ||
@@ -171,6 +201,10 @@ export default function ResetPassword() {
 
         return
       }
+
+      console.log(
+        "✅ senha criada"
+      )
 
       setSuccess(true)
 
@@ -200,10 +234,13 @@ export default function ResetPassword() {
   if (validating) {
 
     return (
+
       <div className={styles.container}>
+
         <div className={styles.card}>
           Validando acesso...
         </div>
+
       </div>
     )
   }
@@ -255,7 +292,9 @@ export default function ResetPassword() {
                 placeholder="Digite sua senha"
                 value={password}
                 onChange={(e) =>
-                  setPassword(e.target.value)
+                  setPassword(
+                    e.target.value
+                  )
                 }
               />
 
@@ -281,6 +320,7 @@ export default function ResetPassword() {
             </div>
 
             {error && (
+
               <span className={styles.error}>
                 {error}
               </span>
