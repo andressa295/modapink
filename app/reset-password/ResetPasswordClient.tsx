@@ -6,28 +6,25 @@ import {
 } from "react"
 
 import {
-  useRouter,
-  useSearchParams
+  useRouter
 } from "next/navigation"
 
 import Image from "next/image"
 
-import { createClient }
-from "@/lib/supabase/client"
+import {
+  createClient
+} from "@/lib/supabase/client"
 
 import styles
 from "./reset-password.module.css"
 
-export default function ResetPasswordClient() {
+export default function ResetPassword() {
 
   const supabase =
     createClient()
 
   const router =
     useRouter()
-
-  const searchParams =
-    useSearchParams()
 
   const [password, setPassword] =
     useState("")
@@ -49,14 +46,25 @@ export default function ResetPasswordClient() {
   const [validating, setValidating] =
     useState(true)
 
+  // =========================================
+  // SESSION
+  // =========================================
   useEffect(() => {
 
-    async function loadSession() {
+    async function init() {
 
       try {
 
+        const url =
+          new URL(window.location.href)
+
         const code =
-          searchParams.get("code")
+          url.searchParams.get("code")
+
+        console.log(
+          "🔑 code:",
+          code
+        )
 
         if (code) {
 
@@ -67,6 +75,8 @@ export default function ResetPasswordClient() {
               )
 
           if (error) {
+
+            console.error(error)
 
             setError(
               "Link inválido ou expirado."
@@ -96,7 +106,9 @@ export default function ResetPasswordClient() {
 
         setValidating(false)
 
-      } catch {
+      } catch (err) {
+
+        console.error(err)
 
         setError(
           "Erro ao validar acesso."
@@ -107,10 +119,13 @@ export default function ResetPasswordClient() {
 
     }
 
-    loadSession()
+    init()
 
   }, [])
 
+  // =========================================
+  // SAVE
+  // =========================================
   async function handleReset() {
 
     setError("")
@@ -144,6 +159,8 @@ export default function ResetPasswordClient() {
 
       if (error) {
 
+        console.error(error)
+
         setError(
           error.message
         )
@@ -159,7 +176,9 @@ export default function ResetPasswordClient() {
 
       }, 2000)
 
-    } catch {
+    } catch (err) {
+
+      console.error(err)
 
       setError(
         "Erro inesperado"
@@ -171,6 +190,9 @@ export default function ResetPasswordClient() {
     }
   }
 
+  // =========================================
+  // LOADING
+  // =========================================
   if (validating) {
 
     return (
@@ -227,6 +249,7 @@ export default function ResetPasswordClient() {
 
               <input
                 type="password"
+                placeholder="Digite sua senha"
                 value={password}
                 onChange={(e) =>
                   setPassword(
@@ -245,6 +268,7 @@ export default function ResetPasswordClient() {
 
               <input
                 type="password"
+                placeholder="Confirme sua senha"
                 value={confirmPassword}
                 onChange={(e) =>
                   setConfirmPassword(
@@ -256,6 +280,7 @@ export default function ResetPasswordClient() {
             </div>
 
             {error && (
+
               <span className={styles.error}>
                 {error}
               </span>
