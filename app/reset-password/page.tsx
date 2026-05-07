@@ -1,7 +1,6 @@
 "use client"
 
 export const dynamic = "force-dynamic"
-export const revalidate = 0
 
 import {
   useEffect,
@@ -97,7 +96,7 @@ export default function ResetPassword() {
           }
 
           console.log(
-            "✅ sessão recovery criada"
+            "✅ sessão criada"
           )
         }
 
