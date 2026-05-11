@@ -1,4 +1,4 @@
-import "../../styles/automacoes.css"
+import "../../styles/automacoes.module.css"
 import AutomationCard from "../../components/automations/automation/AutomationCard"
 
 export default function Automacoes(){

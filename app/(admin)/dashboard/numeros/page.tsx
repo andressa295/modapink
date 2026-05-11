@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import "../styles/numeros.css"
+import "../styles/numeros.module.css"
 
 type Session = {
   id: string

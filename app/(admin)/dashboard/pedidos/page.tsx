@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState, useRef } from "react"
-import "../styles/pedidos.css"
+import "../styles/pedidos.module.css"
 
 // ======================
 // TYPES
