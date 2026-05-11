@@ -1,73 +1,138 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import "../styles/chat.css"
+import "../styles/chat.module.css"
 import { createBrowserClient } from "@supabase/ssr"
 
-const API = process.env.NEXT_PUBLIC_API_URL!
+const API =
+  process.env.NEXT_PUBLIC_API_URL!
 
-const supabase = createBrowserClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+const supabase =
+  createBrowserClient(
 
+    process.env
+      .NEXT_PUBLIC_SUPABASE_URL!,
+
+    process.env
+      .NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  )
+
+// ======================
+// TYPES
+// ======================
 type Conversation = {
+
   id: string
+
   phone: string
+
   customer_name?: string
+
   avatar_url?: string
+
   last_message?: string
+
   updated_at?: string
 
-  // 🔥 NOVO
   session_key: string
 }
 
 type Message = {
+
   id: string
+
   content: string
-  sender: "user" | "agent" | "bot"
+
+  sender:
+    | "user"
+    | "agent"
+    | "bot"
 }
 
+// ======================
+// COMPONENT
+// ======================
 export default function Conversas() {
 
-  const [conversations, setConversations] =
-    useState<Conversation[]>([])
+  const [
 
-  const [selected, setSelected] =
-    useState<Conversation | null>(null)
+    conversations,
 
-  const [messages, setMessages] =
-    useState<Message[]>([])
+    setConversations
 
-  const [input, setInput] =
-    useState("")
+  ] = useState<Conversation[]>([])
 
-  const [sending, setSending] =
-    useState(false)
+  const [
+
+    selected,
+
+    setSelected
+
+  ] = useState<Conversation | null>(null)
+
+  const [
+
+    messages,
+
+    setMessages
+
+  ] = useState<Message[]>([])
+
+  const [
+
+    input,
+
+    setInput
+
+  ] = useState("")
+
+  const [
+
+    sending,
+
+    setSending
+
+  ] = useState(false)
 
   // ======================
   // ABAS
   // ======================
-  const [activeTab, setActiveTab] =
-    useState("principal")
+  const [
+
+    activeTab,
+
+    setActiveTab
+
+  ] = useState("principal")
 
   const vendedoras = [
+
     {
       id: "principal",
-      nome: "🤖 Bot Principal"
+
+      nome:
+        "🤖 Bot Principal"
     },
+
     {
       id: "vendedora-1",
-      nome: "Vendedora 1"
+
+      nome:
+        "Vendedora 1"
     },
+
     {
       id: "vendedora-2",
-      nome: "Vendedora 2"
+
+      nome:
+        "Vendedora 2"
     },
+
     {
       id: "vendedora-3",
-      nome: "Vendedora 3"
+
+      nome:
+        "Vendedora 3"
     }
   ]
 
@@ -79,14 +144,17 @@ export default function Conversas() {
   // ======================
   function scrollToBottom() {
 
-    if (!messagesRef.current) return
+    if (!messagesRef.current)
+      return
 
     messagesRef.current.scrollTop =
       messagesRef.current.scrollHeight
   }
 
   useEffect(() => {
+
     scrollToBottom()
+
   }, [messages])
 
   // ======================
@@ -96,32 +164,50 @@ export default function Conversas() {
 
     try {
 
-      const res = await fetch(
-        `${API}/conversations?session_key=${activeTab}`,
-        {
-          cache: "no-store",
+      const res =
+        await fetch(
 
-          headers: {
-            Pragma: "no-cache"
+          `${API}/conversations?session_key=${activeTab}`,
+
+          {
+            cache:
+              "no-store",
+
+            headers: {
+              Pragma:
+                "no-cache"
+            }
           }
-        }
-      )
+        )
 
-      const data = await res.json()
+      const data =
+        await res.json()
 
-      const list: Conversation[] =
+      const list:
+        Conversation[] =
+
         Array.isArray(data)
+
           ? data
+
           : data?.data || []
 
       setConversations(list)
 
-      // 🔥 FECHA CHAT
+      // ======================
+      // FECHA CHAT
+      // ======================
       if (
+
         selected &&
-        selected.session_key !== activeTab
+
+        selected.session_key !==
+          activeTab
+
       ) {
+
         setSelected(null)
+
         setMessages([])
       }
 
@@ -137,17 +223,25 @@ export default function Conversas() {
   // ======================
   // LOAD MSGS
   // ======================
-  async function loadMessages(id: string) {
+  async function loadMessages(
+    id: string
+  ) {
 
     try {
 
-      const res = await fetch(
-        `${API}/messages?conversation_id=${id}`
-      )
+      const res =
+        await fetch(
 
-      const data = await res.json()
+          `${API}/messages?conversation_id=${id}`
+        )
 
-      if (Array.isArray(data)) {
+      const data =
+        await res.json()
+
+      if (
+        Array.isArray(data)
+      ) {
+
         setMessages(data)
       }
 
@@ -167,30 +261,42 @@ export default function Conversas() {
 
     loadConversations()
 
-    const channel = supabase
-      .channel(
-        `sidebar-${activeTab}`
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
+    const channel =
+      supabase
 
-          schema: "public",
+        .channel(
+          `sidebar-${activeTab}`
+        )
 
-          table: "conversations",
+        .on(
+          "postgres_changes",
 
-          filter:
-            `session_key=eq.${activeTab}`
-        },
-        () => {
-          loadConversations()
-        }
-      )
-      .subscribe()
+          {
+            event: "*",
+
+            schema:
+              "public",
+
+            table:
+              "conversations",
+
+            filter:
+              `session_key=eq.${activeTab}`
+          },
+
+          () => {
+
+            loadConversations()
+          }
+        )
+
+        .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+
+      supabase.removeChannel(
+        channel
+      )
     }
 
   }, [activeTab])
@@ -200,61 +306,78 @@ export default function Conversas() {
   // ======================
   useEffect(() => {
 
-    if (!selected) return
+    if (!selected)
+      return
 
     loadMessages(selected.id)
 
-    const channel = supabase
-      .channel(
-        `chat-${selected.id}`
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
+    const channel =
+      supabase
 
-          schema: "public",
+        .channel(
+          `chat-${selected.id}`
+        )
 
-          table: "messages",
+        .on(
+          "postgres_changes",
 
-          filter:
-            `conversation_id=eq.${selected.id}`
-        },
-        (payload) => {
+          {
+            event:
+              "INSERT",
 
-          const novo =
-            payload.new as any
+            schema:
+              "public",
 
-          setMessages((prev) => {
+            table:
+              "messages",
 
-            const exists =
-              prev.find(
-                m => m.id === novo.id
-              )
+            filter:
+              `conversation_id=eq.${selected.id}`
+          },
 
-            if (exists) {
-              return prev
-            }
+          (payload) => {
 
-            return [
-              ...prev,
-              {
-                id: novo.id,
+            const novo =
+              payload.new as any
 
-                content:
-                  novo.content,
+            setMessages((prev) => {
 
-                sender:
-                  novo.sender
+              const exists =
+                prev.find(
+                  m =>
+                    m.id === novo.id
+                )
+
+              if (exists) {
+                return prev
               }
-            ]
-          })
-        }
-      )
-      .subscribe()
+
+              return [
+
+                ...prev,
+
+                {
+                  id:
+                    novo.id,
+
+                  content:
+                    novo.content,
+
+                  sender:
+                    novo.sender
+                }
+              ]
+            })
+          }
+        )
+
+        .subscribe()
 
     return () => {
-      supabase.removeChannel(channel)
+
+      supabase.removeChannel(
+        channel
+      )
     }
 
   }, [selected?.id])
@@ -265,9 +388,13 @@ export default function Conversas() {
   async function sendMessage() {
 
     if (
+
       !input.trim() ||
+
       !selected ||
+
       sending
+
     ) return
 
     const text = input
@@ -280,28 +407,35 @@ export default function Conversas() {
 
       const response =
         await fetch(
+
           `${API}/send-message`,
+
           {
-            method: "POST",
+            method:
+              "POST",
 
             headers: {
               "Content-Type":
                 "application/json"
             },
 
-            body: JSON.stringify({
-              phone:
-                selected.phone,
+            body:
+              JSON.stringify({
 
-              message: text,
+                phone:
+                  selected.phone,
 
-              sessionId:
-                activeTab
-            })
+                message:
+                  text,
+
+                session_key:
+                  activeTab
+              })
           }
         )
 
       if (!response.ok) {
+
         throw new Error(
           "Falha ao enviar"
         )
@@ -323,6 +457,7 @@ export default function Conversas() {
   }
 
   return (
+
     <div className="chat-app">
 
       {/* SIDEBAR */}
@@ -391,6 +526,7 @@ export default function Conversas() {
                   alt="Avatar"
 
                   onError={(e) => {
+
                     e.currentTarget.src =
                       "/placeholder.png"
                   }}
@@ -401,21 +537,26 @@ export default function Conversas() {
                   <div className="top">
 
                     <strong>
+
                       {
                         c.customer_name ||
                         c.phone
                       }
+
                     </strong>
 
                     <span className="time">
 
                       {c.updated_at &&
+
                         new Date(
                           c.updated_at
                         ).toLocaleTimeString(
                           [],
                           {
-                            hour: "2-digit",
+                            hour:
+                              "2-digit",
+
                             minute:
                               "2-digit"
                           }
@@ -426,10 +567,12 @@ export default function Conversas() {
                   </div>
 
                   <p className="preview">
+
                     {
                       c.last_message ||
                       "Sem mensagens"
                     }
+
                   </p>
 
                 </div>
@@ -464,6 +607,7 @@ export default function Conversas() {
                 alt="Avatar"
 
                 onError={(e) => {
+
                   e.currentTarget.src =
                     "/placeholder.png"
                 }}
@@ -472,10 +616,12 @@ export default function Conversas() {
               <div>
 
                 <strong>
+
                   {
                     selected.customer_name ||
                     selected.phone
                   }
+
                 </strong>
 
                 <span>
@@ -486,13 +632,20 @@ export default function Conversas() {
 
             </div>
 
-            {/* 🔥 SCROLL FIX */}
+            {/* MESSAGES */}
             <div
               className="messages"
+
               ref={messagesRef}
+
               style={{
-                overflowY: "auto",
-                height: "100%",
+
+                overflowY:
+                  "auto",
+
+                height:
+                  "100%",
+
                 maxHeight:
                   "calc(100vh - 180px)"
               }}
@@ -505,11 +658,19 @@ export default function Conversas() {
 
                   className={`bubble ${
                     m.sender === "user"
+
                       ? "client"
+
+                      : m.sender === "bot"
+
+                      ? "bot"
+
                       : "me"
                   }`}
                 >
+
                   {m.content}
+
                 </div>
 
               ))}
@@ -520,9 +681,11 @@ export default function Conversas() {
             <div className="input">
 
               <input
+
                 value={input}
 
                 onChange={(e) =>
+
                   setInput(
                     e.target.value
                   )
@@ -533,9 +696,13 @@ export default function Conversas() {
                 onKeyDown={(e) => {
 
                   if (
+
                     e.key === "Enter" &&
+
                     !e.shiftKey
+
                   ) {
+
                     sendMessage()
                   }
                 }}
@@ -544,16 +711,21 @@ export default function Conversas() {
               />
 
               <button
+
                 onClick={sendMessage}
 
                 disabled={
+
                   sending ||
+
                   !input.trim()
                 }
               >
+
                 {sending
                   ? "..."
                   : "Enviar"}
+
               </button>
 
             </div>
