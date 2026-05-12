@@ -1,4 +1,5 @@
 "use client"
+
 export const dynamic = "force-dynamic"
 
 import {
@@ -11,9 +12,7 @@ import {
 
 import {
 
-  useRouter,
-
-  useSearchParams
+  useRouter
 
 } from "next/navigation"
 
@@ -31,8 +30,17 @@ export default function ResetPassword() {
   const router =
     useRouter()
 
-  const searchParams =
-    useSearchParams()
+  // 🔥 sem useSearchParams
+  const code =
+
+    typeof window !==
+    "undefined"
+
+      ? new URLSearchParams(
+          window.location.search
+        ).get("code")
+
+      : null
 
   const [
 
@@ -83,9 +91,6 @@ export default function ResetPassword() {
 
       try {
 
-        const code =
-          searchParams.get("code")
-
         if (!code) {
           return
         }
@@ -93,7 +98,9 @@ export default function ResetPassword() {
         const { error } =
 
           await supabase.auth
-            .exchangeCodeForSession(code)
+            .exchangeCodeForSession(
+              code
+            )
 
         if (error) {
 
