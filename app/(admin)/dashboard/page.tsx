@@ -11,7 +11,7 @@ import {
   Star
 } from "lucide-react"
 
-import "./styles/dashboard.css"
+import "./styles/dashboard.module.css"
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
 

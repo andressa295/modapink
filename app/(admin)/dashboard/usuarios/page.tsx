@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import "../styles/users.css"
+import "../styles/users.module.css"
 import { createClient } from "@/lib/supabase/client"
 
 type User = {

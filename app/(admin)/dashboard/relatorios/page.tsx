@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import "../styles/relatorios.css"
+import "../styles/relatorios.module.css"
 import MetricCard from "../components/reports/MetricCard"
 import { createClient } from "@/lib/supabase/client"
 
