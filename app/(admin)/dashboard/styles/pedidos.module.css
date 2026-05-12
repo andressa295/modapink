@@ -50,7 +50,8 @@
   box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
 }
 
-select {
+/* ✅ FIX CSS MODULE */
+.pedidos-actions select {
   border: 1px solid #e5e7eb;
   padding: 10px 12px;
   border-radius: 10px;
@@ -60,40 +61,65 @@ select {
 
 /* BUTTON */
 .connect-store {
-  background: linear-gradient(135deg, #E6007E, #ff4db8);
+  background: linear-gradient(
+    135deg,
+    #E6007E,
+    #ff4db8
+  );
+
   color: white;
+
   border-radius: 10px;
+
   padding: 10px 16px;
+
   font-size: 14px;
+
   cursor: pointer;
+
   border: none;
+
   transition: all 0.2s ease;
 }
 
 .connect-store:hover {
   transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(230, 0, 126, 0.2);
+
+  box-shadow:
+    0 8px 20px
+    rgba(230, 0, 126, 0.2);
 }
 
 /* KPI */
 .orders-kpis {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
   gap: 14px;
 }
 
 .kpi {
   background: white;
-  border: 1px solid #eef2f7;
+
+  border:
+    1px solid #eef2f7;
+
   border-radius: 14px;
+
   padding: 16px;
+
   display: flex;
+
   flex-direction: column;
+
   gap: 6px;
 }
 
 .kpi span {
   font-size: 13px;
+
   color: #64748b;
 }
 
@@ -104,19 +130,31 @@ select {
 /* TABLE */
 .orders-table {
   background: white;
+
   border-radius: 14px;
-  border: 1px solid #eef2f7;
+
+  border:
+    1px solid #eef2f7;
+
   overflow: hidden;
 }
 
-/* GRID MAIS EQUILIBRADO */
+/* GRID */
 .orders-row {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr 1.2fr 1fr 1fr;
+
+  grid-template-columns:
+    1fr 2fr 1fr 1.2fr 1fr 1fr;
+
   padding: 16px 20px;
-  border-bottom: 1px solid #f1f5f9;
+
+  border-bottom:
+    1px solid #f1f5f9;
+
   align-items: center;
-  transition: background 0.2s ease;
+
+  transition:
+    background 0.2s ease;
 }
 
 .orders-row:hover {
@@ -125,8 +163,11 @@ select {
 
 .orders-row.header {
   font-weight: 600;
+
   background: #fafafa;
+
   font-size: 13px;
+
   color: #64748b;
 }
 
@@ -137,7 +178,9 @@ select {
 
 .order-customer {
   display: flex;
+
   flex-direction: column;
+
   gap: 4px;
 }
 
@@ -147,41 +190,51 @@ select {
 
 .order-phone {
   font-size: 12px;
+
   color: #64748b;
 }
 
 /* STATUS */
 .order-status {
   font-size: 12px;
+
   padding: 5px 10px;
+
   border-radius: 999px;
+
   font-weight: 500;
+
   display: inline-block;
 }
 
 .status-paid {
   background: #ecfdf5;
+
   color: #059669;
 }
 
 .status-pending {
   background: #fef3c7;
+
   color: #d97706;
 }
 
 .status-cancelled {
   background: #fee2e2;
+
   color: #dc2626;
 }
 
 .status-shipped {
   background: #e0f2fe;
+
   color: #0284c7;
 }
 
 /* SHIPPING */
 .order-shipping {
   font-size: 13px;
+
   color: #475569;
 }
 
@@ -193,6 +246,7 @@ select {
 /* DATE */
 .order-date {
   font-size: 13px;
+
   color: #64748b;
 }
 
@@ -200,13 +254,17 @@ select {
 .loading,
 .loading-more {
   text-align: center;
+
   padding: 20px;
+
   color: #64748b;
 }
 
 /* EMPTY */
 .empty-orders {
   padding: 20px;
+
   text-align: center;
+
   color: #64748b;
 }
