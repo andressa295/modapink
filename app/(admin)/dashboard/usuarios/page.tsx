@@ -1,171 +1,398 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import "../styles/users.module.css"
+
+import styles from "../styles/users.module.css"
+
 import { createClient } from "@/lib/supabase/client"
 
 type User = {
+
   id: string
+
   name: string
+
   email: string
+
   role: string
 }
 
 export default function Usuarios() {
 
-  const [users, setUsers] = useState<User[]>([])
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [
 
-  const [editForm, setEditForm] = useState({
+    users,
+
+    setUsers
+
+  ] = useState<User[]>([])
+
+  const [
+
+    editingId,
+
+    setEditingId
+
+  ] = useState<string | null>(null)
+
+  const [
+
+    editForm,
+
+    setEditForm
+
+  ] = useState({
+
     name: "",
+
     email: "",
+
     role: "agent"
   })
 
-  const [createForm, setCreateForm] = useState({
+  const [
+
+    createForm,
+
+    setCreateForm
+
+  ] = useState({
+
     name: "",
+
     email: "",
+
     role: "agent"
   })
 
-  const [creating, setCreating] = useState(false)
-  const [currentUserRole, setCurrentUserRole] = useState("")
-  const [currentUserId, setCurrentUserId] = useState("")
+  const [
 
-  // 🔐 USER LOGADO
+    creating,
+
+    setCreating
+
+  ] = useState(false)
+
+  const [
+
+    currentUserRole,
+
+    setCurrentUserRole
+
+  ] = useState("")
+
+  const [
+
+    currentUserId,
+
+    setCurrentUserId
+
+  ] = useState("")
+
+  // =========================
+  // USER LOGADO
+  // =========================
   useEffect(() => {
-    const supabase = createClient()
+
+    const supabase =
+      createClient()
 
     async function loadCurrentUser() {
-      const { data: { user }, error } = await supabase.auth.getUser()
 
-      if (error || !user) return
+      const {
 
-      setCurrentUserId(user.id)
+        data: { user },
 
-      const { data } = await supabase
+        error
+
+      } = await supabase
+        .auth
+        .getUser()
+
+      if (
+        error ||
+        !user
+      ) {
+        return
+      }
+
+      setCurrentUserId(
+        user.id
+      )
+
+      const {
+
+        data
+
+      } = await supabase
+
         .from("profiles")
+
         .select("role")
-        .eq("id", user.id)
+
+        .eq(
+          "id",
+          user.id
+        )
+
         .single()
 
-      if (data) setCurrentUserRole(data.role)
+      if (data) {
+
+        setCurrentUserRole(
+          data.role
+        )
+      }
     }
 
     loadCurrentUser()
+
   }, [])
 
-  // 📦 USERS
+  // =========================
+  // LOAD USERS
+  // =========================
   async function loadUsers() {
-    const supabase = createClient()
 
-    const { data, error } = await supabase
+    const supabase =
+      createClient()
+
+    const {
+
+      data,
+
+      error
+
+    } = await supabase
+
       .from("profiles")
-      .select("id, name, email, role")
+
+      .select(
+        "id, name, email, role"
+      )
 
     if (error) {
-      console.error("Erro ao carregar usuários:", error)
+
+      console.error(
+
+        "Erro ao carregar usuários:",
+
+        error
+      )
+
       return
     }
 
-    if (data) setUsers(data)
+    if (data) {
+
+      setUsers(data)
+    }
   }
 
   useEffect(() => {
+
     loadUsers()
+
   }, [])
 
-  // ✏️ EDIT
+  // =========================
+  // EDIT
+  // =========================
   function startEdit(user: User) {
-    setEditingId(user.id)
+
+    setEditingId(
+      user.id
+    )
 
     setEditForm({
-      name: user.name || "",
-      email: user.email,
-      role: user.role
+
+      name:
+        user.name || "",
+
+      email:
+        user.email,
+
+      role:
+        user.role
     })
   }
 
-  async function saveEdit(id: string) {
-    const supabase = createClient()
+  async function saveEdit(
+    id: string
+  ) {
 
-    if (currentUserRole !== "admin") {
-      alert("Sem permissão")
+    const supabase =
+      createClient()
+
+    if (
+      currentUserRole !== "admin"
+    ) {
+
+      alert(
+        "Sem permissão"
+      )
+
       return
     }
 
-    const { error } = await supabase
+    const {
+
+      error
+
+    } = await supabase
+
       .from("profiles")
+
       .update(editForm)
+
       .eq("id", id)
 
     if (error) {
-      alert("Erro ao salvar")
+
+      alert(
+        "Erro ao salvar"
+      )
+
       return
     }
 
     setEditingId(null)
+
     loadUsers()
   }
 
-  // ➕ CREATE
+  // =========================
+  // CREATE
+  // =========================
   async function createUser() {
 
-    if (currentUserRole !== "admin") {
-      alert("Sem permissão")
+    if (
+      currentUserRole !== "admin"
+    ) {
+
+      alert(
+        "Sem permissão"
+      )
+
       return
     }
 
-    if (!createForm.email || !createForm.name) {
-      alert("Preencha todos os campos")
+    if (
+      !createForm.email ||
+
+      !createForm.name
+    ) {
+
+      alert(
+        "Preencha todos os campos"
+      )
+
       return
     }
 
-    const res = await fetch("/api/users/create", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(createForm)
-    })
+    const res = await fetch(
 
-    const result = await res.json()
+      "/api/users/create",
+
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
+
+        body: JSON.stringify(
+          createForm
+        )
+      }
+    )
+
+    const result =
+      await res.json()
 
     if (result.error) {
-      alert(result.error)
+
+      alert(
+        result.error
+      )
+
       return
     }
 
     setCreating(false)
-    setCreateForm({ name: "", email: "", role: "agent" })
+
+    setCreateForm({
+
+      name: "",
+
+      email: "",
+
+      role: "agent"
+    })
 
     loadUsers()
   }
 
-  // 🗑️ DELETE
-  async function deleteUser(id: string) {
-    const supabase = createClient()
+  // =========================
+  // DELETE
+  // =========================
+  async function deleteUser(
+    id: string
+  ) {
 
-    if (currentUserRole !== "admin") {
-      alert("Sem permissão")
+    const supabase =
+      createClient()
+
+    if (
+      currentUserRole !== "admin"
+    ) {
+
+      alert(
+        "Sem permissão"
+      )
+
       return
     }
 
-    if (id === currentUserId) {
-      alert("Você não pode excluir seu próprio usuário")
+    if (
+      id === currentUserId
+    ) {
+
+      alert(
+        "Você não pode excluir seu próprio usuário"
+      )
+
       return
     }
 
-    const confirmDelete = confirm("Deseja excluir este usuário?")
-    if (!confirmDelete) return
+    const confirmDelete =
+      confirm(
+        "Deseja excluir este usuário?"
+      )
 
-    const { error } = await supabase
+    if (!confirmDelete) {
+      return
+    }
+
+    const {
+
+      error
+
+    } = await supabase
+
       .from("profiles")
+
       .delete()
+
       .eq("id", id)
 
     if (error) {
-      alert("Erro ao excluir")
+
+      alert(
+        "Erro ao excluir"
+      )
+
       return
     }
 
@@ -173,127 +400,359 @@ export default function Usuarios() {
   }
 
   return (
-    <div>
 
-      <div className="users-header">
-        <div className="users-title">Usuários</div>
+    <div
+      className={
+        styles["users-page"]
+      }
+    >
+
+      {/* HEADER */}
+      <div
+        className={
+          styles["users-header"]
+        }
+      >
+
+        <div
+          className={
+            styles["users-title"]
+          }
+        >
+
+          Usuários
+
+        </div>
 
         {currentUserRole === "admin" && (
+
           <button
-            className="users-button"
-            onClick={() => setCreating(true)}
+
+            className={
+              styles["users-button"]
+            }
+
+            onClick={() =>
+              setCreating(true)
+            }
+
           >
+
             + Novo usuário
+
           </button>
         )}
+
       </div>
 
       {/* CREATE */}
-      {creating && currentUserRole === "admin" && (
-        <div className="users-create">
+      {creating &&
+        currentUserRole === "admin" && (
+
+        <div
+          className={
+            styles["users-create"]
+          }
+        >
 
           <input
-            placeholder="Nome"
-            value={createForm.name}
-            onChange={(e) =>
-              setCreateForm({ ...createForm, name: e.target.value })
+
+            className={
+              styles["users-input"]
             }
+
+            placeholder="Nome"
+
+            value={createForm.name}
+
+            onChange={(e) =>
+
+              setCreateForm({
+
+                ...createForm,
+
+                name:
+                  e.target.value
+              })
+            }
+
           />
 
           <input
-            placeholder="Email"
-            value={createForm.email}
-            onChange={(e) =>
-              setCreateForm({ ...createForm, email: e.target.value })
+
+            className={
+              styles["users-input"]
             }
+
+            placeholder="Email"
+
+            value={createForm.email}
+
+            onChange={(e) =>
+
+              setCreateForm({
+
+                ...createForm,
+
+                email:
+                  e.target.value
+              })
+            }
+
           />
 
           <select
-            value={createForm.role}
-            onChange={(e) =>
-              setCreateForm({ ...createForm, role: e.target.value })
+
+            className={
+              styles["users-select"]
             }
+
+            value={createForm.role}
+
+            onChange={(e) =>
+
+              setCreateForm({
+
+                ...createForm,
+
+                role:
+                  e.target.value
+              })
+            }
+
           >
-            <option value="admin">Admin</option>
-            <option value="agent">Atendente</option>
+
+            <option value="admin">
+              Admin
+            </option>
+
+            <option value="agent">
+              Atendente
+            </option>
+
           </select>
 
-          <button onClick={createUser}>
+          <button
+
+            className={
+              styles["users-save"]
+            }
+
+            onClick={createUser}
+
+          >
+
             Salvar
+
           </button>
 
         </div>
       )}
 
       {/* TABLE */}
-      <div className="users-table">
+      <div
+        className={
+          styles["users-table"]
+        }
+      >
 
-        <div className="users-row header">
+        <div
+          className={`${
+
+            styles["users-row"]}
+
+            ${styles.header}
+
+          `}
+        >
+
           <div>Nome</div>
+
           <div>Email</div>
+
           <div>Cargo</div>
+
           <div></div>
+
         </div>
 
         {users.map((u) => (
 
-          <div key={u.id} className="users-row">
+          <div
+
+            key={u.id}
+
+            className={
+              styles["users-row"]
+            }
+
+          >
 
             <div>
+
               {editingId === u.id ? (
+
                 <input
+
+                  className={
+                    styles["users-input"]
+                  }
+
                   value={editForm.name}
+
                   onChange={(e) =>
-                    setEditForm({ ...editForm, name: e.target.value })
+
+                    setEditForm({
+
+                      ...editForm,
+
+                      name:
+                        e.target.value
+                    })
                   }
+
                 />
-              ) : u.name}
+
+              ) : (
+                u.name
+              )}
+
             </div>
 
             <div>
+
               {editingId === u.id ? (
+
                 <input
-                  value={editForm.email}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, email: e.target.value })
+
+                  className={
+                    styles["users-input"]
                   }
+
+                  value={editForm.email}
+
+                  onChange={(e) =>
+
+                    setEditForm({
+
+                      ...editForm,
+
+                      email:
+                        e.target.value
+                    })
+                  }
+
                 />
-              ) : u.email}
+
+              ) : (
+                u.email
+              )}
+
             </div>
 
             <div>
+
               {editingId === u.id ? (
+
                 <select
-                  value={editForm.role}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, role: e.target.value })
+
+                  className={
+                    styles["users-select"]
                   }
+
+                  value={editForm.role}
+
+                  onChange={(e) =>
+
+                    setEditForm({
+
+                      ...editForm,
+
+                      role:
+                        e.target.value
+                    })
+                  }
+
                 >
-                  <option value="admin">Admin</option>
-                  <option value="agent">Atendente</option>
+
+                  <option value="admin">
+                    Admin
+                  </option>
+
+                  <option value="agent">
+                    Atendente
+                  </option>
+
                 </select>
-              ) : u.role}
+
+              ) : (
+                u.role
+              )}
+
             </div>
 
-            <div className="users-actions">
+            <div
+              className={
+                styles["users-actions"]
+              }
+            >
 
               {currentUserRole === "admin" && (
+
                 editingId === u.id ? (
-                  <button onClick={() => saveEdit(u.id)}>
+
+                  <button
+
+                    className={
+                      styles["users-save"]
+                    }
+
+                    onClick={() =>
+                      saveEdit(u.id)
+                    }
+
+                  >
+
                     Salvar
+
                   </button>
+
                 ) : (
+
                   <>
-                    <button onClick={() => startEdit(u)}>
+
+                    <button
+
+                      className={
+                        styles["users-edit"]
+                      }
+
+                      onClick={() =>
+                        startEdit(u)
+                      }
+
+                    >
+
                       Editar
+
                     </button>
 
                     <button
-                      className="delete"
-                      onClick={() => deleteUser(u.id)}
+
+                      className={
+                        styles["users-delete"]
+                      }
+
+                      onClick={() =>
+                        deleteUser(u.id)
+                      }
+
                     >
+
                       Excluir
+
                     </button>
+
                   </>
                 )
               )}
@@ -301,7 +760,6 @@ export default function Usuarios() {
             </div>
 
           </div>
-
         ))}
 
       </div>
