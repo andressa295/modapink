@@ -1,56 +1,326 @@
-.automations-page{
-width:100%;
+/* ============================= */
+/* PAGE */
+/* ============================= */
+
+.automations-page {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 24px;
 }
 
-.automations-header{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:28px;
+/* ============================= */
+/* HEADER */
+/* ============================= */
+
+.automations-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  flex-wrap: wrap;
 }
 
-.automations-title{
-font-size:26px;
-font-weight:600;
+/* ============================= */
+/* TITLE */
+/* ============================= */
+
+.automations-title {
+  font-size: 30px;
+  font-weight: 700;
+
+  color: #111827;
+
+  letter-spacing: -0.03em;
+
+  line-height: 1.1;
 }
 
-.automations-grid{
-display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:18px;
+/* ============================= */
+/* GRID */
+/* ============================= */
+
+.automations-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 20px;
+
+  min-width: 0;
 }
 
-.automation-card{
-background:white;
-border:1px solid #eef2f7;
-border-radius:14px;
-padding:18px;
+/* ============================= */
+/* CARD */
+/* ============================= */
+
+.automation-card {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 16px;
+
+  padding: 22px;
+
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      #fcfcfd
+    );
+
+  border:
+    1px solid #eef2f7;
+
+  overflow: hidden;
+
+  transition:
+    all 0.22s ease;
+
+  box-shadow:
+    0 2px 6px rgba(15,23,42,0.03),
+    0 10px 24px rgba(15,23,42,0.04);
 }
 
-.automation-name{
-font-weight:600;
-margin-bottom:6px;
+/* HOVER */
+
+.automation-card:hover {
+  transform:
+    translateY(-4px);
+
+  border-color:
+    #fbcfe8;
+
+  box-shadow:
+    0 16px 32px
+    rgba(236,72,153,0.08);
 }
 
-.automation-desc{
-font-size:13px;
-color:#6b7280;
-margin-bottom:12px;
+/* GLOW */
+
+.automation-card::before {
+  content: "";
+
+  position: absolute;
+
+  top: -40px;
+  right: -40px;
+
+  width: 120px;
+  height: 120px;
+
+  background:
+    radial-gradient(
+      rgba(230,0,126,0.08),
+      transparent
+    );
+
+  pointer-events: none;
 }
 
-.automation-status{
-font-size:12px;
-padding:4px 8px;
-border-radius:8px;
-display:inline-block;
+/* ============================= */
+/* TOP */
+/* ============================= */
+
+.automation-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 12px;
 }
 
-.status-active{
-background:#ecfdf5;
-color:#059669;
+/* ============================= */
+/* NAME */
+/* ============================= */
+
+.automation-name {
+  font-size: 16px;
+  font-weight: 700;
+
+  color: #111827;
+
+  line-height: 1.3;
 }
 
-.status-off{
-background:#fef2f2;
-color:#dc2626;
+/* ============================= */
+/* DESC */
+/* ============================= */
+
+.automation-desc {
+  font-size: 13px;
+
+  color: #6b7280;
+
+  line-height: 1.6;
+}
+
+/* ============================= */
+/* FOOTER */
+/* ============================= */
+
+.automation-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 12px;
+
+  margin-top: auto;
+}
+
+/* ============================= */
+/* STATUS */
+/* ============================= */
+
+.automation-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  min-width: 90px;
+
+  height: 34px;
+
+  padding: 0 14px;
+
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  border:
+    1px solid transparent;
+}
+
+/* ACTIVE */
+
+.active {
+  background:
+    rgba(34,197,94,0.1);
+
+  color: #16a34a;
+
+  border-color:
+    rgba(34,197,94,0.16);
+}
+
+/* OFF */
+
+.off {
+  background:
+    rgba(239,68,68,0.1);
+
+  color: #dc2626;
+
+  border-color:
+    rgba(239,68,68,0.16);
+}
+
+/* ============================= */
+/* ACTION */
+/* ============================= */
+
+.automation-action {
+  height: 36px;
+
+  padding: 0 14px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #E6007E,
+      #ff4db8
+    );
+
+  color: white;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    all 0.2s ease;
+}
+
+.automation-action:hover {
+  transform:
+    translateY(-1px);
+
+  box-shadow:
+    0 10px 20px
+    rgba(230,0,126,0.2);
+}
+
+/* ============================= */
+/* TABLET */
+/* ============================= */
+
+@media (max-width: 1200px) {
+
+  .automations-grid {
+
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ============================= */
+/* MOBILE */
+/* ============================= */
+
+@media (max-width: 820px) {
+
+  .automations-page {
+    gap: 18px;
+  }
+
+  .automations-title {
+    font-size: 22px;
+  }
+
+  .automations-grid {
+
+    grid-template-columns:
+      1fr;
+
+    gap: 14px;
+  }
+
+  .automation-card {
+    padding: 18px;
+
+    border-radius: 18px;
+  }
+
+  .automation-name {
+    font-size: 15px;
+  }
+
+  .automation-desc {
+    font-size: 12px;
+  }
+
+  .automation-status {
+    min-width: 78px;
+
+    height: 30px;
+
+    font-size: 11px;
+  }
 }

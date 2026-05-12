@@ -1,92 +1,221 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import "./ConversationsChart.module.css"
+
+import styles from "./ConversationsChart.module.css"
+
 import { createClient } from "@/lib/supabase/client"
 
 type ChartData = {
+
   day: string
+
   value: number
 }
 
 export default function ConversationsChart() {
 
-  const [data, setData] = useState<ChartData[]>([])
+  const [
+
+    data,
+
+    setData
+
+  ] = useState<ChartData[]>([])
 
   useEffect(() => {
-    const supabase = createClient()
+
+    const supabase =
+      createClient()
 
     async function loadData() {
 
-      const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"]
-      const today = new Date()
+      const days = [
 
-      // 🔥 últimos 7 dias (base)
-      const last7Days: ChartData[] = []
+        "Dom",
 
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date()
-        d.setDate(today.getDate() - i)
+        "Seg",
+
+        "Ter",
+
+        "Qua",
+
+        "Qui",
+
+        "Sex",
+
+        "Sab"
+      ]
+
+      const today =
+        new Date()
+
+      // ======================
+      // LAST 7 DAYS
+      // ======================
+      const last7Days:
+        ChartData[] = []
+
+      for (
+        let i = 6;
+        i >= 0;
+        i--
+      ) {
+
+        const d =
+          new Date()
+
+        d.setDate(
+          today.getDate() - i
+        )
 
         last7Days.push({
-          day: days[d.getDay()],
+
+          day:
+            days[d.getDay()],
+
           value: 0
         })
       }
 
-      // 🔥 FILTRO REAL (últimos 7 dias)
-      const fromDate = new Date()
-      fromDate.setDate(today.getDate() - 6)
+      // ======================
+      // FILTER DATE
+      // ======================
+      const fromDate =
+        new Date()
 
-      const { data: conversations, error } = await supabase
+      fromDate.setDate(
+        today.getDate() - 6
+      )
+
+      const {
+
+        data: conversations,
+
+        error
+
+      } = await supabase
+
         .from("conversations")
+
         .select("created_at")
-        .gte("created_at", fromDate.toISOString())
+
+        .gte(
+          "created_at",
+          fromDate.toISOString()
+        )
 
       if (error) {
-        console.error("Erro ao buscar dados:", error)
+
+        console.error(
+
+          "Erro ao buscar dados:",
+
+          error
+        )
+
         return
       }
 
-      if (!conversations) return
+      if (!conversations) {
+        return
+      }
 
-      // 🔥 AGRUPAMENTO CORRETO
-      conversations.forEach((conv: any) => {
-        const date = new Date(conv.created_at)
-        const day = days[date.getDay()]
+      // ======================
+      // GROUP
+      // ======================
+      conversations.forEach(
+        (conv: any) => {
 
-        const item = last7Days.find(d => d.day === day)
-        if (item) item.value++
-      })
+          const date =
+            new Date(
+              conv.created_at
+            )
 
-      setData(last7Days)
+          const day =
+            days[
+              date.getDay()
+            ]
+
+          const item =
+            last7Days.find(
+              d => d.day === day
+            )
+
+          if (item) {
+            item.value++
+          }
+        }
+      )
+
+      setData(
+        last7Days
+      )
     }
 
     loadData()
+
   }, [])
 
-  const max = Math.max(...data.map(d => d.value), 1)
+  const max = Math.max(
+
+    ...data.map(
+      d => d.value
+    ),
+
+    1
+  )
 
   return (
 
-    <div className="dashboard-card">
+    <div
+      className={
+        styles["dashboard-card"]
+      }
+    >
 
-      <h3>Conversas últimos 7 dias</h3>
+      <h3>
+        Conversas últimos 7 dias
+      </h3>
 
-      <div className="chart">
+      <div
+        className={
+          styles.chart
+        }
+      >
 
         {data.map((item) => (
 
-          <div key={item.day} className="bar">
+          <div
+
+            key={item.day}
+
+            className={
+              styles.bar
+            }
+
+          >
 
             <div
-              className="bar-fill"
+
+              className={
+                styles["bar-fill"]
+              }
+
               style={{
-                height: `${(item.value / max) * 100}%`
+
+                height: `${
+
+                  (item.value / max) * 100
+
+                }%`
               }}
+
             />
 
-            <span>{item.day}</span>
+            <span>
+              {item.day}
+            </span>
 
           </div>
 
@@ -95,6 +224,5 @@ export default function ConversationsChart() {
       </div>
 
     </div>
-
   )
 }

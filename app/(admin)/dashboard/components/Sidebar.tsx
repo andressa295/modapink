@@ -1,167 +1,468 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import "./styles/sidebar.module.css"
+
+import styles from "./styles/sidebar.module.css"
+
 import Image from "next/image"
+
 import { useRouter } from "next/navigation"
+
 import { createClient } from "@/lib/supabase/client"
 
 import {
+
   LayoutDashboard,
+
   MessageCircle,
+
   Smartphone,
+
   Users,
+
   Package,
+
   BarChart3,
+
   Settings,
+
   ChevronLeft,
+
   LogOut
+
 } from "lucide-react"
 
 export default function Sidebar() {
 
-  const [collapsed, setCollapsed] = useState(false)
-  const [userName, setUserName] = useState("Usuário")
+  const [
 
-  const router = useRouter()
+    collapsed,
 
-  // 🔐 BUSCAR USUÁRIO
+    setCollapsed
+
+  ] = useState(false)
+
+  const [
+
+    userName,
+
+    setUserName
+
+  ] = useState("Usuário")
+
+  const router =
+    useRouter()
+
+  // ======================
+  // USER
+  // ======================
   useEffect(() => {
-    const supabase = createClient()
+
+    const supabase =
+      createClient()
 
     async function loadUser() {
+
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+
+        const {
+
+          data: { user }
+
+        } = await supabase
+          .auth
+          .getUser()
 
         if (!user) {
-          setUserName("Usuário")
+
+          setUserName(
+            "Usuário"
+          )
+
           return
         }
 
-        const { data: profile, error } = await supabase
+        const {
+
+          data: profile,
+
+          error
+
+        } = await supabase
+
           .from("profiles")
+
           .select("name")
-          .eq("id", user.id)
+
+          .eq(
+            "id",
+            user.id
+          )
+
           .single()
 
-        if (error || !profile) {
-          setUserName("Usuário")
+        if (
+          error ||
+          !profile
+        ) {
+
+          setUserName(
+            "Usuário"
+          )
+
           return
         }
 
-        setUserName(profile.name || "Usuário")
+        setUserName(
+
+          profile.name ||
+
+          "Usuário"
+        )
 
       } catch (err) {
-        console.error("Erro user:", err)
-        setUserName("Usuário")
+
+        console.error(
+          "Erro user:",
+          err
+        )
+
+        setUserName(
+          "Usuário"
+        )
       }
     }
 
     loadUser()
+
   }, [])
 
-  // 🚪 LOGOUT
+  // ======================
+  // LOGOUT
+  // ======================
   async function handleLogout() {
-    const supabase = createClient()
 
-    await supabase.auth.signOut()
+    const supabase =
+      createClient()
 
-    // 🔥 limpa sessão bugada
+    await supabase
+      .auth
+      .signOut()
+
+    // limpa sessão
     localStorage.clear()
+
     sessionStorage.clear()
 
     router.push("/login")
   }
 
   return (
+
     <aside
-      className={`sidebar ${collapsed ? "collapsed" : ""}`}
-      style={{ position: "relative" }}
+
+      className={`
+
+        ${styles.sidebar}
+
+        ${collapsed
+          ? styles.collapsed
+          : ""}
+
+      `}
+
     >
 
-      {/* BOTÃO ENCOLHER */}
+      {/* TOGGLE */}
       <div
-        className="sidebar-toggle"
-        onClick={() => setCollapsed(!collapsed)}
+
+        className={
+          styles["sidebar-toggle"]
+        }
+
+        onClick={() =>
+
+          setCollapsed(
+            !collapsed
+          )
+        }
+
       >
+
         <ChevronLeft
+
           size={16}
+
           style={{
-            transform: collapsed ? "rotate(180deg)" : "rotate(0deg)",
-            transition: "0.25s"
+
+            transform:
+
+              collapsed
+
+                ? "rotate(180deg)"
+
+                : "rotate(0deg)",
+
+            transition:
+              "0.25s"
           }}
+
         />
+
       </div>
 
       {/* LOGO */}
       {!collapsed && (
-        <div className="sidebar-logo">
+
+        <div
+          className={
+            styles["sidebar-logo"]
+          }
+        >
+
           <Image
+
             src="/modapink.png"
+
             alt="Moda Pink"
+
             width={140}
+
             height={50}
+
             priority
+
           />
+
         </div>
       )}
 
-      {/* MENU */}
-      <nav className="sidebar-nav">
+      {/* NAV */}
+      <nav
+        className={
+          styles["sidebar-nav"]
+        }
+      >
 
-        <a href="/dashboard" className="sidebar-item active">
+        {/* DASHBOARD */}
+        <a
+
+          href="/dashboard"
+
+          className={`
+
+            ${styles["sidebar-item"]}
+
+            ${styles.active}
+
+          `}
+        >
+
           <LayoutDashboard />
-          <span className="sidebar-text">Dashboard</span>
+
+          <span
+            className={
+              styles["sidebar-text"]
+            }
+          >
+
+            Dashboard
+
+          </span>
+
         </a>
 
-        <a href="/dashboard/conversas" className="sidebar-item">
+        {/* CONVERSAS */}
+        <a
+
+          href="/dashboard/conversas"
+
+          className={
+            styles["sidebar-item"]
+          }
+        >
+
           <MessageCircle />
-          <span className="sidebar-text">Conversas</span>
+
+          <span
+            className={
+              styles["sidebar-text"]
+            }
+          >
+
+            Conversas
+
+          </span>
+
         </a>
 
-        <a href="/dashboard/numeros" className="sidebar-item">
+        {/* NÚMEROS */}
+        <a
+
+          href="/dashboard/numeros"
+
+          className={
+            styles["sidebar-item"]
+          }
+        >
+
           <Smartphone />
-          <span className="sidebar-text">Números</span>
+
+          <span
+            className={
+              styles["sidebar-text"]
+            }
+          >
+
+            Números
+
+          </span>
+
         </a>
 
-        <a href="/dashboard/usuarios" className="sidebar-item">
+        {/* USERS */}
+        <a
+
+          href="/dashboard/usuarios"
+
+          className={
+            styles["sidebar-item"]
+          }
+        >
+
           <Users />
-          <span className="sidebar-text">Usuários</span>
+
+          <span
+            className={
+              styles["sidebar-text"]
+            }
+          >
+
+            Usuários
+
+          </span>
+
         </a>
 
-        <a href="/dashboard/pedidos" className="sidebar-item">
+        {/* PEDIDOS */}
+        <a
+
+          href="/dashboard/pedidos"
+
+          className={
+            styles["sidebar-item"]
+          }
+        >
+
           <Package />
-          <span className="sidebar-text">Pedidos</span>
+
+          <span
+            className={
+              styles["sidebar-text"]
+            }
+          >
+
+            Pedidos
+
+          </span>
+
         </a>
 
-        <a href="/dashboard/relatorios" className="sidebar-item">
+        {/* RELATÓRIOS */}
+        <a
+
+          href="/dashboard/relatorios"
+
+          className={
+            styles["sidebar-item"]
+          }
+        >
+
           <BarChart3 />
-          <span className="sidebar-text">Relatórios</span>
+
+          <span
+            className={
+              styles["sidebar-text"]
+            }
+          >
+
+            Relatórios
+
+          </span>
+
         </a>
 
-        <a href="/dashboard/configuracoes" className="sidebar-item">
+        {/* CONFIG */}
+        <a
+
+          href="/dashboard/configuracoes"
+
+          className={
+            styles["sidebar-item"]
+          }
+        >
+
           <Settings />
-          <span className="sidebar-text">Configurações</span>
+
+          <span
+            className={
+              styles["sidebar-text"]
+            }
+          >
+
+            Configurações
+
+          </span>
+
         </a>
 
       </nav>
 
-      {/* USUÁRIO + LOGOUT */}
-      <div className="sidebar-user">
+      {/* USER */}
+      <div
+        className={
+          styles["sidebar-user"]
+        }
+      >
 
         {!collapsed && (
+
           <>
-            <div className="sidebar-user-name">
-              Logado como <strong>{userName}</strong>
+
+            <div
+              className={
+                styles["sidebar-user-name"]
+              }
+            >
+
+              Logado como{" "}
+
+              <strong>
+                {userName}
+              </strong>
+
             </div>
 
             <button
-              className="sidebar-logout"
-              onClick={handleLogout}
+
+              className={
+                styles["sidebar-logout"]
+              }
+
+              onClick={
+                handleLogout
+              }
+
             >
+
               <LogOut size={16} />
-              <span>Sair</span>
+
+              <span>
+                Sair
+              </span>
+
             </button>
+
           </>
         )}
 

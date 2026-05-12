@@ -1,7 +1,9 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import "../styles/chat.module.css"
+
+import styles from "../styles/chat.module.css"
+
 import { createBrowserClient } from "@supabase/ssr"
 
 const API =
@@ -458,43 +460,76 @@ export default function Conversas() {
 
   return (
 
-    <div className="chat-app">
+    <div
+      className={
+        styles["chat-app"]
+      }
+    >
 
       {/* SIDEBAR */}
-      <div className="sidebar">
+      <div
+        className={
+          styles["chat-sidebar"]
+        }
+      >
 
         {/* ABAS */}
-        <div className="vendedoras-tabs">
+        <div
+          className={
+            styles["vendedoras-tabs"]
+          }
+        >
 
           {vendedoras.map((v) => (
 
             <button
+
               key={v.id}
 
-              className={
-                activeTab === v.id
-                  ? "active"
-                  : ""
-              }
+              className={`
+
+                ${styles["tab-button"]}
+
+                ${
+                  activeTab === v.id
+
+                    ? styles["tab-active"]
+
+                    : ""
+                }
+
+              `}
 
               onClick={() =>
                 setActiveTab(v.id)
               }
             >
+
               {v.nome}
+
             </button>
 
           ))}
 
         </div>
 
-        {/* CONVERSAS */}
-        <div className="conversations-list">
+        {/* LIST */}
+        <div
+          className={
+            styles["chat-list"]
+          }
+        >
 
           {conversations.length === 0 ? (
 
-            <div className="no-chats">
+            <div
+              className={
+                styles["chat-empty"]
+              }
+            >
+
               Nenhuma conversa
+
             </div>
 
           ) : (
@@ -502,13 +537,22 @@ export default function Conversas() {
             conversations.map((c) => (
 
               <div
+
                 key={c.id}
 
-                className={`chat-item ${
-                  selected?.id === c.id
-                    ? "active"
-                    : ""
-                }`}
+                className={`
+
+                  ${styles["chat-item"]}
+
+                  ${
+                    selected?.id === c.id
+
+                      ? styles["chat-item-active"]
+
+                      : ""
+                  }
+
+                `}
 
                 onClick={() =>
                   setSelected(c)
@@ -516,12 +560,15 @@ export default function Conversas() {
               >
 
                 <img
+
                   src={
                     c.avatar_url ||
                     "/placeholder.png"
                   }
 
-                  className="avatar"
+                  className={
+                    styles["chat-avatar"]
+                  }
 
                   alt="Avatar"
 
@@ -532,11 +579,23 @@ export default function Conversas() {
                   }}
                 />
 
-                <div className="chat-info">
+                <div
+                  className={
+                    styles["chat-info"]
+                  }
+                >
 
-                  <div className="top">
+                  <div
+                    className={
+                      styles["chat-top"]
+                    }
+                  >
 
-                    <strong>
+                    <strong
+                      className={
+                        styles["chat-name"]
+                      }
+                    >
 
                       {
                         c.customer_name ||
@@ -545,7 +604,11 @@ export default function Conversas() {
 
                     </strong>
 
-                    <span className="time">
+                    <span
+                      className={
+                        styles["chat-time"]
+                      }
+                    >
 
                       {c.updated_at &&
 
@@ -566,7 +629,11 @@ export default function Conversas() {
 
                   </div>
 
-                  <p className="preview">
+                  <p
+                    className={
+                      styles["chat-preview"]
+                    }
+                  >
 
                     {
                       c.last_message ||
@@ -587,22 +654,33 @@ export default function Conversas() {
       </div>
 
       {/* CHAT */}
-      <div className="chat">
+      <div
+        className={
+          styles.chat
+        }
+      >
 
         {selected ? (
 
           <>
 
             {/* HEADER */}
-            <div className="header">
+            <div
+              className={
+                styles["chat-header"]
+              }
+            >
 
               <img
+
                 src={
                   selected.avatar_url ||
                   "/placeholder.png"
                 }
 
-                className="avatar-header"
+                className={
+                  styles["chat-header-avatar"]
+                }
 
                 alt="Avatar"
 
@@ -613,9 +691,17 @@ export default function Conversas() {
                 }}
               />
 
-              <div>
+              <div
+                className={
+                  styles["chat-header-info"]
+                }
+              >
 
-                <strong>
+                <strong
+                  className={
+                    styles["chat-header-name"]
+                  }
+                >
 
                   {
                     selected.customer_name ||
@@ -624,8 +710,14 @@ export default function Conversas() {
 
                 </strong>
 
-                <span>
+                <span
+                  className={
+                    styles["chat-header-status"]
+                  }
+                >
+
                   {selected.phone}
+
                 </span>
 
               </div>
@@ -634,39 +726,34 @@ export default function Conversas() {
 
             {/* MESSAGES */}
             <div
-              className="messages"
 
               ref={messagesRef}
 
-              style={{
+              className={
+                styles["chat-messages"]
+              }
 
-                overflowY:
-                  "auto",
-
-                height:
-                  "100%",
-
-                maxHeight:
-                  "calc(100vh - 180px)"
-              }}
             >
 
               {messages.map((m) => (
 
                 <div
+
                   key={m.id}
 
-                  className={`bubble ${
-                    m.sender === "user"
+                  className={`
 
-                      ? "client"
+                    ${styles["chat-bubble"]}
 
-                      : m.sender === "bot"
+                    ${
+                      m.sender === "user"
 
-                      ? "bot"
+                        ? styles["chat-bubble-client"]
 
-                      : "me"
-                  }`}
+                        : styles["chat-bubble-me"]
+                    }
+
+                  `}
                 >
 
                   {m.content}
@@ -678,7 +765,11 @@ export default function Conversas() {
             </div>
 
             {/* INPUT */}
-            <div className="input">
+            <div
+              className={
+                styles["chat-input"]
+              }
+            >
 
               <input
 
@@ -692,6 +783,10 @@ export default function Conversas() {
                 }
 
                 placeholder="Digite..."
+
+                className={
+                  styles["chat-input-field"]
+                }
 
                 onKeyDown={(e) => {
 
@@ -720,6 +815,10 @@ export default function Conversas() {
 
                   !input.trim()
                 }
+
+                className={
+                  styles["chat-send-button"]
+                }
               >
 
                 {sending
@@ -734,9 +833,13 @@ export default function Conversas() {
 
         ) : (
 
-          <div className="no-chat">
+          <div
+            className={
+              styles["chat-empty"]
+            }
+          >
 
-            <div className="empty-state">
+            <div>
 
               <h3>
                 Selecione uma conversa

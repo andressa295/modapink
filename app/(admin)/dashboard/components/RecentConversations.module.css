@@ -1,31 +1,177 @@
+/* ============================= */
+/* LIST */
+/* ============================= */
+
 .conversation-list {
-  margin-top: 16px;
   display: flex;
   flex-direction: column;
+
   gap: 14px;
+
+  margin-top: 18px;
+
+  width: 100%;
 }
+
+/* ============================= */
+/* ITEM */
+/* ============================= */
 
 .conversation-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 14px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #f1f1f1;
+  justify-content: space-between;
+
+  gap: 16px;
+
+  padding: 14px 16px;
+
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      #fcfcfd
+    );
+
+  border:
+    1px solid #eef2f7;
+
+  transition:
+    all 0.22s ease;
+
+  overflow: hidden;
 }
 
-.conversation-item strong {
+/* HOVER */
+
+.conversation-item:hover {
+  transform: translateY(-2px);
+
+  border-color: #fbcfe8;
+
+  box-shadow:
+    0 10px 24px
+    rgba(236, 72, 153, 0.08);
+}
+
+/* ============================= */
+/* CONTENT */
+/* ============================= */
+
+.conversation-content {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+
+  min-width: 0;
+
+  flex: 1;
+}
+
+/* ============================= */
+/* NAME */
+/* ============================= */
+
+.conversation-name {
   font-size: 14px;
-  color: #111;
+  font-weight: 600;
+
+  color: #111827;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
 }
 
-.conversation-item p {
+/* ============================= */
+/* MESSAGE */
+/* ============================= */
+
+.conversation-message {
   font-size: 13px;
-  color: #666;
-  margin-top: 2px;
+
+  color: #6b7280;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  white-space: nowrap;
+
+  line-height: 1.4;
 }
 
-.conversation-item span {
+/* ============================= */
+/* TIME */
+/* ============================= */
+
+.conversation-time {
+  flex-shrink: 0;
+
   font-size: 12px;
-  color: #999;
+  font-weight: 500;
+
+  color: #94a3b8;
+
+  background: #f8fafc;
+
+  padding: 6px 10px;
+
+  border-radius: 999px;
+
+  border:
+    1px solid #eef2f7;
+}
+
+/* ============================= */
+/* EMPTY */
+/* ============================= */
+
+.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 28px 20px;
+
+  border-radius: 16px;
+
+  background: #fafafa;
+
+  border:
+    1px dashed #e5e7eb;
+
+  color: #6b7280;
+
+  font-size: 14px;
+}
+
+/* ============================= */
+/* MOBILE */
+/* ============================= */
+
+@media (max-width: 820px) {
+
+  .conversation-item {
+    padding: 12px;
+  }
+
+  .conversation-name {
+    font-size: 13px;
+  }
+
+  .conversation-message {
+    font-size: 12px;
+  }
+
+  .conversation-time {
+    font-size: 11px;
+
+    padding: 5px 8px;
+  }
 }

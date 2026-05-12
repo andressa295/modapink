@@ -1,70 +1,171 @@
 import { ReactNode } from "react"
-import "../styles/chat.module.css"
+
+import styles from "../styles/dashboard.module.css"
 
 type MetricCardProps = {
+
   title: string
+
   value: string | number
+
   icon?: ReactNode
+
   trend?: string
 }
 
-// 🔥 FORMATADOR INTELIGENTE
-function formatValue(value: string | number) {
-  if (typeof value === "string") return value
+// ======================
+// FORMAT VALUE
+// ======================
+function formatValue(
+  value: string | number
+) {
 
-  if (value >= 1_000_000) return (value / 1_000_000).toFixed(1) + "M"
-  if (value >= 1_000) return (value / 1_000).toFixed(1) + "k"
+  if (
+    typeof value === "string"
+  ) {
+
+    return value
+  }
+
+  if (value >= 1_000_000) {
+
+    return (
+
+      (value / 1_000_000)
+
+        .toFixed(1) + "M"
+    )
+  }
+
+  if (value >= 1_000) {
+
+    return (
+
+      (value / 1_000)
+
+        .toFixed(1) + "k"
+    )
+  }
 
   return value.toString()
 }
 
-// 🔥 COR DO TREND
-function getTrendColor(trend?: string) {
-  if (!trend) return "#6b7280"
+// ======================
+// TREND COLOR
+// ======================
+function getTrendColor(
+  trend?: string
+) {
 
-  if (trend.includes("+")) return "#16a34a" // verde
-  if (trend.includes("-")) return "#dc2626" // vermelho
+  if (!trend) {
+
+    return "#6b7280"
+  }
+
+  if (
+    trend.includes("+")
+  ) {
+
+    return "#16a34a"
+  }
+
+  if (
+    trend.includes("-")
+  ) {
+
+    return "#dc2626"
+  }
 
   return "#6b7280"
 }
 
 export default function MetricCard({
+
   title,
+
   value,
+
   icon,
+
   trend
+
 }: MetricCardProps) {
 
   return (
-    <div className="metric-card">
 
-      <div className="metric-card-top">
+    <div
+      className={
+        styles["metric-card"]
+      }
+    >
 
-        <div className="metric-card-info">
+      <div
+        className={
+          styles["metric-card-top"]
+        }
+      >
 
-          <div className="metric-title">
+        <div
+          className={
+            styles["metric-card-info"]
+          }
+        >
+
+          <div
+            className={
+              styles["metric-title"]
+            }
+          >
+
             {title}
+
           </div>
 
-          <div className="metric-value">
+          <div
+            className={
+              styles["metric-value"]
+            }
+          >
+
             {formatValue(value)}
+
           </div>
 
-          {/* 🔥 TREND */}
+          {/* TREND */}
           {trend && (
+
             <div
-              className="metric-trend"
-              style={{ color: getTrendColor(trend) }}
+
+              className={
+                styles["metric-trend"]
+              }
+
+              style={{
+                color:
+                  getTrendColor(
+                    trend
+                  )
+              }}
+
             >
+
               {trend}
+
             </div>
           )}
 
         </div>
 
         {icon && (
-          <div className="metric-icon">
+
+          <div
+            className={
+              styles["metric-icon"]
+            }
+          >
+
             {icon}
+
           </div>
         )}
 

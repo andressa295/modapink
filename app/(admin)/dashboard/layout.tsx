@@ -1,29 +1,65 @@
 import Sidebar from "./components/Sidebar"
+
 import Topbar from "./components/Topbar"
 
+import styles from "./styles/admin-layout.module.css"
+
 export default function AdminLayout({
+
   children,
+
 }: {
+
   children: React.ReactNode
+
 }) {
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
 
-      {/* Sidebar */}
-      <Sidebar />
+    <div
+      className={
+        styles.layout
+      }
+    >
 
-      {/* Área principal */}
-      <div className="flex-1 flex flex-col">
+      {/* DESKTOP SIDEBAR */}
+      <div
+        className={
+          styles["desktop-sidebar"]
+        }
+      >
 
-        {/* Topbar */}
+        <Sidebar />
+
+      </div>
+
+      {/* MAIN */}
+      <div
+        className={
+          styles.main
+        }
+      >
+
+        {/* TOPBAR */}
         <Topbar />
 
-        {/* Conteúdo */}
-        <main className="flex-1 px-10 py-8">
-          <div className="max-w-[1600px] w-full">
+        {/* CONTENT */}
+        <main
+          className={
+            styles.content
+          }
+        >
+
+          <div
+            className={
+              styles.wrapper
+            }
+          >
+
             {children}
+
           </div>
+
         </main>
 
       </div>
