@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import "./ConversationsChart.css"
+import "./ConversationsChart.module.css"
 import { createClient } from "@/lib/supabase/client"
 
 type ChartData = {

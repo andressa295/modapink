@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import "./AutomationsUsage.css"
+import "./AutomationsUsage.module.css"
 import { createClient } from "@/lib/supabase/client"
 
 type Automation = {

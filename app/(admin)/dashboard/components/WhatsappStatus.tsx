@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import "./WhatsappStatus.css"
+import "./WhatsappStatus.module.css"
 
 type Status =
   | "online"

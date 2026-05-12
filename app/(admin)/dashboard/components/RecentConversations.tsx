@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import "./RecentConversations.css"
+import "./RecentConversations.module.css"
 import { createClient } from "@/lib/supabase/client"
 
 type Conversation = {

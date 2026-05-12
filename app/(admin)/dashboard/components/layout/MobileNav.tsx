@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import "./mobile-nav.css"
+import "./mobile-nav.module.css"
 import { Menu, X } from "lucide-react"
 
 export default function MobileNav({ children }: { children: React.ReactNode }) {

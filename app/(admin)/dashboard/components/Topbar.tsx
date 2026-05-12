@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import "./styles/topbar.css"
+import "./styles/topbar.module.css"
 import { createClient } from "@/lib/supabase/client"
 
 // 🔥 MOBILE NAV
