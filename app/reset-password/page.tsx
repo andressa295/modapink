@@ -73,9 +73,9 @@ export default function ResetPassword() {
 
   ] = useState(false)
 
-  // =========================
+  // ====================================
   // RECOVERY SESSION
-  // =========================
+  // ====================================
   useEffect(() => {
 
     async function recoverySession() {
@@ -91,21 +91,14 @@ export default function ResetPassword() {
 
         const { error } =
 
-          await supabase
-            .auth
-            .exchangeCodeForSession(
-              code
-            )
+          await supabase.auth
+            .exchangeCodeForSession(code)
 
         if (error) {
 
           console.error(
             "Erro recovery:",
             error
-          )
-
-          setError(
-            "Link inválido ou expirado."
           )
         }
 
@@ -120,11 +113,11 @@ export default function ResetPassword() {
 
     recoverySession()
 
-  }, [searchParams, supabase])
+  }, [])
 
-  // =========================
+  // ====================================
   // RESET PASSWORD
-  // =========================
+  // ====================================
   async function handleReset() {
 
     setError("")
@@ -153,8 +146,7 @@ export default function ResetPassword() {
 
       const { error } =
 
-        await supabase
-          .auth
+        await supabase.auth
           .updateUser({
 
             password
