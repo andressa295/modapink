@@ -8,61 +8,23 @@ export function normalizePhone(
       return ""
     }
 
-    let clean =
+    const clean =
       String(phone)
-        .split("@")[0]
         .trim()
 
-    // remove tudo
-    clean =
-      clean.replace(/\D/g, "")
-
-    // =======================
-    // EMPTY
-    // =======================
     if (!clean) {
-      return ""
-    }
-
-    // =======================
-    // ADD 55
-    // =======================
-    if (
-      !clean.startsWith("55")
-    ) {
-
-      clean = `55${clean}`
-    }
-
-    // =======================
-    // LIMITA
-    // =======================
-    if (
-      clean.length > 13
-    ) {
-
-      clean =
-        clean.slice(0, 13)
-    }
-
-    // =======================
-    // INVALID
-    // =======================
-    if (
-
-      clean.length < 12 ||
-
-      clean.length > 13
-
-    ) {
 
       console.log(
-        "⚠️ telefone inválido:",
-        clean
+        "⚠️ telefone vazio"
       )
 
       return ""
     }
+
+    console.log(
+      "✅ telefone normalizado:",
+      clean
+    )
 
     return clean
 

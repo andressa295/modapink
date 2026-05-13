@@ -33,15 +33,91 @@ const supabase = createClient(
   supabaseKey
 )
 
+// =====================================================
+// STATUS MAPPER
+// =====================================================
+function mapPaymentStatus(
+  status: string
+) {
+
+  switch (
+    String(status || "")
+      .toLowerCase()
+  ) {
+
+    case "authorized":
+
+    case "paid":
+
+      return "Pago"
+
+    case "pending":
+
+      return "Aguardando pagamento"
+
+    case "refunded":
+
+      return "Reembolsado"
+
+    case "cancelled":
+
+      return "Cancelado"
+
+    default:
+
+      return status || "Pendente"
+  }
+}
+
+function mapShippingStatus(
+  status: string
+) {
+
+  switch (
+    String(status || "")
+      .toLowerCase()
+  ) {
+
+    case "shipped":
+
+      return "Enviado"
+
+    case "ready_to_pick":
+
+      return "Pronto para retirada"
+
+    case "delivered":
+
+      return "Entregue"
+
+    case "pending":
+
+      return "Separando pedido"
+
+    default:
+
+      return status || "Pendente"
+  }
+}
+
+// =====================================================
+// WEBHOOK
+// =====================================================
 export async function POST(
   req: NextRequest
 ) {
 
   try {
 
+    // =====================================================
+    // BODY
+    // =====================================================
     const body =
       await req.json()
 
+    // =====================================================
+    // EVENT
+    // =====================================================
     const event =
       req.headers.get("x-topic")
 
@@ -55,17 +131,26 @@ export async function POST(
     // =====================================================
     if (
 
-      event !== "orders/created" &&
+      event !== "orders/created"
+
+      &&
 
       event !== "orders/updated"
 
     ) {
 
+      console.log(
+        "⚠️ evento ignorado"
+      )
+
       return new Response(
+
         "evento ignorado",
+
         {
           status: 200
         }
+
       )
     }
 
@@ -80,13 +165,17 @@ export async function POST(
     )
 
     // =====================================================
-    // STORE ID
+    // STORE USER ID
     // =====================================================
     const storeUserId =
 
-      req.headers.get("x-store-id") ||
+      req.headers.get("x-store-id")
 
-      order.store_id ||
+      ||
+
+      order.store_id
+
+      ||
 
       order.store?.id
 
@@ -97,15 +186,18 @@ export async function POST(
       )
 
       return new Response(
+
         "store não encontrada",
+
         {
           status: 400
         }
+
       )
     }
 
     // =====================================================
-    // BUSCA STORE
+    // STORE
     // =====================================================
     const {
 
@@ -114,17 +206,24 @@ export async function POST(
       error: storeError
 
     } = await supabase
+
       .from("stores")
+
       .select("*")
+
       .eq(
         "user_id",
         String(storeUserId)
       )
+
       .maybeSingle()
 
     if (
+
       storeError ||
+
       !store
+
     ) {
 
       console.error(
@@ -133,33 +232,52 @@ export async function POST(
       )
 
       return new Response(
+
         "store error",
+
         {
           status: 400
         }
+
       )
     }
 
     // =====================================================
-    // TELEFONE
+    // PHONE
     // =====================================================
     const phoneRaw =
 
-      order.customer?.phone ||
+      order.customer?.phone
 
-      order.contact_phone ||
+      ||
 
-      order.billing_address?.phone ||
+      order.contact_phone
 
-      order.shipping_address?.phone ||
+      ||
+
+      order.billing_address?.phone
+
+      ||
+
+      order.shipping_address?.phone
+
+      ||
 
       ""
 
     const phone =
       normalizePhone(phoneRaw)
 
+    console.log(
+      "📱 PHONE:",
+      {
+        raw: phoneRaw,
+        normalized: phone
+      }
+    )
+
     // =====================================================
-    // CONVERSA
+    // CONVERSATION
     // =====================================================
     let conversationId =
       null
@@ -169,12 +287,16 @@ export async function POST(
       const {
         data: conversation
       } = await supabase
+
         .from("conversations")
+
         .select("id")
+
         .eq(
           "phone",
           phone
         )
+
         .maybeSingle()
 
       conversationId =
@@ -182,15 +304,17 @@ export async function POST(
     }
 
     // =====================================================
-    // PRODUTOS
+    // ITEMS
     // =====================================================
     const items =
-      (order.products || []).map(
-        (p: any) => ({
+      (order.products || [])
+        .map((p: any) => ({
 
-          id: p.id,
+          id:
+            p.id,
 
-          name: p.name,
+          name:
+            p.name,
 
           quantity:
             p.quantity,
@@ -200,18 +324,23 @@ export async function POST(
 
           image:
 
-            p.image?.src ||
+            p.image?.src
 
-            p.images?.[0]?.src ||
+            ||
+
+            p.images?.[0]?.src
+
+            ||
 
             null,
 
-          raw: p
-        })
-      )
+          raw:
+            p
+
+        }))
 
     // =====================================================
-    // ENDEREÇO
+    // ADDRESS
     // =====================================================
     const address = [
 
@@ -228,7 +357,7 @@ export async function POST(
       .join(", ")
 
     // =====================================================
-    // MAPEAMENTO
+    // MAPPED
     // =====================================================
     const mapped = {
 
@@ -246,9 +375,13 @@ export async function POST(
 
       customer_name:
 
-        order.customer?.name ||
+        order.customer?.name
 
-        order.billing_address?.name ||
+        ||
+
+        order.billing_address?.name
+
+        ||
 
         "Cliente",
 
@@ -259,34 +392,58 @@ export async function POST(
         phone,
 
       payment_status:
-
-        order.payment_status ||
-
-        "pending",
+        mapPaymentStatus(
+          order.payment_status
+        ),
 
       payment_method:
 
-        order.gateway_name ||
+        order.gateway_name
 
-        order.payment_details?.method ||
+        ||
+
+        order.payment_details?.method
+
+        ||
 
         "unknown",
 
       shipping_status:
-
-        order.shipping_status ||
-
-        "pending",
+        mapShippingStatus(
+          order.shipping_status
+        ),
 
       shipping_method:
 
-        order.shipping_option ||
+        order.shipping_option
+
+        ||
 
         (
           order.shipping_address
             ? "Entrega"
             : "Retirada"
         ),
+
+      tracking_number:
+
+        order.shipping_tracking_number
+
+        ||
+
+        order.tracking_number
+
+        ||
+
+        null,
+
+      tracking_url:
+
+        order.shipping_tracking_url
+
+        ||
+
+        null,
 
       total:
         Number(order.total) || 0,
@@ -301,36 +458,54 @@ export async function POST(
 
       items,
 
-      raw: order,
+      raw:
+        order,
 
       raw_products:
         order.products || [],
 
       created_at:
 
-        order.created_at ||
+        order.created_at
 
-        new Date().toISOString(),
+        ||
+
+        new Date()
+          .toISOString(),
 
       updated_at:
-        new Date().toISOString(),
+        new Date()
+          .toISOString(),
+
     }
 
     // =====================================================
-    // UPSERT PEDIDO
+    // UPSERT
     // =====================================================
     const {
+
       error: upsertError
+
     } = await supabase
+
       .from("orders")
+
       .upsert(
+
         mapped,
+
         {
+
           onConflict:
             "store_id,external_id"
+
         }
+
       )
 
+    // =====================================================
+    // ERROR
+    // =====================================================
     if (upsertError) {
 
       console.error(
@@ -339,10 +514,13 @@ export async function POST(
       )
 
       return new Response(
+
         "erro banco",
+
         {
           status: 500
         }
+
       )
     }
 
@@ -352,21 +530,30 @@ export async function POST(
     )
 
     // =====================================================
-    // WHATSAPP FUTURO
+    // FUTURO WHATSAPP
     // =====================================================
     /*
     await sendWhatsAppMessage({
+
       phone,
+
       message:
-        `Pedido #${order.number} recebido com sucesso 💜`
+        \`Pedido #${order.number} recebido com sucesso 💖\`
+
     })
     */
 
+    // =====================================================
+    // RESPONSE
+    // =====================================================
     return new Response(
+
       "ok",
+
       {
         status: 200
       }
+
     )
 
   } catch (err) {
@@ -377,10 +564,13 @@ export async function POST(
     )
 
     return new Response(
+
       "erro",
+
       {
         status: 500
       }
+
     )
   }
 }
