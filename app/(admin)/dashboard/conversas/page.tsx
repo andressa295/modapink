@@ -43,7 +43,7 @@ type Message = {
 
   id: string
 
-  content: string
+  text: string // AJUSTADO AQUI: text em vez de content para bater com o banco
 
   sender:
     | "user"
@@ -243,8 +243,14 @@ export default function Conversas() {
       if (
         Array.isArray(data)
       ) {
+        
+        // Mapeia caso a API ainda retorne content antigo
+        const formated = data.map(m => ({
+          ...m,
+          text: m.text || m.content
+        }))
 
-        setMessages(data)
+        setMessages(formated)
       }
 
     } catch (err) {
@@ -301,6 +307,40 @@ export default function Conversas() {
       )
     }
 
+  }, [activeTab])
+
+  // ======================
+  // REALTIME STATUS (LIMPA A TELA SE DESCONECTAR)
+  // ======================
+  useEffect(() => {
+    const statusChannel = supabase
+      .channel(`status-${activeTab}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "whatsapp_sessions",
+          filter: `session_key=eq.${activeTab}`
+        },
+        (payload) => {
+          const novoStatus = (payload.new as any).status
+
+          if (novoStatus === "disconnected") {
+            console.log("🚨 WhatsApp desconectado! Limpando a tela...")
+            
+            // Limpa as mensagens e conversas da tela na hora
+            setSelected(null)
+            setMessages([])
+            setConversations([])
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(statusChannel)
+    }
   }, [activeTab])
 
   // ======================
@@ -362,8 +402,9 @@ export default function Conversas() {
                   id:
                     novo.id,
 
-                  content:
-                    novo.content,
+                  // AJUSTADO AQUI: Puxando .text do banco
+                  text:
+                    novo.text,
 
                   sender:
                     novo.sender
@@ -399,7 +440,7 @@ export default function Conversas() {
 
     ) return
 
-    const text = input
+    const textToSend = input
 
     setInput("")
 
@@ -428,7 +469,7 @@ export default function Conversas() {
                   selected.phone,
 
                 message:
-                  text,
+                  textToSend,
 
                 session_key:
                   activeTab
@@ -450,7 +491,7 @@ export default function Conversas() {
         err
       )
 
-      setInput(text)
+      setInput(textToSend)
 
     } finally {
 
@@ -755,8 +796,8 @@ export default function Conversas() {
 
                   `}
                 >
-
-                  {m.content}
+                  {/* AJUSTADO AQUI: Renderiza m.text em vez de m.content */}
+                  {m.text}
 
                 </div>
 
