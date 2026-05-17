@@ -357,6 +357,16 @@ export async function POST(
       .join(", ")
 
     // =====================================================
+    // CARRINHO ABANDONADO
+    // =====================================================
+    const isAbandoned =
+
+      String(order.payment_status || "")
+        .toLowerCase()
+
+        === "pending"
+
+    // =====================================================
     // MAPPED
     // =====================================================
     const mapped = {
@@ -530,18 +540,84 @@ export async function POST(
     )
 
     // =====================================================
-    // FUTURO WHATSAPP
+    // ABANDONED CART
     // =====================================================
-    /*
-    await sendWhatsAppMessage({
+    if (
 
-      phone,
+      isAbandoned &&
 
-      message:
-        \`Pedido #${order.number} recebido com sucesso 💖\`
+      phone
 
-    })
-    */
+    ) {
+
+      console.log(
+        "🛒 carrinho abandonado detectado"
+      )
+
+      const {
+
+        error: abandonedError
+
+      } = await supabase
+
+        .from("abandoned_carts")
+
+        .upsert(
+
+          {
+
+            store_id:
+              store.id,
+
+            order_id:
+              String(order.id),
+
+            order_number:
+              String(order.number),
+
+            customer_name:
+
+              mapped.customer_name,
+
+            customer_phone:
+              phone,
+
+            total:
+              mapped.total,
+
+            recovered:
+              false,
+
+            whatsapp_sent:
+              false
+
+          },
+
+          {
+
+            onConflict:
+              "store_id,order_id"
+
+          }
+
+        )
+
+      if (
+        abandonedError
+      ) {
+
+        console.error(
+          "❌ erro abandoned cart:",
+          abandonedError
+        )
+
+      } else {
+
+        console.log(
+          "✅ carrinho abandonado salvo"
+        )
+      }
+    }
 
     // =====================================================
     // RESPONSE
