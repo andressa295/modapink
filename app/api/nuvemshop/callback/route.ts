@@ -22,7 +22,7 @@ export async function GET(
     } = new URL(req.url)
 
     const code =
-      searchParams.get("code")
+      searchParams.get("code")?.trim()
 
     if (!code) {
 
@@ -43,23 +43,30 @@ export async function GET(
     }
 
     // ========================
+    // DEBUG DE CREDENCIAIS
+    // ========================
+    const clientId = process.env.NUVEMSHOP_CLIENT_ID?.trim() || "";
+    const clientSecret = process.env.NUVEMSHOP_CLIENT_SECRET?.trim() || "";
+
+    console.log("=== INICIANDO TROCA DE TOKEN ===");
+    console.log("CLIENT_ID (Primeiros 5 char):", clientId.substring(0, 5) + "...");
+    console.log("CLIENT_SECRET Configurado?", clientSecret.length > 0 ? "SIM" : "NAO");
+    console.log("CODE RECEBIDO:", code.substring(0, 5) + "...");
+    
+    // ========================
     // TOKEN REQUEST
     // ========================
     const body =
       new URLSearchParams({
 
-        client_id:
-          process.env
-            .NUVEMSHOP_CLIENT_ID!,
+        client_id: clientId,
 
-        client_secret:
-          process.env
-            .NUVEMSHOP_CLIENT_SECRET!,
+        client_secret: clientSecret,
 
         grant_type:
           "authorization_code",
 
-        code
+        code: code
 
       })
 
@@ -80,9 +87,11 @@ export async function GET(
             "Content-Type":
               "application/x-www-form-urlencoded",
             
-            // 🔥 AJUSTE: A Nuvemshop exige o User-Agent na troca do Token também!
             "User-Agent":
-              "Phandshop/1.0 (contato@phand.com.br)"
+              "Phandshop/1.0 (contato@phand.com.br)",
+            
+            // Aceitar formato JSON de volta
+            "Accept": "application/json"
 
           },
 
