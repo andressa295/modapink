@@ -79,6 +79,10 @@ export async function GET(
 
             "Content-Type":
               "application/x-www-form-urlencoded",
+            
+            // 🔥 AJUSTE: A Nuvemshop exige o User-Agent na troca do Token também!
+            "User-Agent":
+              "Phandshop/1.0 (contato@phand.com.br)"
 
           },
 

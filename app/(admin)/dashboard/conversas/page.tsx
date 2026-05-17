@@ -43,7 +43,7 @@ type Message = {
 
   id: string
 
-  text: string // AJUSTADO AQUI: text em vez de content para bater com o banco
+  text: string
 
   sender:
     | "user"
@@ -195,23 +195,6 @@ export default function Conversas() {
           : data?.data || []
 
       setConversations(list)
-
-      // ======================
-      // FECHA CHAT
-      // ======================
-      if (
-
-        selected &&
-
-        selected.session_key !==
-          activeTab
-
-      ) {
-
-        setSelected(null)
-
-        setMessages([])
-      }
 
     } catch (err) {
 
@@ -402,7 +385,7 @@ export default function Conversas() {
                   id:
                     novo.id,
 
-                  // AJUSTADO AQUI: Puxando .text do banco
+                  // Puxando .text do banco
                   text:
                     novo.text,
 
@@ -541,9 +524,14 @@ export default function Conversas() {
 
               `}
 
-              onClick={() =>
-                setActiveTab(v.id)
-              }
+              onClick={() => {
+                // 🔥 AJUSTE: Limpa o chat atual instantaneamente ao mudar de canal!
+                if (activeTab !== v.id) {
+                  setActiveTab(v.id)
+                  setSelected(null)
+                  setMessages([])
+                }
+              }}
             >
 
               {v.nome}
@@ -796,7 +784,6 @@ export default function Conversas() {
 
                   `}
                 >
-                  {/* AJUSTADO AQUI: Renderiza m.text em vez de m.content */}
                   {m.text}
 
                 </div>
