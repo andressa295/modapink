@@ -167,8 +167,9 @@ export async function GET(
 
           headers: {
 
-            Authorization:
-              `Bearer ${accessToken}`,
+            // 🔥 A PEGADINHA DA NUVEMSHOP: Authentication e bearer (minúsculo)
+            Authentication:
+              `bearer ${accessToken}`,
 
             "User-Agent":
               "Phandshop/1.0 (contato@phand.com.br)",
