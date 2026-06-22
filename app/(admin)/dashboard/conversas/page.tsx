@@ -155,8 +155,18 @@ function formatPhone(
     return "Sem número"
   }
 
-  const value =
+  const raw =
     String(phone)
+      .trim()
+
+  if (
+    raw.includes("@lid")
+  ) {
+    return "Contato WhatsApp"
+  }
+
+  const value =
+    raw
       .replace("@c.us", "")
       .replace("@lid", "")
       .replace(/\D/g, "")
@@ -181,9 +191,51 @@ function formatPhone(
     return `+55 (${ddd}) ${part1}-${part2}`
   }
 
-  return String(phone)
+  if (
+    value.length >= 10 &&
+    value.length <= 11
+  ) {
+    const ddd =
+      value.slice(0, 2)
+
+    const part1 =
+      value.length === 11
+        ? value.slice(2, 7)
+        : value.slice(2, 6)
+
+    const part2 =
+      value.length === 11
+        ? value.slice(7)
+        : value.slice(6)
+
+    return `(${ddd}) ${part1}-${part2}`
+  }
+
+  return raw
     .replace("@c.us", "")
     .replace("@lid", "")
+}
+
+function isSystemContactValue(
+  value?: string | null
+) {
+  const clean =
+    String(value || "")
+      .trim()
+      .toLowerCase()
+
+  if (!clean) {
+    return true
+  }
+
+  return (
+    clean.includes("@lid") ||
+    clean.includes("@c.us") ||
+    clean.includes("@g.us") ||
+    clean.includes("status@broadcast") ||
+    clean === "cliente" ||
+    clean === "sem nome"
+  )
 }
 
 function getDisplayName(
@@ -193,10 +245,38 @@ function getDisplayName(
     return ""
   }
 
-  return (
-    conversation.customer_name ||
-    formatPhone(conversation.phone)
-  )
+  const name =
+    String(conversation.customer_name || "")
+      .trim()
+
+  if (
+    name &&
+    !isSystemContactValue(name)
+  ) {
+    return name
+  }
+
+  const phone =
+    String(conversation.phone || "")
+      .trim()
+
+  if (
+    phone.includes("@lid")
+  ) {
+    return "Cliente WhatsApp"
+  }
+
+  const formattedPhone =
+    formatPhone(phone)
+
+  if (
+    formattedPhone &&
+    !isSystemContactValue(formattedPhone)
+  ) {
+    return formattedPhone
+  }
+
+  return "Cliente WhatsApp"
 }
 
 function formatTime(
@@ -392,9 +472,15 @@ function normalizeConversation(
     phone:
       c.phone || "",
     customer_name:
-      c.customer_name ||
-      c.name ||
-      null,
+      isSystemContactValue(
+        c.customer_name ||
+          c.name ||
+          ""
+      )
+        ? null
+        : c.customer_name ||
+          c.name ||
+          null,
     avatar_url:
       c.avatar_url ||
       c.avatar ||
