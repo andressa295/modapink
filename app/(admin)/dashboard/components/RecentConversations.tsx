@@ -1,324 +1,259 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import styles from "./RecentConversations.module.css"
 
 import { createClient } from "@/lib/supabase/client"
 
 type Conversation = {
-
   id: string
-
   name: string
-
+  phone: string
   message: string
-
   time: string
 }
 
+function formatTime(
+  dateString?: string | null
+) {
+  if (!dateString) {
+    return "—"
+  }
+
+  const date =
+    new Date(dateString)
+
+  const diff =
+    Math.floor(
+      (
+        Date.now() -
+        date.getTime()
+      ) / 60000
+    )
+
+  if (diff <= 1) {
+    return "agora"
+  }
+
+  if (diff < 60) {
+    return `${diff} min atrás`
+  }
+
+  if (diff < 1440) {
+    return `${Math.floor(diff / 60)}h atrás`
+  }
+
+  return `${Math.floor(diff / 1440)}d atrás`
+}
+
+function formatPhone(
+  phone?: string | null
+) {
+  if (!phone) {
+    return "Sem número"
+  }
+
+  return phone
+    .replace("@c.us", "")
+    .replace("@lid", "")
+}
+
 export default function RecentConversations() {
-
   const [
-
     conversations,
-
     setConversations
-
   ] = useState<Conversation[]>([])
 
   const [
-
     loading,
-
     setLoading
-
   ] = useState(true)
 
-  useEffect(() => {
-
-    const supabase =
-      createClient()
-
-    async function loadConversations() {
+  const loadConversations =
+    useCallback(async () => {
+      const supabase =
+        createClient()
 
       try {
-
-        setLoading(true)
-
-        // ======================
-        // MESSAGES
-        // ======================
         const {
-
-          data: messages,
-
+          data,
           error
-
         } = await supabase
-
-          .from("messages")
-
+          .from("conversations")
           .select(`
             id,
-            content,
-            created_at,
-            conversation_id
+            customer_name,
+            phone,
+            last_message,
+            last_message_at,
+            updated_at
           `)
-
+          .not(
+            "phone",
+            "is",
+            null
+          )
           .order(
-            "created_at",
+            "last_message_at",
             {
-              ascending: false
+              ascending: false,
+              nullsFirst: false
             }
           )
-
-          .limit(5)
+          .limit(20)
 
         if (error) {
-
           console.error(
-
-            "Erro messages:",
-
+            "Erro conversations:",
             error
           )
 
+          setLoading(false)
           return
         }
 
-        if (!messages) {
+        const uniqueByPhone =
+          new Map<string, any>()
 
-          setConversations([])
+        data?.forEach((conv: any) => {
+          const phone =
+            conv.phone
 
-          return
-        }
+          if (!phone) {
+            return
+          }
 
-        // ======================
-        // IDS
-        // ======================
-        const conversationIds =
-
-          messages.map(
-            (m: any) =>
-              m.conversation_id
-          )
-
-        // ======================
-        // CONVERSATIONS
-        // ======================
-        const {
-
-          data: conversationsData,
-
-          error: convError
-
-        } = await supabase
-
-          .from("conversations")
-
-          .select(`
-            id,
-            customer_name
-          `)
-
-          .in(
-            "id",
-            conversationIds
-          )
-
-        if (convError) {
-
-          console.error(
-
-            "Erro conversations:",
-
-            convError
-          )
-        }
-
-        // ======================
-        // MAP
-        // ======================
-        const conversationMap =
-          new Map()
-
-        conversationsData?.forEach(
-          (conv: any) => {
-
-            conversationMap.set(
-
-              conv.id,
-
-              conv.customer_name
+          if (!uniqueByPhone.has(phone)) {
+            uniqueByPhone.set(
+              phone,
+              conv
             )
           }
-        )
+        })
 
-        // ======================
-        // FORMAT
-        // ======================
         const formatted =
-
-          messages.map(
-            (msg: any) => {
-
-              const date =
-                new Date(
-                  msg.created_at
-                )
-
-              const diff =
-                Math.floor(
-
-                  (
-                    Date.now() -
-
-                    date.getTime()
-
-                  ) / 60000
-                )
-
-              let time =
-                "agora"
-
-              if (diff > 1) {
-
-                time =
-                  `${diff} min atrás`
-              }
-
-              if (diff > 60) {
-
-                time =
-                  `${Math.floor(diff / 60)}h atrás`
-              }
-
-              return {
-
-                id: msg.id,
-
-                name:
-
-                  conversationMap.get(
-                    msg.conversation_id
-                  ) ||
-
-                  "Cliente",
-
-                message:
-
-                  msg.content ||
-
-                  "Mensagem vazia",
-
-                time
-              }
-            }
+          Array.from(
+            uniqueByPhone.values()
           )
+            .slice(0, 3)
+            .map((conv: any) => ({
+              id:
+                conv.id,
+
+              name:
+                conv.customer_name ||
+                formatPhone(conv.phone) ||
+                "Cliente",
+
+              phone:
+                formatPhone(conv.phone),
+
+              message:
+                conv.last_message ||
+                "Sem mensagem",
+
+              time:
+                formatTime(
+                  conv.last_message_at ||
+                  conv.updated_at
+                )
+            }))
 
         setConversations(
           formatted
         )
-
       } catch (err) {
-
         console.error(
-
           "💥 erro loadConversations:",
-
           err
         )
-
       } finally {
-
         setLoading(false)
       }
-    }
+    }, [])
+
+  useEffect(() => {
+    const supabase =
+      createClient()
 
     loadConversations()
 
-  }, [])
+    const interval =
+      setInterval(
+        loadConversations,
+        10000
+      )
+
+    const channel =
+      supabase
+        .channel("dashboard-recent-conversations")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "conversations"
+          },
+          () => {
+            loadConversations()
+          }
+        )
+        .subscribe()
+
+    return () => {
+      clearInterval(interval)
+      supabase.removeChannel(channel)
+    }
+  }, [loadConversations])
 
   return (
-
     <div
       className={
         styles["dashboard-card"]
       }
     >
-
-      {/* TITLE */}
       <h3>
         Conversas recentes
       </h3>
 
-      {/* LIST */}
       <div
         className={
           styles["conversation-list"]
         }
       >
-
-        {/* LOADING */}
         {loading && (
-
-          <p
-            className={
-              styles.empty
-            }
-          >
-
+          <p className={styles.empty}>
             Carregando...
-
           </p>
         )}
 
-        {/* EMPTY */}
         {!loading &&
-
           conversations.length === 0 && (
-
-            <p
-              className={
-                styles.empty
-              }
-            >
-
+            <p className={styles.empty}>
               Nenhuma conversa ainda
-
             </p>
           )}
 
-        {/* ITEMS */}
         {!loading &&
-
           conversations.map((conv) => (
-
             <div
-
               key={conv.id}
-
               className={
                 styles["conversation-item"]
               }
-
             >
-
               <div
                 className={
                   styles["conversation-content"]
                 }
               >
-
                 <strong
                   className={
                     styles["conversation-name"]
                   }
                 >
-
                   {conv.name}
-
                 </strong>
 
                 <p
@@ -326,11 +261,16 @@ export default function RecentConversations() {
                     styles["conversation-message"]
                   }
                 >
-
                   {conv.message}
-
                 </p>
 
+                <small
+                  className={
+                    styles["conversation-phone"]
+                  }
+                >
+                  {conv.phone}
+                </small>
               </div>
 
               <span
@@ -338,17 +278,11 @@ export default function RecentConversations() {
                   styles["conversation-time"]
                 }
               >
-
                 {conv.time}
-
               </span>
-
             </div>
-
           ))}
-
       </div>
-
     </div>
   )
 }

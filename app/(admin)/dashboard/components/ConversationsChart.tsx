@@ -7,20 +7,35 @@ import styles from "./ConversationsChart.module.css"
 import { createClient } from "@/lib/supabase/client"
 
 type ChartData = {
-
-  day: string
-
+  label: string
+  date: string
   value: number
+}
+
+function startOfDay(date: Date) {
+  const d = new Date(date)
+
+  d.setHours(
+    0,
+    0,
+    0,
+    0
+  )
+
+  return d
+}
+
+function formatDateKey(date: Date) {
+  return date
+    .toISOString()
+    .slice(0, 10)
 }
 
 export default function ConversationsChart() {
 
   const [
-
     data,
-
     setData
-
   ] = useState<ChartData[]>([])
 
   useEffect(() => {
@@ -31,122 +46,85 @@ export default function ConversationsChart() {
     async function loadData() {
 
       const days = [
-
         "Dom",
-
         "Seg",
-
         "Ter",
-
         "Qua",
-
         "Qui",
-
         "Sex",
-
         "Sab"
       ]
 
       const today =
-        new Date()
+        startOfDay(new Date())
 
-      // ======================
-      // LAST 7 DAYS
-      // ======================
-      const last7Days:
-        ChartData[] = []
+      const last7Days: ChartData[] = []
 
       for (
         let i = 6;
         i >= 0;
         i--
       ) {
-
         const d =
-          new Date()
+          new Date(today)
 
         d.setDate(
           today.getDate() - i
         )
 
         last7Days.push({
-
-          day:
+          label:
             days[d.getDay()],
-
-          value: 0
+          date:
+            formatDateKey(d),
+          value:
+            0
         })
       }
 
-      // ======================
-      // FILTER DATE
-      // ======================
       const fromDate =
-        new Date()
+        new Date(today)
 
       fromDate.setDate(
         today.getDate() - 6
       )
 
       const {
-
         data: conversations,
-
         error
-
       } = await supabase
-
         .from("conversations")
-
         .select("created_at")
-
         .gte(
           "created_at",
           fromDate.toISOString()
         )
 
       if (error) {
-
         console.error(
-
-          "Erro ao buscar dados:",
-
+          "Erro ao buscar conversas:",
           error
         )
 
         return
       }
 
-      if (!conversations) {
-        return
-      }
+      conversations?.forEach((conv: any) => {
+        const date =
+          new Date(conv.created_at)
 
-      // ======================
-      // GROUP
-      // ======================
-      conversations.forEach(
-        (conv: any) => {
+        const key =
+          formatDateKey(date)
 
-          const date =
-            new Date(
-              conv.created_at
-            )
+        const item =
+          last7Days.find(
+            day => day.date === key
+          )
 
-          const day =
-            days[
-              date.getDay()
-            ]
-
-          const item =
-            last7Days.find(
-              d => d.day === day
-            )
-
-          if (item) {
-            item.value++
-          }
+        if (item) {
+          item.value += 1
         }
-      )
+      })
 
       setData(
         last7Days
@@ -157,72 +135,38 @@ export default function ConversationsChart() {
 
   }, [])
 
-  const max = Math.max(
-
-    ...data.map(
-      d => d.value
-    ),
-
-    1
-  )
+  const max =
+    Math.max(
+      ...data.map(item => item.value),
+      1
+    )
 
   return (
-
-    <div
-      className={
-        styles["dashboard-card"]
-      }
-    >
-
+    <div className={styles["dashboard-card"]}>
       <h3>
         Conversas últimos 7 dias
       </h3>
 
-      <div
-        className={
-          styles.chart
-        }
-      >
-
+      <div className={styles.chart}>
         {data.map((item) => (
-
           <div
-
-            key={item.day}
-
-            className={
-              styles.bar
-            }
-
+            key={item.date}
+            className={styles.bar}
           >
-
             <div
-
-              className={
-                styles["bar-fill"]
-              }
-
+              className={styles["bar-fill"]}
               style={{
-
-                height: `${
-
-                  (item.value / max) * 100
-
-                }%`
+                height: `${(item.value / max) * 100}%`
               }}
-
+              title={`${item.value} conversa(s)`}
             />
 
             <span>
-              {item.day}
+              {item.label}
             </span>
-
           </div>
-
         ))}
-
       </div>
-
     </div>
   )
 }

@@ -1,16 +1,266 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 
 import styles from "../styles/numeros.module.css"
 
+type SessionStatus =
+  | "connecting"
+  | "initializing"
+  | "qr"
+  | "authenticated"
+  | "ready"
+  | "connected"
+  | "disconnected"
+  | "auth_failure"
+  | "error"
+
 type Session = {
   id: string
-  status: "connecting" | "ready" | "disconnected"
-  phone?: string
+  rawId?: string
+  status: SessionStatus
+  phone?: string | null
+}
+
+type SessionOption = {
+  id: string
+  nome: string
 }
 
 const API = process.env.NEXT_PUBLIC_API_URL!
+
+const idsPermitidos: SessionOption[] = [
+  {
+    id: "principal",
+    nome: "Número principal"
+  },
+  {
+    id: "vendedora_1",
+    nome: "Vendedora 1"
+  },
+  {
+    id: "sac",
+    nome: "SAC"
+  }
+]
+
+function normalizeSessionId(
+  value?: string | null
+) {
+  const clean =
+    String(value || "")
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^a-z0-9_-]/g, "")
+
+  if (!clean) {
+    return "principal"
+  }
+
+  if (
+    clean === "vendedora-1" ||
+    clean === "vendedora1"
+  ) {
+    return "vendedora_1"
+  }
+
+  if (
+    clean.startsWith("sac")
+  ) {
+    return "sac"
+  }
+
+  return clean
+}
+
+function getSessionName(
+  id: string
+) {
+  const normalized =
+    normalizeSessionId(id)
+
+  return (
+    idsPermitidos.find(
+      item => item.id === normalized
+    )?.nome || normalized
+  )
+}
+
+function normalizeStatus(
+  status?: string | null
+): SessionStatus {
+  const value =
+    String(status || "disconnected")
+      .toLowerCase()
+      .trim()
+
+  if (
+    value === "connected"
+  ) {
+    return "ready"
+  }
+
+  if (
+    [
+      "connecting",
+      "initializing",
+      "qr",
+      "authenticated",
+      "ready",
+      "disconnected",
+      "auth_failure",
+      "error"
+    ].includes(value)
+  ) {
+    return value as SessionStatus
+  }
+
+  return "disconnected"
+}
+
+function getStatusClass(
+  status: SessionStatus
+) {
+  if (
+    status === "ready" ||
+    status === "connected"
+  ) {
+    return styles.ready
+  }
+
+  if (
+    status === "connecting" ||
+    status === "initializing" ||
+    status === "qr" ||
+    status === "authenticated"
+  ) {
+    return styles.connecting
+  }
+
+  return styles.disconnected
+}
+
+function getStatusText(
+  status: SessionStatus
+) {
+  if (
+    status === "ready" ||
+    status === "connected"
+  ) {
+    return "🟢 Online"
+  }
+
+  if (
+    status === "initializing"
+  ) {
+    return "🟡 Iniciando sessão"
+  }
+
+  if (
+    status === "qr" ||
+    status === "connecting"
+  ) {
+    return "🟡 Aguardando QR Code"
+  }
+
+  if (
+    status === "authenticated"
+  ) {
+    return "🟡 Autenticado, conectando..."
+  }
+
+  if (
+    status === "auth_failure"
+  ) {
+    return "🔴 Falha na autenticação"
+  }
+
+  if (
+    status === "error"
+  ) {
+    return "🔴 Erro na conexão"
+  }
+
+  return "🔴 Desconectado"
+}
+
+function formatPhone(
+  phone?: string | null
+) {
+  if (!phone) {
+    return "Número não identificado"
+  }
+
+  return String(phone)
+    .replace("@c.us", "")
+    .replace("@lid", "")
+}
+
+function normalizeSessions(
+  data: any[]
+) {
+  const map =
+    new Map<string, Session>()
+
+  data.forEach((item: any) => {
+    const rawId =
+      String(item?.id || item?.session_key || "")
+
+    const id =
+      normalizeSessionId(rawId)
+
+    const session: Session = {
+      id,
+      rawId:
+        rawId || id,
+      status:
+        normalizeStatus(item?.status),
+      phone:
+        item?.phone || null
+    }
+
+    const existing =
+      map.get(id)
+
+    if (!existing) {
+      map.set(id, session)
+      return
+    }
+
+    const shouldReplace =
+      (
+        session.status === "ready" &&
+        existing.status !== "ready"
+      ) ||
+      (
+        !existing.phone &&
+        Boolean(session.phone)
+      )
+
+    if (shouldReplace) {
+      map.set(id, session)
+    }
+  })
+
+  const ordered =
+    idsPermitidos
+      .map(option => map.get(option.id))
+      .filter(Boolean) as Session[]
+
+  const others =
+    Array.from(map.values())
+      .filter(session =>
+        !idsPermitidos.some(
+          option => option.id === session.id
+        )
+      )
+
+  return [
+    ...ordered,
+    ...others
+  ]
+}
 
 export default function Numeros() {
 
@@ -29,38 +279,25 @@ export default function Numeros() {
   const [loading, setLoading] =
     useState(false)
 
-  // =========================
-  // IDs
-  // =========================
-  const idsPermitidos = [
-
-    {
-      id: "principal",
-      nome: "Bot Principal"
-    },
-
-    {
-      id: "vendedora-1",
-      nome: "Vendedora 1"
-    },
-
-    {
-      id: "vendedora-2",
-      nome: "Vendedora 2"
-    },
-
-    {
-      id: "vendedora-3",
-      nome: "Vendedora 3"
-    },
-
-  ]
-
   const qrIntervalRef =
     useRef<NodeJS.Timeout | null>(null)
 
   const statusIntervalRef =
     useRef<NodeJS.Timeout | null>(null)
+
+  const connectedIds =
+    useMemo(
+      () =>
+        new Set(
+          sessions
+            .filter(session =>
+              session.status === "ready" ||
+              session.status === "connected"
+            )
+            .map(session => session.id)
+        ),
+      [sessions]
+    )
 
   // =========================
   // LOAD SESSIONS
@@ -69,18 +306,20 @@ export default function Numeros() {
 
     try {
 
-      const res = await fetch(
-        `${API}/sessions`,
-        {
-          cache: "no-store"
-        }
-      )
+      const res =
+        await fetch(
+          `${API}/sessions`,
+          {
+            cache: "no-store"
+          }
+        )
 
-      const data = await res.json()
+      const data =
+        await res.json()
 
       setSessions(
         Array.isArray(data)
-          ? data
+          ? normalizeSessions(data)
           : []
       )
 
@@ -124,7 +363,13 @@ export default function Numeros() {
   // =========================
   async function createSession() {
 
-    if (!sessionId || loading) {
+    const selectedSessionId =
+      normalizeSessionId(sessionId)
+
+    if (
+      !selectedSessionId ||
+      loading
+    ) {
       return
     }
 
@@ -150,7 +395,8 @@ export default function Numeros() {
           },
 
           body: JSON.stringify({
-            sessionId
+            sessionId:
+              selectedSessionId
           })
         }
       )
@@ -170,9 +416,10 @@ export default function Numeros() {
 
           try {
 
-            const res = await fetch(
-              `${API}/sessions/qr/${sessionId}`
-            )
+            const res =
+              await fetch(
+                `${API}/sessions/qr/${selectedSessionId}`
+              )
 
             if (!res.ok) {
               return
@@ -194,6 +441,8 @@ export default function Numeros() {
                 clearInterval(
                   qrIntervalRef.current
                 )
+
+                qrIntervalRef.current = null
               }
             }
 
@@ -208,9 +457,10 @@ export default function Numeros() {
 
           try {
 
-            const res = await fetch(
-              `${API}/sessions/status/${sessionId}`
-            )
+            const res =
+              await fetch(
+                `${API}/sessions/status/${selectedSessionId}`
+              )
 
             if (!res.ok) {
               return
@@ -220,7 +470,8 @@ export default function Numeros() {
               await res.json()
 
             if (
-              data.status === "ready"
+              data.status === "ready" ||
+              data.status === "connected"
             ) {
 
               clearAllIntervals()
@@ -232,6 +483,8 @@ export default function Numeros() {
               setSessionId(
                 "principal"
               )
+
+              setLoading(false)
 
               loadSessions()
             }
@@ -255,12 +508,19 @@ export default function Numeros() {
   // REMOVE SESSION
   // =========================
   async function removeSession(
-    id: string
+    id: string,
+    rawId?: string
   ) {
+
+    const normalizedId =
+      normalizeSessionId(id)
+
+    const deleteId =
+      rawId || normalizedId
 
     const confirmDelete =
       confirm(
-        `Deseja desconectar e remover a sessão: ${id}?`
+        `Deseja desconectar e remover a sessão: ${getSessionName(normalizedId)}?`
       )
 
     if (!confirmDelete) {
@@ -270,7 +530,7 @@ export default function Numeros() {
     try {
 
       await fetch(
-        `${API}/sessions/${id}`,
+        `${API}/sessions/${deleteId}`,
         {
           method: "DELETE"
         }
@@ -323,9 +583,16 @@ export default function Numeros() {
             styles["btn-add"]
           }
 
-          onClick={() =>
+          onClick={() => {
+
+            setSessionId(
+              "principal"
+            )
+
+            setQr(null)
+
             setShowModal(true)
-          }
+          }}
         >
 
           + Conectar novo número
@@ -384,7 +651,7 @@ export default function Numeros() {
               </span>
 
               <h3>
-                {s.id.toUpperCase()}
+                {getSessionName(s.id)}
               </h3>
 
             </div>
@@ -402,35 +669,20 @@ export default function Numeros() {
                 }
               >
 
-                {s.phone ||
-                  "Número não identificado"}
+                {formatPhone(s.phone)}
 
               </p>
 
               <div
                 className={`
                   ${styles["status-indicator"]}
-                  ${styles[s.status]}
+                  ${getStatusClass(s.status)}
                 `}
               >
 
-                {s.status === "ready" && (
-                  <span>
-                    🟢 Online
-                  </span>
-                )}
-
-                {s.status === "connecting" && (
-                  <span>
-                    🟡 Aguardando QR Code
-                  </span>
-                )}
-
-                {s.status === "disconnected" && (
-                  <span>
-                    🔴 Desconectado
-                  </span>
-                )}
+                <span>
+                  {getStatusText(s.status)}
+                </span>
 
               </div>
 
@@ -449,7 +701,10 @@ export default function Numeros() {
                 }
 
                 onClick={() =>
-                  removeSession(s.id)
+                  removeSession(
+                    s.id,
+                    s.rawId
+                  )
                 }
               >
 
@@ -493,7 +748,9 @@ export default function Numeros() {
 
               onChange={(e) =>
                 setSessionId(
-                  e.target.value
+                  normalizeSessionId(
+                    e.target.value
+                  )
                 )
               }
 
@@ -516,6 +773,9 @@ export default function Numeros() {
                   >
 
                     {opt.nome}
+                    {connectedIds.has(opt.id)
+                      ? " — conectado"
+                      : ""}
 
                   </option>
                 )
@@ -580,6 +840,8 @@ export default function Numeros() {
                 setShowModal(false)
 
                 setQr(null)
+
+                setLoading(false)
 
                 setSessionId(
                   "principal"
