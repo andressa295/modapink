@@ -861,7 +861,9 @@ export default function Conversas() {
     setSending
   ] = useState(false)
 
-  const [
+  
+  const [resolvingHuman, setResolvingHuman] = useState(false)
+const [
     loadingConversations,
     setLoadingConversations
   ] = useState(false)
@@ -1235,6 +1237,98 @@ export default function Conversas() {
       )
     }
   }, [selected?.id])
+
+
+  // ======================
+  // RESOLVE HUMAN INTERVENTION
+  // ======================
+
+  async function resolveHumanIntervention() {
+    if (
+      !selected ||
+      resolvingHuman
+    ) {
+      return
+    }
+
+    const confirmResolve =
+      window.confirm(
+        "Resolver essa intervenção e voltar o bot para essa conversa?"
+      )
+
+    if (!confirmResolve) {
+      return
+    }
+
+    setResolvingHuman(true)
+
+    try {
+      const response =
+        await fetch(
+          `${API}/conversations/${selected.id}/resolve-human`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
+            body:
+              JSON.stringify({
+                resolved_by:
+                  "dashboard"
+              })
+          }
+        )
+
+      const result =
+        await response.json()
+          .catch(() => null)
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(
+          result?.error ||
+          "Falha ao resolver intervenção humana"
+        )
+      }
+
+      if (result?.conversation?.id) {
+        setSelected(prev =>
+          prev?.id === result.conversation.id
+            ? {
+                ...prev,
+                ...result.conversation
+              }
+            : prev
+        )
+      }
+
+      await loadMessages(
+        selected.id,
+        {
+          silent:
+            true
+        }
+      )
+
+      await loadConversations({
+        silent:
+          true
+      })
+
+    } catch (err) {
+      console.error(
+        "❌ erro resolver intervenção humana:",
+        err
+      )
+
+      window.alert(
+        "Não consegui resolver a intervenção humana. Tenta novamente."
+      )
+
+    } finally {
+      setResolvingHuman(false)
+    }
+  }
 
   // ======================
   // SEND MESSAGE
@@ -1824,6 +1918,16 @@ export default function Conversas() {
               >
                 <strong>🚨 Intervenção humana solicitada</strong>
                 <span>Bot pausado. A equipe precisa assumir essa conversa.</span>
+                <button
+                  type="button"
+                  className={styles.resolveHumanButton}
+                  onClick={resolveHumanIntervention}
+                  disabled={resolvingHuman}
+                >
+                  {resolvingHuman
+                    ? "Resolvendo..."
+                    : "✅ Resolver e voltar bot"}
+                </button>
               </div>
             )}
 
