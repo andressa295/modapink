@@ -35,6 +35,10 @@ type Conversation = {
   last_message_at?: string | null
   session_key?: string | null
   session_id?: string | null
+  mode?: string | null
+  state?: string | null
+  status?: string | null
+  memory?: Record<string, any> | null
 }
 
 type Message = {
@@ -56,6 +60,11 @@ type Message = {
   caption?: string
   created_at?: string
   is_temp?: boolean
+  mode?: string | null
+  state?: string | null
+  intent?: string | null
+  flow?: string | null
+  step?: string | null
 }
 
 type ChatTab = {
@@ -145,6 +154,103 @@ function getConversationSession(
     conversation.session_key ||
       conversation.session_id ||
       "principal"
+  )
+}
+
+function parseMemory(
+  value: any
+): Record<string, any> {
+  if (!value) {
+    return {}
+  }
+
+  if (
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    return value
+  }
+
+  if (
+    typeof value === "string"
+  ) {
+    try {
+      const parsed =
+        JSON.parse(value)
+
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        !Array.isArray(parsed)
+      ) {
+        return parsed
+      }
+    } catch {
+      return {}
+    }
+  }
+
+  return {}
+}
+
+function isHumanInterventionConversation(
+  conversation?: Conversation | null
+) {
+  if (!conversation) {
+    return false
+  }
+
+  const memory =
+    parseMemory(conversation.memory)
+
+  const mode =
+    String(conversation.mode || "")
+      .toUpperCase()
+
+  const state =
+    String(conversation.state || "")
+      .toUpperCase()
+
+  const lastMessage =
+    normalizeText(
+      conversation.last_message || ""
+    )
+
+  return Boolean(
+    mode === "HUMAN" ||
+      state === "HUMAN" ||
+      memory.bot_paused === true ||
+      memory.human_requested === true ||
+      memory.human_support_requested === true ||
+      memory.human_intervention === true ||
+      lastMessage.includes("intervencao humana solicitada") ||
+      lastMessage.includes("intervenção humana solicitada") ||
+      lastMessage.includes("bot foi pausado")
+  )
+}
+
+function isHumanInterventionMessage(
+  message?: Message | null
+) {
+  if (!message) {
+    return false
+  }
+
+  const text =
+    normalizeText(
+      message.text ||
+        message.content ||
+        ""
+    )
+
+  return Boolean(
+    message.intent === "HUMAN_SUPPORT" ||
+      message.mode === "HUMAN" ||
+      message.state === "HUMAN" ||
+      text.includes("intervencao humana solicitada") ||
+      text.includes("intervenção humana solicitada") ||
+      text.includes("bot foi pausado") ||
+      text.includes("atendimento humano solicitado")
   )
 }
 
@@ -501,7 +607,17 @@ function normalizeConversation(
       c.created_at ||
       null,
     session_key:
-      String(session)
+      String(session),
+    session_id:
+      String(session),
+    mode:
+      c.mode || null,
+    state:
+      c.state || null,
+    status:
+      c.status || null,
+    memory:
+      parseMemory(c.memory)
   }
 }
 
@@ -588,6 +704,17 @@ function formatPreview(
 
   const value =
     preview.toLowerCase()
+
+  if (
+    isHumanInterventionConversation(c) &&
+    (
+      value.includes("intervenção humana") ||
+      value.includes("intervencao humana") ||
+      value.includes("bot foi pausado")
+    )
+  ) {
+    return "🚨 Intervenção humana solicitada"
+  }
 
   if (
     value.includes("[image]") ||
@@ -816,14 +943,18 @@ export default function Conversas() {
       const currentSelected =
         selectedRef.current
 
-      if (
-        currentSelected &&
-        !normalized.some(
-          item => item.id === currentSelected.id
-        )
-      ) {
-        setSelected(null)
-        setMessages([])
+      if (currentSelected) {
+        const refreshedSelected =
+          normalized.find(
+            item => item.id === currentSelected.id
+          )
+
+        if (refreshedSelected) {
+          setSelected(refreshedSelected)
+        } else {
+          setSelected(null)
+          setMessages([])
+        }
       }
 
     } catch (err) {
@@ -1233,6 +1364,23 @@ export default function Conversas() {
   function renderMessageContent(
     m: Message
   ) {
+    if (isHumanInterventionMessage(m)) {
+      const text =
+        m.text ||
+        m.content ||
+        "Intervenção humana solicitada"
+
+      return (
+        <div
+          className={
+            styles["human-message-content"]
+          }
+        >
+          {renderText(text)}
+        </div>
+      )
+    }
+
     const mediaUrl =
       m.media_url ||
       m.mediaUrl ||
@@ -1490,6 +1638,9 @@ export default function Conversas() {
               const session =
                 getConversationSession(c)
 
+              const needsHuman =
+                isHumanInterventionConversation(c)
+
               return (
                 <button
                   key={c.id}
@@ -1499,6 +1650,11 @@ export default function Conversas() {
                     ${
                       selected?.id === c.id
                         ? styles["chat-item-active"]
+                        : ""
+                    }
+                    ${
+                      needsHuman
+                        ? styles["chat-item-human"]
                         : ""
                     }
                   `}
@@ -1554,6 +1710,17 @@ export default function Conversas() {
                       >
                         {formatPreview(c)}
                       </p>
+
+                      {needsHuman && (
+                        <span
+                          className={
+                            styles["human-pill"]
+                          }
+                          title="Intervenção humana solicitada"
+                        >
+                          Humano
+                        </span>
+                      )}
 
                       {activeTab === "all" && (
                         <span
@@ -1620,9 +1787,33 @@ export default function Conversas() {
                       getConversationSession(selected)
                     )
                   )}
+
+                  {isHumanInterventionConversation(selected) && (
+                    <>
+                      {" · "}
+                      <strong
+                        className={
+                          styles["human-header-pill"]
+                        }
+                      >
+                        Intervenção humana
+                      </strong>
+                    </>
+                  )}
                 </span>
               </div>
             </div>
+
+            {isHumanInterventionConversation(selected) && (
+              <div
+                className={
+                  styles["human-alert-bar"]
+                }
+              >
+                <strong>🚨 Intervenção humana solicitada</strong>
+                <span>Bot pausado. A equipe precisa assumir essa conversa.</span>
+              </div>
+            )}
 
             {/* MESSAGES */}
             <div
@@ -1635,15 +1826,20 @@ export default function Conversas() {
                 const isClient =
                   m.sender === "user"
 
+                const isSystem =
+                  isHumanInterventionMessage(m)
+
                 return (
                   <div
                     key={m.id}
                     className={`
                       ${styles["message-row"]}
                       ${
-                        isClient
-                          ? styles["message-row-client"]
-                          : styles["message-row-me"]
+                        isSystem
+                          ? styles["message-row-system"]
+                          : isClient
+                            ? styles["message-row-client"]
+                            : styles["message-row-me"]
                       }
                     `}
                   >
@@ -1651,9 +1847,11 @@ export default function Conversas() {
                       className={`
                         ${styles["chat-bubble"]}
                         ${
-                          isClient
-                            ? styles["chat-bubble-client"]
-                            : styles["chat-bubble-me"]
+                          isSystem
+                            ? styles["chat-bubble-system"]
+                            : isClient
+                              ? styles["chat-bubble-client"]
+                              : styles["chat-bubble-me"]
                         }
                       `}
                     >
@@ -1689,10 +1887,19 @@ export default function Conversas() {
                     e.target.value
                   )
                 }
-                placeholder="Digite uma mensagem"
-                className={
-                  styles["chat-input-field"]
+                placeholder={
+                  isHumanInterventionConversation(selected)
+                    ? "Responder como atendente"
+                    : "Digite uma mensagem"
                 }
+                className={`
+                  ${styles["chat-input-field"]}
+                  ${
+                    isHumanInterventionConversation(selected)
+                      ? styles["chat-input-field-human"]
+                      : ""
+                  }
+                `}
                 onKeyDown={(e) => {
                   if (
                     e.key === "Enter" &&

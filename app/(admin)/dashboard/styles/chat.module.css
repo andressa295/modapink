@@ -605,3 +605,109 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* INTERVENÇÃO HUMANA */
+.chat-item-human {
+  background: #fff7ed;
+  border-left: 4px solid #f97316;
+}
+
+.chat-item-human:hover {
+  background: #ffedd5;
+}
+
+.chat-item-human.chat-item-active {
+  background: #fed7aa;
+}
+
+.human-pill {
+  flex: 0 0 auto;
+  max-width: 92px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 7px;
+  border-radius: 999px;
+  background: #fff1e6;
+  color: #c2410c;
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.human-header-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #fff1e6;
+  color: #c2410c;
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.human-alert-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  background: #fff7ed;
+  color: #9a3412;
+  border-bottom: 1px solid #fed7aa;
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.human-alert-bar strong {
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.human-alert-bar span {
+  color: #c2410c;
+}
+
+.message-row-system {
+  justify-content: center;
+  margin: 10px 0;
+}
+
+.chat-bubble-system {
+  max-width: min(720px, 88%);
+  border-radius: 14px;
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+  box-shadow: 0 8px 22px rgba(154, 52, 18, 0.08);
+}
+
+.human-message-content {
+  display: block;
+  padding-right: 46px;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 700;
+  white-space: pre-wrap;
+}
+
+.chat-input-field-human {
+  border: 1px solid rgba(249, 115, 22, 0.35);
+  background: #fffaf5;
+}
+
+@media (max-width: 760px) {
+  .human-alert-bar {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px 14px;
+  }
+
+  .human-pill {
+    max-width: 74px;
+  }
+}
