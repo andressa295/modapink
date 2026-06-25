@@ -104,18 +104,6 @@ const chatTabs: ChatTab[] = [
 // HELPERS
 // ======================
 
-
-function normalizeText(
-  value?: string | null
-) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
 function normalizeSessionId(
   value?: string | null
 ): TabId | string {
@@ -167,6 +155,17 @@ function getConversationSession(
       conversation.session_id ||
       "principal"
   )
+}
+
+function normalizeText(
+  value?: string | null
+) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 function parseMemory(
@@ -861,9 +860,12 @@ export default function Conversas() {
     setSending
   ] = useState(false)
 
-  
-  const [resolvingHuman, setResolvingHuman] = useState(false)
-const [
+  const [
+    resolvingHuman,
+    setResolvingHuman
+  ] = useState(false)
+
+  const [
     loadingConversations,
     setLoadingConversations
   ] = useState(false)
@@ -932,7 +934,8 @@ const [
           {
             cache: "no-store",
             headers: {
-              Pragma: "no-cache"
+              Pragma: "no-cache",
+              "Cache-Control": "no-cache"
             }
           }
         )
@@ -996,11 +999,12 @@ const [
     try {
       const res =
         await fetch(
-          `${API}/messages?conversation_id=${id}`,
+          `${API}/messages?conversation_id=${id}&_=${Date.now()}`,
           {
             cache: "no-store",
             headers: {
-              Pragma: "no-cache"
+              Pragma: "no-cache",
+              "Cache-Control": "no-cache"
             }
           }
         )
@@ -1190,8 +1194,13 @@ const [
                 true
             }
           )
+
+          loadConversations({
+            silent:
+              true
+          })
         }
-      }, 2500)
+      }, 1200)
 
     const channel =
       supabase
@@ -1238,25 +1247,81 @@ const [
     }
   }, [selected?.id])
 
+  // ======================
+  // FORCE REFRESH WHEN WINDOW FOCUS
+  // ======================
+
+  useEffect(() => {
+    function refreshCurrentChat() {
+      const currentSelected =
+        selectedRef.current
+
+      if (currentSelected?.id) {
+        loadMessages(
+          currentSelected.id,
+          {
+            silent:
+              true
+          }
+        )
+      }
+
+      loadConversations({
+        silent:
+          true
+      })
+    }
+
+    function handleVisibilityChange() {
+      if (!document.hidden) {
+        refreshCurrentChat()
+      }
+    }
+
+    window.addEventListener(
+      "focus",
+      refreshCurrentChat
+    )
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    )
+
+    return () => {
+      window.removeEventListener(
+        "focus",
+        refreshCurrentChat
+      )
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      )
+    }
+  }, [])
 
   // ======================
   // RESOLVE HUMAN INTERVENTION
   // ======================
 
   async function resolveHumanIntervention() {
+    const currentSelected =
+      selectedRef.current
+
     if (
-      !selected ||
+      !currentSelected ||
       resolvingHuman
     ) {
       return
     }
 
-    const confirmResolve =
+    const ok =
       window.confirm(
         "Resolver essa intervenção e voltar o bot para essa conversa?"
       )
 
-    if (!confirmResolve) {
+    if (!ok) {
       return
     }
 
@@ -1265,12 +1330,14 @@ const [
     try {
       const response =
         await fetch(
-          `${API}/conversations/${selected.id}/resolve-human`,
+          `${API}/conversations/${currentSelected.id}/resolve-human`,
           {
             method: "POST",
             headers: {
               "Content-Type":
-                "application/json"
+                "application/json",
+              "Cache-Control":
+                "no-cache"
             },
             body:
               JSON.stringify({
@@ -1284,7 +1351,10 @@ const [
         await response.json()
           .catch(() => null)
 
-      if (!response.ok || !result?.ok) {
+      if (
+        !response.ok ||
+        !result?.ok
+      ) {
         throw new Error(
           result?.error ||
           "Falha ao resolver intervenção humana"
@@ -1292,18 +1362,27 @@ const [
       }
 
       if (result?.conversation?.id) {
-        setSelected(prev =>
-          prev?.id === result.conversation.id
-            ? {
-                ...prev,
-                ...result.conversation
-              }
-            : prev
+        const updated =
+          normalizeConversation(
+            result.conversation
+          )
+
+        selectedRef.current =
+          updated
+
+        setSelected(updated)
+
+        setConversations(prev =>
+          prev.map(item =>
+            item.id === updated.id
+              ? updated
+              : item
+          )
         )
       }
 
       await loadMessages(
-        selected.id,
+        currentSelected.id,
         {
           silent:
             true
@@ -1315,6 +1394,21 @@ const [
           true
       })
 
+      window.setTimeout(() => {
+        loadMessages(
+          currentSelected.id,
+          {
+            silent:
+              true
+          }
+        )
+
+        loadConversations({
+          silent:
+            true
+        })
+      }, 900)
+
     } catch (err) {
       console.error(
         "❌ erro resolver intervenção humana:",
@@ -1322,7 +1416,7 @@ const [
       )
 
       window.alert(
-        "Não consegui resolver a intervenção humana. Tenta novamente."
+        "Não consegui resolver a intervenção. Tenta novamente."
       )
 
     } finally {
@@ -1916,17 +2010,39 @@ const [
                   styles["human-alert-bar"]
                 }
               >
-                <strong>🚨 Intervenção humana solicitada</strong>
-                <span>Bot pausado. A equipe precisa assumir essa conversa.</span>
+                <div
+                  className={
+                    styles["human-alert-content"]
+                  }
+                >
+                  <strong
+                    className={
+                      styles["human-alert-title"]
+                    }
+                  >
+                    🚨 Intervenção humana solicitada
+                  </strong>
+
+                  <span
+                    className={
+                      styles["human-alert-text"]
+                    }
+                  >
+                    Bot pausado. A equipe precisa assumir essa conversa.
+                  </span>
+                </div>
+
                 <button
                   type="button"
-                  className={styles.resolveHumanButton}
+                  className={
+                    styles["resolve-human-button"]
+                  }
                   onClick={resolveHumanIntervention}
                   disabled={resolvingHuman}
                 >
                   {resolvingHuman
                     ? "Resolvendo..."
-                    : "✅ Resolver e voltar bot"}
+                    : "Resolver e voltar bot"}
                 </button>
               </div>
             )}
