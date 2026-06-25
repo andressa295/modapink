@@ -104,7 +104,19 @@ const chatTabs: ChatTab[] = [
 // HELPERS
 // ======================
 
-function normalizeSessionId(
+
+function normalizeText(
+  value?: string | null
+) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+\nfunction normalizeSessionId(
   value?: string | null
 ): TabId | string {
   const clean =
