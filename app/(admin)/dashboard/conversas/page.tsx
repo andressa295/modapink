@@ -116,7 +116,7 @@ function normalizeText(
     .trim()
 }
 
-\nfunction normalizeSessionId(
+function normalizeSessionId(
   value?: string | null
 ): TabId | string {
   const clean =
