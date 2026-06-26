@@ -233,27 +233,41 @@ function isHumanInterventionConversation(
         ""
     ).toLowerCase()
 
-  const isClosed =
-    interventionStatus === "closed" ||
-    memory.human_resolved === true
+  const hasActiveHumanFlag =
+    mode === "HUMAN" ||
+    state === "HUMAN" ||
+    memory.bot_paused === true ||
+    memory.human_requested === true ||
+    memory.human_support_requested === true ||
+    memory.human_intervention === true ||
+    interventionStatus === "requested" ||
+    interventionStatus === "open" ||
+    interventionStatus === "pending" ||
+    interventionStatus === "active" ||
+    lastMessage.includes("intervencao humana solicitada") ||
+    lastMessage.includes("intervenção humana solicitada") ||
+    lastMessage.includes("bot foi pausado") ||
+    lastMessage.includes("atendimento humano solicitado")
 
-  if (isClosed) {
+  const isClearlyResolved =
+    (
+      interventionStatus === "closed" ||
+      interventionStatus === "resolved" ||
+      memory.human_resolved === true ||
+      lastMessage.includes("intervencao humana resolvida") ||
+      lastMessage.includes("intervenção humana resolvida")
+    ) &&
+    mode !== "HUMAN" &&
+    state !== "HUMAN" &&
+    memory.bot_paused !== true &&
+    memory.human_requested !== true &&
+    memory.human_support_requested !== true
+
+  if (isClearlyResolved) {
     return false
   }
 
-  return Boolean(
-    mode === "HUMAN" ||
-      state === "HUMAN" ||
-      memory.bot_paused === true ||
-      memory.human_requested === true ||
-      memory.human_support_requested === true ||
-      memory.human_intervention === true ||
-      interventionStatus === "requested" ||
-      interventionStatus === "open" ||
-      lastMessage.includes("intervencao humana solicitada") ||
-      lastMessage.includes("intervenção humana solicitada") ||
-      lastMessage.includes("bot foi pausado")
-  )
+  return Boolean(hasActiveHumanFlag)
 }
 
 function isHumanInterventionMessage(
@@ -2361,7 +2375,7 @@ export default function Conversas() {
                       styles["human-alert-text"]
                     }
                   >
-                    Atendimento manual ativo. O bot fica em pausa até resolver.
+                    Bot pausado. A equipe precisa assumir essa conversa.
                   </span>
                 </div>
 

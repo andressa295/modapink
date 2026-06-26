@@ -892,3 +892,120 @@
     max-width: 74px;
   }
 }
+
+
+/* RESTAURAÇÃO VISUAL: INTERVENÇÃO HUMANA SEM PERDER O CLEAN */
+.chat-item-human {
+  position: relative;
+  background: linear-gradient(90deg, #fff7ed 0%, #ffffff 58%);
+  border-left: 4px solid #f97316;
+}
+
+.chat-item-human:hover {
+  background: linear-gradient(90deg, #ffedd5 0%, #ffffff 62%);
+}
+
+.chat-item-human.chat-item-active {
+  background: linear-gradient(90deg, #fed7aa 0%, #fff7ed 68%);
+}
+
+.human-pill {
+  flex: 0 0 auto;
+  max-width: 96px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fff4ec;
+  color: #b45309;
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+}
+
+.human-header-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: #fff4ec;
+  color: #b45309;
+  border: 1px solid rgba(249, 115, 22, 0.26);
+  font-size: 11px;
+  font-weight: 900;
+  vertical-align: middle;
+}
+
+.human-alert-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 10px 18px 0;
+  padding: 11px 14px;
+  border-radius: 16px;
+  background: rgba(255, 247, 237, 0.96);
+  color: #9a3412;
+  border: 1px solid rgba(251, 146, 60, 0.32);
+  box-shadow: 0 14px 34px rgba(154, 52, 18, 0.08);
+  position: relative;
+  z-index: 2;
+  backdrop-filter: blur(10px);
+}
+
+.human-alert-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.human-alert-title {
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.human-alert-text {
+  color: #c2410c;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.resolve-human-button,
+.resolveHumanButton {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 13px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(17, 24, 39, 0.16);
+  transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease;
+}
+
+.resolve-human-button:hover,
+.resolveHumanButton:hover {
+  transform: translateY(-1px);
+  opacity: 0.94;
+  box-shadow: 0 14px 28px rgba(17, 24, 39, 0.20);
+}
+
+.resolve-human-button:disabled,
+.resolveHumanButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
