@@ -227,6 +227,20 @@ function isHumanInterventionConversation(
       conversation.last_message || ""
     )
 
+  const interventionStatus =
+    String(
+      memory.human_intervention?.status ||
+        ""
+    ).toLowerCase()
+
+  const isClosed =
+    interventionStatus === "closed" ||
+    memory.human_resolved === true
+
+  if (isClosed) {
+    return false
+  }
+
   return Boolean(
     mode === "HUMAN" ||
       state === "HUMAN" ||
@@ -234,6 +248,8 @@ function isHumanInterventionConversation(
       memory.human_requested === true ||
       memory.human_support_requested === true ||
       memory.human_intervention === true ||
+      interventionStatus === "requested" ||
+      interventionStatus === "open" ||
       lastMessage.includes("intervencao humana solicitada") ||
       lastMessage.includes("intervenção humana solicitada") ||
       lastMessage.includes("bot foi pausado")
@@ -256,11 +272,14 @@ function isHumanInterventionMessage(
 
   return Boolean(
     message.intent === "HUMAN_SUPPORT" ||
-      message.mode === "HUMAN" ||
-      message.state === "HUMAN" ||
+      message.intent === "HUMAN_RESOLVED" ||
+      message.flow === "human_intervention" ||
       text.includes("intervencao humana solicitada") ||
       text.includes("intervenção humana solicitada") ||
+      text.includes("intervencao humana resolvida") ||
+      text.includes("intervenção humana resolvida") ||
       text.includes("bot foi pausado") ||
+      text.includes("bot foi reativado") ||
       text.includes("atendimento humano solicitado")
   )
 }
@@ -572,6 +591,25 @@ function normalizeMessage(
       m.media?.filename ||
       "arquivo"
   }
+}
+
+function getMessagesSignature(
+  messages: Message[]
+) {
+  return messages
+    .map(message =>
+      [
+        message.id,
+        message.sender,
+        message.created_at || "",
+        String(
+          message.text ||
+            message.content ||
+            ""
+        ).length
+      ].join(":")
+    )
+    .join("|")
 }
 
 function normalizeConversation(
@@ -895,6 +933,21 @@ export default function Conversas() {
   const messagesLoadedForRef =
     useRef<string | null>(null)
 
+  const messagesSignatureRef =
+    useRef("")
+
+  const messagesCacheRef =
+    useRef<Record<string, Message[]>>({})
+
+  const shouldStickToBottomRef =
+    useRef(true)
+
+  const justOpenedConversationRef =
+    useRef(false)
+
+  const lastMessagesCountRef =
+    useRef(0)
+
   useEffect(() => {
     selectedRef.current =
       selected
@@ -909,17 +962,79 @@ export default function Conversas() {
   // AUTO SCROLL
   // ======================
 
-  function scrollToBottom() {
-    if (!messagesRef.current) {
+  function isNearBottom() {
+    const element =
+      messagesRef.current
+
+    if (!element) {
+      return true
+    }
+
+    const distance =
+      element.scrollHeight -
+      element.scrollTop -
+      element.clientHeight
+
+    return distance < 140
+  }
+
+  function handleMessagesScroll() {
+    shouldStickToBottomRef.current =
+      isNearBottom()
+  }
+
+  function scrollToBottom(
+    behavior: ScrollBehavior = "auto"
+  ) {
+    const element =
+      messagesRef.current
+
+    if (!element) {
       return
     }
 
-    messagesRef.current.scrollTop =
-      messagesRef.current.scrollHeight
+    requestAnimationFrame(() => {
+      element.scrollTo({
+        top:
+          element.scrollHeight,
+        behavior
+      })
+    })
   }
 
   useEffect(() => {
-    scrollToBottom()
+    const currentCount =
+      messages.length
+
+    const countChanged =
+      currentCount !==
+      lastMessagesCountRef.current
+
+    lastMessagesCountRef.current =
+      currentCount
+
+    if (
+      justOpenedConversationRef.current
+    ) {
+      justOpenedConversationRef.current =
+        false
+
+      shouldStickToBottomRef.current =
+        true
+
+      scrollToBottom()
+      return
+    }
+
+    if (
+      shouldStickToBottomRef.current &&
+      (
+        countChanged ||
+        currentCount > 0
+      )
+    ) {
+      scrollToBottom()
+    }
   }, [messages])
 
   // ======================
@@ -1059,7 +1174,7 @@ export default function Conversas() {
 
       const res =
         await fetch(
-          `${API}/messages?conversation_id=${encodeURIComponent(id)}&_=${Date.now()}`,
+          `${API}/messages?conversation_id=${encodeURIComponent(id)}&limit=350&_=${Date.now()}`,
           {
             cache: "no-store",
             headers: {
@@ -1114,8 +1229,26 @@ export default function Conversas() {
         return
       }
 
+      const signature =
+        getMessagesSignature(
+          formatted
+        )
+
       messagesLoadedForRef.current =
         id
+
+      messagesCacheRef.current[id] =
+        formatted
+
+      if (
+        signature === messagesSignatureRef.current &&
+        !options.force
+      ) {
+        return
+      }
+
+      messagesSignatureRef.current =
+        signature
 
       setMessages(formatted)
 
@@ -1139,14 +1272,46 @@ export default function Conversas() {
     const normalized =
       normalizeConversation(conversation)
 
+    const cachedMessages =
+      messagesCacheRef.current[
+        normalized.id
+      ]
+
     selectedRef.current =
       normalized
 
     messagesLoadedForRef.current =
       null
 
+    justOpenedConversationRef.current =
+      true
+
+    shouldStickToBottomRef.current =
+      true
+
     setSelected(normalized)
-    setMessages([])
+
+    if (
+      cachedMessages?.length
+    ) {
+      messagesSignatureRef.current =
+        getMessagesSignature(
+          cachedMessages
+        )
+
+      lastMessagesCountRef.current =
+        cachedMessages.length
+
+      setMessages(cachedMessages)
+    } else {
+      messagesSignatureRef.current =
+        ""
+
+      lastMessagesCountRef.current =
+        0
+
+      setMessages([])
+    }
 
     // Carrega imediatamente no clique,
     // sem esperar o useEffect/polling.
@@ -1154,11 +1319,48 @@ export default function Conversas() {
       normalized.id,
       {
         silent:
-          false,
+          Boolean(cachedMessages?.length),
         force:
           true
       }
     )
+  }
+
+  function changeTab(
+    tabId: TabId
+  ) {
+    if (
+      activeTabRef.current === tabId
+    ) {
+      return
+    }
+
+    activeTabRef.current =
+      tabId
+
+    selectedRef.current =
+      null
+
+    messagesLoadedForRef.current =
+      null
+
+    messagesSignatureRef.current =
+      ""
+
+    lastMessagesCountRef.current =
+      0
+
+    setActiveTab(tabId)
+    setSelected(null)
+    setMessages([])
+    setLoadingConversations(true)
+
+    requestAnimationFrame(() => {
+      loadConversations({
+        silent:
+          false
+      })
+    })
   }
 
   // ======================
@@ -1177,7 +1379,7 @@ export default function Conversas() {
           silent:
             true
         })
-      }, 3000)
+      }, 2200)
 
     const filterConfig: any = {
       event: "*",
@@ -1590,6 +1792,9 @@ export default function Conversas() {
         true
     }
 
+    shouldStickToBottomRef.current =
+      true
+
     setInput("")
     setSending(true)
     setMessages(prev => [
@@ -1921,17 +2126,9 @@ export default function Conversas() {
                     : ""
                 }
               `}
-              onClick={() => {
-                if (
-                  activeTab !== tab.id
-                ) {
-                  setActiveTab(tab.id)
-                  selectedRef.current = null
-                  messagesLoadedForRef.current = null
-                  setSelected(null)
-                  setMessages([])
-                }
-              }}
+              onClick={() =>
+                changeTab(tab.id)
+              }
               type="button"
             >
               <span>
@@ -2164,7 +2361,7 @@ export default function Conversas() {
                       styles["human-alert-text"]
                     }
                   >
-                    Bot pausado. A equipe precisa assumir essa conversa.
+                    Atendimento manual ativo. O bot fica em pausa até resolver.
                   </span>
                 </div>
 
@@ -2186,6 +2383,7 @@ export default function Conversas() {
             {/* MESSAGES */}
             <div
               ref={messagesRef}
+              onScroll={handleMessagesScroll}
               className={
                 styles["chat-messages"]
               }
