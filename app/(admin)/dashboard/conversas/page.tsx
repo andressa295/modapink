@@ -871,6 +871,11 @@ export default function Conversas() {
   ] = useState(false)
 
   const [
+    loadingMessages,
+    setLoadingMessages
+  ] = useState(false)
+
+  const [
     activeTab,
     setActiveTab
   ] = useState<TabId>("all")
@@ -884,11 +889,11 @@ export default function Conversas() {
   const activeTabRef =
     useRef<TabId>("all")
 
-  const loadingMessagesRef =
-    useRef(false)
-
-  const lastMessagesRequestRef =
+  const messagesRequestRef =
     useRef(0)
+
+  const messagesLoadedForRef =
+    useRef<string | null>(null)
 
   useEffect(() => {
     selectedRef.current =
@@ -899,28 +904,6 @@ export default function Conversas() {
     activeTabRef.current =
       activeTab
   }, [activeTab])
-
-  useEffect(() => {
-    if (!selected?.id) {
-      return
-    }
-
-    selectedRef.current =
-      selected
-
-    loadMessages(
-      selected.id,
-      {
-        silent:
-          true
-      }
-    )
-  }, [
-    selected?.id,
-    selected?.last_message,
-    selected?.last_message_at,
-    selected?.updated_at
-  ])
 
   // ======================
   // AUTO SCROLL
@@ -941,7 +924,6 @@ export default function Conversas() {
 
   // ======================
   // LOAD CONVERSAS
-  // Também sincroniza o chat aberto quando a última mensagem muda.
   // ======================
 
   async function loadConversations(
@@ -959,7 +941,7 @@ export default function Conversas() {
 
       const res =
         await fetch(
-          `${getConversationUrl(currentTab)}${getConversationUrl(currentTab).includes("?") ? "&" : "?"}_=${Date.now()}`,
+          getConversationUrl(currentTab),
           {
             cache: "no-store",
             headers: {
@@ -990,35 +972,37 @@ export default function Conversas() {
         selectedRef.current
 
       if (currentSelected) {
-        const currentSession =
-          getConversationSession(
-            currentSelected
-          )
-
         const refreshedSelected =
           normalized.find(
             item => item.id === currentSelected.id
-          ) ||
-          normalized.find(
-            item =>
-              item.phone === currentSelected.phone &&
-              getConversationSession(item) === currentSession
           )
 
         if (refreshedSelected) {
-          const changed =
-            refreshedSelected.last_message_at !== currentSelected.last_message_at ||
-            refreshedSelected.updated_at !== currentSelected.updated_at ||
-            refreshedSelected.last_message !== currentSelected.last_message ||
-            refreshedSelected.mode !== currentSelected.mode ||
-            refreshedSelected.state !== currentSelected.state
-
           selectedRef.current =
             refreshedSelected
 
           setSelected(refreshedSelected)
 
-          if (changed) {
+          // Se a conversa selecionada recebeu mensagem nova,
+          // força o miolo do chat a recarregar também.
+          const oldDate =
+            new Date(
+              currentSelected.last_message_at ||
+                currentSelected.updated_at ||
+                0
+            ).getTime()
+
+          const newDate =
+            new Date(
+              refreshedSelected.last_message_at ||
+                refreshedSelected.updated_at ||
+                0
+            ).getTime()
+
+          if (
+            newDate > oldDate ||
+            messagesLoadedForRef.current !== refreshedSelected.id
+          ) {
             loadMessages(
               refreshedSelected.id,
               {
@@ -1027,13 +1011,14 @@ export default function Conversas() {
               }
             )
           }
-
         } else {
           selectedRef.current =
             null
 
           setSelected(null)
           setMessages([])
+          messagesLoadedForRef.current =
+            null
         }
       }
 
@@ -1051,37 +1036,30 @@ export default function Conversas() {
 
   // ======================
   // LOAD MSGS
-  // Fonte do miolo do chat.
-  // Busca sempre /messages e atualiza sem depender do realtime.
   // ======================
 
   async function loadMessages(
     id: string,
     options: {
       silent?: boolean
+      force?: boolean
     } = {}
   ) {
     if (!id) {
       return
     }
 
-    if (loadingMessagesRef.current) {
-      return
-    }
-
     const requestId =
-      Date.now()
-
-    lastMessagesRequestRef.current =
-      requestId
-
-    loadingMessagesRef.current =
-      true
+      ++messagesRequestRef.current
 
     try {
+      if (!options.silent) {
+        setLoadingMessages(true)
+      }
+
       const res =
         await fetch(
-          `${API}/messages?conversation_id=${encodeURIComponent(id)}&_=${requestId}`,
+          `${API}/messages?conversation_id=${encodeURIComponent(id)}&_=${Date.now()}`,
           {
             cache: "no-store",
             headers: {
@@ -1093,7 +1071,7 @@ export default function Conversas() {
 
       if (!res.ok) {
         throw new Error(
-          `Falha ao carregar mensagens: ${res.status}`
+          `Erro ao carregar mensagens: ${res.status}`
         )
       }
 
@@ -1110,67 +1088,36 @@ export default function Conversas() {
           .map((m: any) =>
             normalizeMessage(m)
           )
-          .filter((m: Message) =>
-            Boolean(
-              m.id &&
-                (
-                  m.text ||
-                  m.content ||
-                  m.media_url ||
-                  m.mediaUrl ||
-                  m.media_type ||
-                  m.mediaType
-                )
-            )
-          )
           .sort((a: Message, b: Message) =>
             new Date(a.created_at || 0).getTime() -
             new Date(b.created_at || 0).getTime()
           )
 
-      if (
-        lastMessagesRequestRef.current !== requestId
-      ) {
-        return
-      }
-
+      // Proteção contra resposta atrasada:
+      // se a pessoa clicou em outra conversa enquanto o fetch estava vindo,
+      // não deixa mensagem antiga sobrescrever o chat novo.
       const currentSelected =
         selectedRef.current
 
       if (
-        !currentSelected ||
+        !options.force &&
+        currentSelected?.id &&
         currentSelected.id !== id
       ) {
         return
       }
 
-      setMessages(prev => {
-        const tempMessages =
-          prev.filter(
-            item => item.is_temp
-          )
+      if (
+        requestId !== messagesRequestRef.current &&
+        !options.force
+      ) {
+        return
+      }
 
-        if (!tempMessages.length) {
-          return formatted
-        }
+      messagesLoadedForRef.current =
+        id
 
-        const existingIds =
-          new Set(
-            formatted.map(
-              item => item.id
-            )
-          )
-
-        const pendingTemps =
-          tempMessages.filter(
-            item => !existingIds.has(item.id)
-          )
-
-        return [
-          ...formatted,
-          ...pendingTemps
-        ]
-      })
+      setMessages(formatted)
 
     } catch (err) {
       if (!options.silent) {
@@ -1180,9 +1127,38 @@ export default function Conversas() {
         )
       }
     } finally {
-      loadingMessagesRef.current =
-        false
+      if (!options.silent) {
+        setLoadingMessages(false)
+      }
     }
+  }
+
+  function openConversation(
+    conversation: Conversation
+  ) {
+    const normalized =
+      normalizeConversation(conversation)
+
+    selectedRef.current =
+      normalized
+
+    messagesLoadedForRef.current =
+      null
+
+    setSelected(normalized)
+    setMessages([])
+
+    // Carrega imediatamente no clique,
+    // sem esperar o useEffect/polling.
+    loadMessages(
+      normalized.id,
+      {
+        silent:
+          false,
+        force:
+          true
+      }
+    )
   }
 
   // ======================
@@ -1323,7 +1299,13 @@ export default function Conversas() {
     selectedRef.current =
       selected
 
-    loadMessages(selected.id)
+    loadMessages(
+      selected.id,
+      {
+        force:
+          true
+      }
+    )
 
     const polling =
       setInterval(() => {
@@ -1346,7 +1328,7 @@ export default function Conversas() {
               true
           })
         }
-      }, 1000)
+      }, 1200)
 
     const channel =
       supabase
@@ -1407,6 +1389,8 @@ export default function Conversas() {
           currentSelected.id,
           {
             silent:
+              true,
+            force:
               true
           }
         )
@@ -1545,6 +1529,8 @@ export default function Conversas() {
           currentSelected.id,
           {
             silent:
+              true,
+            force:
               true
           }
         )
@@ -1654,6 +1640,8 @@ export default function Conversas() {
         selected.id,
         {
           silent:
+            true,
+          force:
             true
         }
       )
@@ -1938,6 +1926,8 @@ export default function Conversas() {
                   activeTab !== tab.id
                 ) {
                   setActiveTab(tab.id)
+                  selectedRef.current = null
+                  messagesLoadedForRef.current = null
                   setSelected(null)
                   setMessages([])
                 }
@@ -2005,7 +1995,7 @@ export default function Conversas() {
                     }
                   `}
                   onClick={() =>
-                    setSelected(c)
+                    openConversation(c)
                   }
                 >
                   <Avatar
@@ -2200,15 +2190,15 @@ export default function Conversas() {
                 styles["chat-messages"]
               }
             >
-              {messages.length === 0 && (
+              {loadingMessages && messages.length === 0 ? (
                 <div
                   className={
-                    styles["chat-empty"]
+                    styles["chat-loading-messages"]
                   }
                 >
-                  Nenhuma mensagem carregada ainda.
+                  Carregando mensagens...
                 </div>
-              )}
+              ) : null}
 
               {messages.map((m) => {
                 const isClient =
