@@ -23,7 +23,9 @@ type TabId =
   | "all"
   | "principal"
   | "vendedora_1"
+  | "vendedora_2"
   | "sac"
+  | "automacoes"
 
 type Conversation = {
   id: string
@@ -80,7 +82,7 @@ type ChatTab = {
 const chatTabs: ChatTab[] = [
   {
     id: "all",
-    nome: "Todos",
+    nome: "Todas as conversas",
     short: "Todos"
   },
   {
@@ -91,12 +93,22 @@ const chatTabs: ChatTab[] = [
   {
     id: "vendedora_1",
     nome: "Vendedora 1",
-    short: "Vendedora"
+    short: "Vendedora 1"
+  },
+  {
+    id: "vendedora_2",
+    nome: "Vendedora 2 / Monitoramento",
+    short: "Vendedora 2"
   },
   {
     id: "sac",
     nome: "SAC",
     short: "SAC"
+  },
+  {
+    id: "automacoes",
+    nome: "Automações",
+    short: "Automações"
   }
 ]
 
@@ -120,15 +132,56 @@ function normalizeSessionId(
 
   if (
     clean === "vendedora-1" ||
-    clean === "vendedora1"
+    clean === "vendedora_1" ||
+    clean === "vendedora1" ||
+    clean === "vendedor-a1" ||
+    clean === "vendedor_a1" ||
+    clean === "vendedor1"
   ) {
     return "vendedora_1"
+  }
+
+  if (
+    clean === "vendedora-2" ||
+    clean === "vendedora_2" ||
+    clean === "vendedora2" ||
+    clean === "vendedor-a2" ||
+    clean === "vendedor_a2" ||
+    clean === "vendedor2" ||
+    clean === "monitoramento" ||
+    clean === "monitor" ||
+    clean === "humano" ||
+    clean === "humana"
+  ) {
+    return "vendedora_2"
   }
 
   if (
     clean.startsWith("sac")
   ) {
     return "sac"
+  }
+
+  if (
+    clean === "automacoes" ||
+    clean === "automacao" ||
+    clean === "automacaoes" ||
+    clean === "automações" ||
+    clean === "automaçao" ||
+    clean === "pedidos" ||
+    clean === "pedido" ||
+    clean === "status-pedido" ||
+    clean === "status_pedido" ||
+    clean === "statuspedido" ||
+    clean === "status-pedidos" ||
+    clean === "status_pedidos" ||
+    clean === "statuspedidos" ||
+    clean === "order-notifications" ||
+    clean === "order_notifications" ||
+    clean === "order-notification" ||
+    clean === "order_notification"
+  ) {
+    return "automacoes"
   }
 
   return clean

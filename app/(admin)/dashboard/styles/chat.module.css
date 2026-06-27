@@ -1009,3 +1009,88 @@
   cursor: not-allowed;
   transform: none;
 }
+
+/* ======================================================
+   ABAS DE SESSÕES — CHIPS ROLÁVEIS
+   Suporta: Todos, Principal, Vendedora 1, Vendedora 2,
+   SAC e Automações sem esmagar o layout.
+   ====================================================== */
+
+.vendedoras-tabs {
+  flex: 0 0 auto;
+  display: flex !important;
+  grid-template-columns: none !important;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px 10px;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  white-space: nowrap;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.94));
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 116, 139, 0.26) transparent;
+}
+
+.vendedoras-tabs::-webkit-scrollbar {
+  height: 5px;
+}
+
+.vendedoras-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.vendedoras-tabs::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.24);
+  border-radius: 999px;
+}
+
+.vendedoras-tabs::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.38);
+}
+
+.tab-button {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: max-content;
+  max-width: none;
+  min-height: 37px;
+  padding: 9px 13px;
+  scroll-snap-align: start;
+}
+
+.tab-button span {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.tab-button small {
+  min-width: 18px;
+}
+
+@media (max-width: 1180px) {
+  .vendedoras-tabs {
+    display: flex !important;
+    grid-template-columns: none !important;
+    gap: 7px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .tab-button {
+    width: auto;
+    min-width: max-content;
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+}
+
+@media (max-width: 980px) {
+  .vendedoras-tabs {
+    display: flex !important;
+    grid-template-columns: none !important;
+  }
+}
+

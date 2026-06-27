@@ -39,8 +39,16 @@ const idsPermitidos: SessionOption[] = [
     nome: "Vendedora 1"
   },
   {
+    id: "vendedora_2",
+    nome: "Vendedora 2"
+  },
+  {
     id: "sac",
     nome: "SAC"
+  },
+  {
+    id: "automacoes",
+    nome: "Automações"
   }
 ]
 
@@ -49,6 +57,8 @@ function normalizeSessionId(
 ) {
   const clean =
     String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "-")
@@ -60,9 +70,37 @@ function normalizeSessionId(
 
   if (
     clean === "vendedora-1" ||
-    clean === "vendedora1"
+    clean === "vendedora1" ||
+    clean === "vendedor-a1" ||
+    clean === "vendedora-a1" ||
+    clean === "vendedor_1" ||
+    clean === "vendedor1"
   ) {
     return "vendedora_1"
+  }
+
+  if (
+    clean === "vendedora-2" ||
+    clean === "vendedora2" ||
+    clean === "vendedor-a2" ||
+    clean === "vendedora-a2" ||
+    clean === "vendedor_2" ||
+    clean === "vendedor2" ||
+    clean === "monitoramento"
+  ) {
+    return "vendedora_2"
+  }
+
+  if (
+    clean === "automacao" ||
+    clean === "automacoes" ||
+    clean === "automation" ||
+    clean === "automations" ||
+    clean === "pedidos" ||
+    clean === "status-pedido" ||
+    clean === "status_pedido"
+  ) {
+    return "automacoes"
   }
 
   if (
