@@ -1094,3 +1094,49 @@
   }
 }
 
+
+.message-audio-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 6px !important;
+  min-width: 260px !important;
+}
+
+.message-audio {
+  display: block !important;
+  width: 260px !important;
+  height: 40px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.message-link {
+  color: #2563eb !important;
+  text-decoration: underline !important;
+  word-break: break-word !important;
+}
+
+.message-link:hover {
+  opacity: 0.8 !important;
+}
+
+.message-audio-wrap {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  min-width: 280px !important;
+}
+
+.message-audio {
+  display: block !important;
+  width: 280px !important;
+  height: 42px !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.message-audio-link {
+  color: #2563eb !important;
+  font-size: 13px !important;
+  text-decoration: underline !important;
+}

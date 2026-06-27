@@ -54,6 +54,7 @@ type Message = {
   media_url?: string
   mediaUrl?: string
   media_type?: string
+  media_mime_type?: string
   mediaType?: string
   mimetype?: string
   mime_type?: string
@@ -622,10 +623,50 @@ function normalizeMessage(
     ""
 
   const mime =
-    m.mimetype ||
-    m.mime_type ||
-    m.media?.mimetype ||
-    ""
+    String(
+      m.media_mime_type ||
+      m.mimetype ||
+      m.mime_type ||
+      m.media?.mimetype ||
+      ""
+    ).trim()
+
+  const detectedType =
+    detectMediaType(
+      mediaUrl,
+      mime
+    )
+
+  const rawMediaType =
+    String(
+      m.media_type ||
+      m.mediaType ||
+      m.type ||
+      m.media?.type ||
+      detectedType ||
+      "text"
+    ).toLowerCase()
+
+  const mimeLower =
+    mime.toLowerCase()
+
+  const normalizedMediaType =
+    mediaUrl
+      ? (
+          rawMediaType === "ptt" ||
+          rawMediaType === "audio" ||
+          rawMediaType === "voice" ||
+          mimeLower.startsWith("audio/")
+            ? "audio"
+            : rawMediaType === "image" ||
+              mimeLower.startsWith("image/")
+                ? "image"
+                : rawMediaType === "video" ||
+                  mimeLower.startsWith("video/")
+                    ? "video"
+                    : detectedType
+        )
+      : rawMediaType || "text"
 
   return {
     ...m,
@@ -640,19 +681,19 @@ function normalizeMessage(
       mediaUrl,
 
     media_type:
-      m.media_type ||
-      m.mediaType ||
-      m.type ||
-      m.media?.type ||
-      detectMediaType(
-        mediaUrl,
-        mime
-      ),
+      normalizedMediaType,
+
+    media_mime_type:
+      mime,
 
     mimetype:
       mime,
 
+    mime_type:
+      mime,
+
     filename:
+      m.media_filename ||
       m.filename ||
       m.file_name ||
       m.media?.filename ||
@@ -673,7 +714,10 @@ function getMessagesSignature(
           message.text ||
             message.content ||
             ""
-        ).length
+        ).length,
+        message.media_url || "",
+        message.media_type || "",
+        message.mimetype || ""
       ].join(":")
     )
     .join("|")
@@ -1953,13 +1997,52 @@ export default function Conversas() {
       String(value || "")
         .split("\n")
 
+    const urlRegex =
+      /(https?:\/\/[^\s]+|www\.[^\s]+)/gi
+
     return lines.map(
-      (line, index) => (
-        <span key={`${line}-${index}`}>
-          {line}
-          {index < lines.length - 1 && <br />}
-        </span>
-      )
+      (line, lineIndex) => {
+        const parts =
+          line.split(urlRegex)
+
+        return (
+          <span key={`${line}-${lineIndex}`}>
+            {parts.map((part, partIndex) => {
+              const isUrl =
+                /^(https?:\/\/|www\.)/i.test(part)
+
+              if (!isUrl) {
+                return (
+                  <span key={`${lineIndex}-${partIndex}`}>
+                    {part}
+                  </span>
+                )
+              }
+
+              const href =
+                part.startsWith("http")
+                  ? part
+                  : `https://${part}`
+
+              return (
+                <a
+                  key={`${lineIndex}-${partIndex}`}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={
+                    styles["message-link"]
+                  }
+                >
+                  {part}
+                </a>
+              )
+            })}
+
+            {lineIndex < lines.length - 1 && <br />}
+          </span>
+        )
+      }
     )
   }
 
@@ -1992,20 +2075,129 @@ export default function Conversas() {
       m.mediaUrl ||
       ""
 
-    const mediaType =
-      m.media_type ||
-      m.mediaType ||
-      "text"
-
     const text =
       m.text ||
       m.content ||
       ""
 
-    if (
-      mediaUrl &&
-      mediaType === "image"
-    ) {
+    const mime =
+      String(
+        (m as any).media_mime_type ||
+        (m as any).mimetype ||
+        (m as any).mime_type ||
+        ""
+      ).toLowerCase()
+
+    const rawType =
+      String(
+        (m as any).media_type ||
+        (m as any).mediaType ||
+        ""
+      ).toLowerCase()
+
+    const urlLower =
+      String(mediaUrl || "")
+        .toLowerCase()
+
+    const contentLower =
+      String(text || "")
+        .toLowerCase()
+
+    const hasMedia =
+      Boolean((m as any).has_media) ||
+      Boolean(mediaUrl)
+
+    const isAudio =
+      Boolean(mediaUrl) &&
+      (
+        rawType === "ptt" ||
+        rawType === "audio" ||
+        rawType === "voice" ||
+        mime.startsWith("audio/") ||
+        mime.includes("opus") ||
+        urlLower.includes(".ogg") ||
+        urlLower.includes(".mp3") ||
+        urlLower.includes(".m4a") ||
+        urlLower.includes(".wav") ||
+        contentLower.includes("áudio") ||
+        contentLower.includes("audio")
+      )
+
+    const isImage =
+      Boolean(mediaUrl) &&
+      (
+        rawType === "image" ||
+        mime.startsWith("image/") ||
+        urlLower.match(/\.(jpg|jpeg|png|webp|gif)/)
+      )
+
+    const isVideo =
+      Boolean(mediaUrl) &&
+      (
+        rawType === "video" ||
+        mime.startsWith("video/") ||
+        urlLower.match(/\.(mp4|webm|mov)/)
+      )
+
+    if (isAudio) {
+      return (
+        <div
+          className={
+            styles["message-audio-wrap"]
+          }
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            minWidth: 280
+          }}
+        >
+          <audio
+            controls
+            preload="metadata"
+            src={mediaUrl}
+            style={{
+              display: "block",
+              width: 280,
+              height: 42
+            }}
+            className={
+              styles["message-audio"]
+            }
+          >
+            <source
+              src={mediaUrl}
+              type={
+                mime || "audio/ogg"
+              }
+            />
+          </audio>
+
+          <a
+            href={mediaUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={
+              styles["message-audio-link"]
+            }
+          >
+            🎧 Abrir áudio
+          </a>
+
+          {text && (
+            <p
+              className={
+                styles["message-caption"]
+              }
+            >
+              {renderText(text)}
+            </p>
+          )}
+        </div>
+      )
+    }
+
+    if (isImage) {
       return (
         <div
           className={
@@ -2033,49 +2225,7 @@ export default function Conversas() {
       )
     }
 
-    if (
-      mediaUrl &&
-      mediaType === "audio"
-    ) {
-      return (
-        <div
-          className={
-            styles["message-audio-wrap"]
-          }
-        >
-          <div
-            className={
-              styles["audio-avatar"]
-            }
-          >
-            🎙️
-          </div>
-
-          <audio
-            controls
-            src={mediaUrl}
-            className={
-              styles["message-audio"]
-            }
-          />
-
-          {text && (
-            <p
-              className={
-                styles["message-caption"]
-              }
-            >
-              {renderText(text)}
-            </p>
-          )}
-        </div>
-      )
-    }
-
-    if (
-      mediaUrl &&
-      mediaType === "video"
-    ) {
+    if (isVideo) {
       return (
         <div
           className={
@@ -2103,36 +2253,17 @@ export default function Conversas() {
       )
     }
 
-    if (
-      mediaUrl &&
-      mediaType === "document"
-    ) {
+    if (mediaUrl && hasMedia) {
       return (
         <a
           href={mediaUrl}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
           className={
             styles["message-document"]
           }
         >
-          <span
-            className={
-              styles["document-icon"]
-            }
-          >
-            📎
-          </span>
-
-          <span
-            className={
-              styles["document-name"]
-            }
-          >
-            {m.filename ||
-              m.file_name ||
-              "Abrir arquivo"}
-          </span>
+          📎 Abrir mídia
         </a>
       )
     }
