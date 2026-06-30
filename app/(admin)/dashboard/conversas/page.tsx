@@ -21,6 +21,7 @@ const supabase =
 
 type TabId =
   | "all"
+  | "human"
   | "principal"
   | "vendedora_1"
   | "vendedora_2"
@@ -85,6 +86,11 @@ const chatTabs: ChatTab[] = [
     id: "all",
     nome: "Todas as conversas",
     short: "Todos"
+  },
+  {
+    id: "human",
+    nome: "Intervenções humanas",
+    short: "Humanos"
   },
   {
     id: "principal",
@@ -789,6 +795,10 @@ function normalizeConversations(
     data
       .map(normalizeConversation)
       .filter(conversation => {
+        if (activeTab === "human") {
+          return isHumanInterventionConversation(conversation)
+        }
+
         if (activeTab === "all") {
           return true
         }
@@ -873,7 +883,7 @@ function formatPreview(
       value.includes("bot foi pausado")
     )
   ) {
-    return "🚨 Intervenção humana solicitada"
+    return "Atendimento manual ativo"
   }
 
   if (
@@ -914,7 +924,10 @@ function formatPreview(
 function getConversationUrl(
   activeTab: TabId
 ) {
-  if (activeTab === "all") {
+  if (
+    activeTab === "all" ||
+    activeTab === "human"
+  ) {
     return `${API}/conversations`
   }
 
@@ -1012,6 +1025,11 @@ export default function Conversas() {
   const [
     resolvingHuman,
     setResolvingHuman
+  ] = useState(false)
+
+  const [
+    pausingHuman,
+    setPausingHuman
   ] = useState(false)
 
   const [
@@ -1499,7 +1517,8 @@ export default function Conversas() {
     }
 
     if (
-      activeTab !== "all"
+      activeTab !== "all" &&
+      activeTab !== "human"
     ) {
       filterConfig.filter =
         `session_key=eq.${activeTab}`
@@ -1556,7 +1575,8 @@ export default function Conversas() {
 
   useEffect(() => {
     if (
-      activeTab === "all"
+      activeTab === "all" ||
+      activeTab === "human"
     ) {
       return
     }
@@ -1745,6 +1765,154 @@ export default function Conversas() {
   }, [])
 
   // ======================
+  // PAUSE BOT MANUALMENTE
+  // ======================
+
+  async function pauseBotForConversation() {
+    const currentSelected =
+      selectedRef.current
+
+    if (
+      !currentSelected ||
+      pausingHuman
+    ) {
+      return
+    }
+
+    const ok =
+      window.confirm(
+        "Pausar o bot nesta conversa e assumir o atendimento manual?"
+      )
+
+    if (!ok) {
+      return
+    }
+
+    setPausingHuman(true)
+
+    try {
+      const now =
+        new Date().toISOString()
+
+      const currentMemory =
+        parseMemory(
+          currentSelected.memory
+        )
+
+      const updatedMemory = {
+        ...currentMemory,
+
+        bot_paused:
+          true,
+
+        human_requested:
+          true,
+
+        human_support_requested:
+          true,
+
+        human_intervention: {
+          ...(currentMemory.human_intervention || {}),
+
+          status:
+            "open",
+
+          source:
+            "dashboard",
+
+          requested_by:
+            "dashboard",
+
+          reason:
+            "manual_dashboard_intervention",
+
+          requested_at:
+            now,
+
+          bot_paused:
+            true
+        }
+      }
+
+      const { data, error } =
+        await supabase
+          .from("conversations")
+          .update({
+            mode:
+              "HUMAN",
+            state:
+              "HUMAN",
+            status:
+              "open",
+            memory:
+              updatedMemory,
+            last_message:
+              "Atendimento manual iniciado pelo painel. Bot pausado para intervenção da equipe.",
+            updated_at:
+              now,
+            last_message_at:
+              now
+          })
+          .eq(
+            "id",
+            currentSelected.id
+          )
+          .select()
+          .single()
+
+      if (error) {
+        throw error
+      }
+
+      if (data?.id) {
+        const updated =
+          normalizeConversation(data)
+
+        selectedRef.current =
+          updated
+
+        setSelected(updated)
+
+        setConversations(prev =>
+          prev.map(item =>
+            item.id === updated.id
+              ? updated
+              : item
+          )
+        )
+      }
+
+      await loadMessages(
+        currentSelected.id,
+        {
+          silent:
+            true,
+          force:
+            true
+        }
+      )
+
+      await loadConversations({
+        silent:
+          true
+      })
+
+    } catch (err) {
+      console.error(
+        "❌ erro ao pausar bot manualmente:",
+        err
+      )
+
+      window.alert(
+        "Não consegui pausar o bot nesta conversa. Verifique permissão do Supabase."
+      )
+
+    } finally {
+      setPausingHuman(false)
+    }
+  }
+
+  // ======================
   // RESOLVE HUMAN INTERVENTION
   // ======================
 
@@ -1761,7 +1929,7 @@ export default function Conversas() {
 
     const ok =
       window.confirm(
-        "Resolver essa intervenção e voltar o bot para essa conversa?"
+        "Finalizar o atendimento manual e liberar o bot para essa conversa?"
       )
 
     if (!ok) {
@@ -1861,7 +2029,7 @@ export default function Conversas() {
       )
 
       window.alert(
-        "Não consegui resolver a intervenção. Tenta novamente."
+        "Não consegui liberar o bot. Tente novamente em alguns segundos."
       )
 
     } finally {
@@ -2323,6 +2491,11 @@ export default function Conversas() {
                     ? styles["tab-active"]
                     : ""
                 }
+                ${
+                  tab.id === "human"
+                    ? styles["tab-human"]
+                    : ""
+                }
               `}
               onClick={() =>
                 changeTab(tab.id)
@@ -2533,6 +2706,28 @@ export default function Conversas() {
                   )}
                 </span>
               </div>
+
+              <div
+                className={
+                  styles["chat-header-actions"]
+                }
+              >
+                {!isHumanInterventionConversation(selected) && (
+                  <button
+                    type="button"
+                    className={
+                      styles["pause-bot-button"]
+                    }
+                    onClick={pauseBotForConversation}
+                    disabled={pausingHuman}
+                    title="Pausar o bot e assumir esta conversa manualmente"
+                  >
+                    {pausingHuman
+                      ? "Pausando..."
+                      : "Intervir no bot"}
+                  </button>
+                )}
+              </div>
             </div>
 
             {isHumanInterventionConversation(selected) && (
@@ -2551,7 +2746,7 @@ export default function Conversas() {
                       styles["human-alert-title"]
                     }
                   >
-                    🚨 Intervenção humana solicitada
+                    Atendimento manual ativo
                   </strong>
 
                   <span
@@ -2559,7 +2754,7 @@ export default function Conversas() {
                       styles["human-alert-text"]
                     }
                   >
-                    Bot pausado. A equipe precisa assumir essa conversa.
+                    O bot está pausado nesta conversa. Responda pelo painel e, ao finalizar, clique em Liberar bot para devolver a automação.
                   </span>
                 </div>
 
@@ -2572,8 +2767,8 @@ export default function Conversas() {
                   disabled={resolvingHuman}
                 >
                   {resolvingHuman
-                    ? "Resolvendo..."
-                    : "Resolver"}
+                    ? "Liberando..."
+                    : "Liberar bot"}
                 </button>
               </div>
             )}
@@ -2663,7 +2858,7 @@ export default function Conversas() {
                 }
                 placeholder={
                   isHumanInterventionConversation(selected)
-                    ? "Responder como atendente"
+                    ? "Responder como atendente — bot pausado"
                     : "Digite uma mensagem"
                 }
                 className={`
