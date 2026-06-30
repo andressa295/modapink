@@ -43,7 +43,7 @@
 /* TITLE */
 
 .dashboard-title {
-  font-size: 32px;
+  font-size: 25px;
   font-weight: 700;
 
   color: #111827;
@@ -354,7 +354,7 @@
 /* ============================= */
 
 .metric-value {
-  font-size: 34px;
+  font-size: 25px;
   font-weight: 700;
 
   color: #111827;
