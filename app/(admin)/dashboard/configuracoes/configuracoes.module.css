@@ -13,8 +13,7 @@
 
   gap: 28px;
 
-  animation:
-    fadePage 0.25s ease;
+  animation: fadePage 0.25s ease;
 }
 
 /* ============================= */
@@ -28,23 +27,36 @@
   gap: 10px;
 }
 
-/* TITLE */
+.eyebrow {
+  width: fit-content;
+
+  padding: 7px 12px;
+
+  border-radius: 999px;
+
+  background: #fdf2f8;
+
+  color: #be185d;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  letter-spacing: -0.01em;
+}
 
 .headerTitle {
   font-size: 32px;
-  font-weight: 700;
+  font-weight: 800;
 
   color: #111827;
 
   line-height: 1.1;
 
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
 }
 
-/* SUBTITLE */
-
 .headerDescription {
-  max-width: 720px;
+  max-width: 780px;
 
   font-size: 15px;
 
@@ -61,7 +73,7 @@
   display: grid;
 
   grid-template-columns:
-    repeat(auto-fill, minmax(280px, 1fr));
+    repeat(auto-fill, minmax(300px, 1fr));
 
   gap: 20px;
 
@@ -79,13 +91,14 @@
   align-items: center;
   justify-content: space-between;
 
-  gap: 16px;
+  gap: 18px;
 
   min-width: 0;
+  min-height: 132px;
 
   padding: 22px;
 
-  border-radius: 22px;
+  border-radius: 24px;
 
   background:
     linear-gradient(
@@ -94,55 +107,50 @@
       #fcfcfd
     );
 
-  border:
-    1px solid #eef2f7;
+  border: 1px solid #eef2f7;
 
   overflow: hidden;
 
   text-decoration: none;
 
   transition:
-    all 0.22s ease;
+    transform 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    background 0.22s ease;
 
   box-shadow:
-    0 2px 6px rgba(15,23,42,0.03),
-    0 10px 24px rgba(15,23,42,0.04);
+    0 2px 6px rgba(15, 23, 42, 0.03),
+    0 10px 24px rgba(15, 23, 42, 0.04);
 }
-
-/* GLOW */
 
 .card::before {
   content: "";
 
   position: absolute;
 
-  top: -40px;
-  right: -40px;
+  top: -48px;
+  right: -48px;
 
-  width: 120px;
-  height: 120px;
+  width: 140px;
+  height: 140px;
 
   background:
     radial-gradient(
-      rgba(230,0,126,0.08),
-      transparent
+      rgba(230, 0, 126, 0.10),
+      transparent 68%
     );
 
   pointer-events: none;
 }
 
-/* HOVER */
-
 .card:hover {
-  transform:
-    translateY(-4px);
+  transform: translateY(-4px);
 
-  border-color:
-    #fbcfe8;
+  border-color: #fbcfe8;
 
   box-shadow:
-    0 16px 32px
-    rgba(236,72,153,0.08);
+    0 18px 38px rgba(236, 72, 153, 0.10);
 }
 
 /* ============================= */
@@ -150,21 +158,30 @@
 /* ============================= */
 
 .cardContent {
+  position: relative;
+  z-index: 1;
+
   display: flex;
   flex-direction: column;
 
-  gap: 6px;
+  gap: 10px;
 
   min-width: 0;
 
   flex: 1;
 }
 
-/* TITLE */
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+}
 
 .cardTitle {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 800;
 
   color: #111827;
 
@@ -177,9 +194,26 @@
   white-space: nowrap;
 }
 
-/* DESCRIPTION */
+.cardTag {
+  flex-shrink: 0;
+
+  padding: 5px 9px;
+
+  border-radius: 999px;
+
+  background: #fdf2f8;
+
+  color: #be185d;
+
+  font-size: 10px;
+  font-weight: 900;
+
+  letter-spacing: -0.01em;
+}
 
 .cardDescription {
+  max-width: 260px;
+
   font-size: 14px;
 
   color: #6b7280;
@@ -192,6 +226,9 @@
 /* ============================= */
 
 .arrow {
+  position: relative;
+  z-index: 1;
+
   width: 42px;
   height: 42px;
 
@@ -199,7 +236,7 @@
   align-items: center;
   justify-content: center;
 
-  border-radius: 14px;
+  border-radius: 15px;
 
   background:
     linear-gradient(
@@ -208,26 +245,31 @@
       #fbcfe8
     );
 
-  color: #E6007E;
+  color: #e6007e;
 
   font-size: 18px;
-  font-weight: 700;
+  font-weight: 800;
 
   flex-shrink: 0;
 
   transition:
-    all 0.2s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
-/* ARROW HOVER */
-
 .card:hover .arrow {
-  transform:
-    translateX(3px);
+  transform: translateX(3px);
+
+  background:
+    linear-gradient(
+      135deg,
+      #fbcfe8,
+      #f9a8d4
+    );
 
   box-shadow:
-    0 8px 20px
-    rgba(230,0,126,0.16);
+    0 8px 20px rgba(230, 0, 126, 0.16);
 }
 
 /* ============================= */
@@ -235,7 +277,6 @@
 /* ============================= */
 
 @keyframes fadePage {
-
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -252,14 +293,9 @@
 /* ============================= */
 
 @media (max-width: 1200px) {
-
   .grid {
-
     grid-template-columns:
-      repeat(
-        auto-fill,
-        minmax(240px, 1fr)
-      );
+      repeat(auto-fill, minmax(260px, 1fr));
   }
 }
 
@@ -268,13 +304,12 @@
 /* ============================= */
 
 @media (max-width: 820px) {
-
   .container {
     gap: 18px;
   }
 
   .headerTitle {
-    font-size: 24px;
+    font-size: 25px;
   }
 
   .headerDescription {
@@ -282,10 +317,14 @@
   }
 
   .grid {
+    grid-template-columns: 1fr;
+
     gap: 14px;
   }
 
   .card {
+    min-height: auto;
+
     padding: 18px;
 
     border-radius: 18px;
@@ -296,6 +335,8 @@
   }
 
   .cardDescription {
+    max-width: none;
+
     font-size: 12px;
   }
 

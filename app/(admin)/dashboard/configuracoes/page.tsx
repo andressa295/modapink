@@ -4,56 +4,99 @@ import styles from "./configuracoes.module.css";
 export default function ConfiguracoesPage() {
   const settings = [
     {
+      title: "Dados da loja",
+      description:
+        "Nome, site, pedido mínimo, SAC, Instagram, Grupo VIP e links principais.",
+      link: "/dashboard/configuracoes/dados-loja",
+      tag: "Base",
+    },
+    {
+      title: "Textos do bot",
+      description:
+        "Edite respostas sobre catálogo, pagamento, envio, atacado, trocas e reposição.",
+      link: "/dashboard/configuracoes/textos-bot",
+      tag: "Bot",
+    },
+    {
+      title: "Atendimento e retirada",
+      description:
+        "Configure horários, loja física, retirada na sede, endereço e funcionamento do SAC.",
+      link: "/dashboard/configuracoes/atendimento",
+      tag: "Operação",
+    },
+    {
       title: "Automações",
-      description: "Bots, respostas automáticas e fluxos de atendimento.",
+      description:
+        "Ative e ajuste carrinho abandonado, pedido aprovado, avaliações e mensagens automáticas.",
       link: "/dashboard/configuracoes/automacoes",
+      tag: "Automação",
     },
     {
       title: "Integrações",
-      description: "Conecte WhatsApp, APIs e serviços externos.",
+      description:
+        "Gerencie WhatsApp, Nuvemshop, IA e serviços externos conectados ao sistema.",
       link: "/dashboard/configuracoes/integracoes",
+      tag: "API",
+    },
+    {
+      title: "Aparência",
+      description:
+        "Personalize logo, nome da loja, cores do painel e identidade visual do sistema.",
+      link: "/dashboard/configuracoes/aparencia",
+      tag: "Visual",
     },
     {
       title: "Usuários",
-      description: "Gerencie membros da equipe e permissões.",
+      description:
+        "Gerencie acessos da equipe, permissões, atendentes e administradores.",
       link: "/dashboard/configuracoes/usuarios",
-    },
-    {
-      title: "Notificações",
-      description: "Configure alertas por email, WhatsApp e sistema.",
-      link: "/dashboard/configuracoes/notificacoes",
-    },
-    {
-      title: "API",
-      description: "Gerencie chaves e integrações da plataforma.",
-      link: "/dashboard/configuracoes/api",
-    },
-    {
-      title: "Segurança",
-      description: "Proteção da conta e controle de acessos.",
-      link: "/dashboard/configuracoes/seguranca",
+      tag: "Equipe",
     },
   ];
 
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Configurações</h1>
-        <p>
-          Gerencie automações, integrações, usuários e todas as configurações
-          da plataforma.
+        <span className={styles.eyebrow}>
+          Central do sistema
+        </span>
+
+        <h1 className={styles.headerTitle}>
+          Configurações
+        </h1>
+
+        <p className={styles.headerDescription}>
+          Personalize os dados da loja, textos do bot, horários,
+          automações, integrações e aparência do painel.
         </p>
       </div>
 
       <div className={styles.grid}>
-        {settings.map((item, index) => (
-          <Link key={index} href={item.link} className={styles.card}>
+        {settings.map((item) => (
+          <Link
+            key={item.link}
+            href={item.link}
+            className={styles.card}
+          >
             <div className={styles.cardContent}>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
+              <div className={styles.cardTop}>
+                <h3 className={styles.cardTitle}>
+                  {item.title}
+                </h3>
+
+                <span className={styles.cardTag}>
+                  {item.tag}
+                </span>
+              </div>
+
+              <p className={styles.cardDescription}>
+                {item.description}
+              </p>
             </div>
 
-            <span className={styles.arrow}>→</span>
+            <span className={styles.arrow}>
+              →
+            </span>
           </Link>
         ))}
       </div>
