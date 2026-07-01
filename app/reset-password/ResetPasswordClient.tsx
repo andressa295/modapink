@@ -1,21 +1,7 @@
-// app/reset-password/ResetPasswordClient.tsx
-
 "use client"
 
-import {
-
-  useEffect,
-
-  useState
-
-} from "react"
-
-import {
-
-  useRouter
-
-} from "next/navigation"
-
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
 
 import { createClient } from "@/lib/supabase/client"
@@ -23,146 +9,133 @@ import { createClient } from "@/lib/supabase/client"
 import styles from "./reset-password.module.css"
 
 type Props = {
-
   code?: string
+  errorParam?: string
+  errorDescription?: string
 }
 
 export default function ResetPasswordClient({
-
-  code
-
+  code,
+  errorParam,
+  errorDescription
 }: Props) {
-
-  const supabase =
-    createClient()
-
-  const router =
-    useRouter()
+  const supabase = createClient()
+  const router = useRouter()
 
   // =========================
   // STATES
   // =========================
-  const [
-
-    password,
-
-    setPassword
-
-  ] = useState("")
-
-  const [
-
-    confirmPassword,
-
-    setConfirmPassword
-
-  ] = useState("")
-
-  const [
-
-    loading,
-
-    setLoading
-
-  ] = useState(false)
-
-  const [
-
-    validating,
-
-    setValidating
-
-  ] = useState(true)
-
-  const [
-
-    error,
-
-    setError
-
-  ] = useState("")
-
-  const [
-
-    success,
-
-    setSuccess
-
-  ] = useState(false)
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [validating, setValidating] = useState(true)
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
+  const [hasSession, setHasSession] = useState(false)
 
   // =========================
   // VALIDATE LINK
   // =========================
   useEffect(() => {
-
-    async function validateRecovery() {
-
+    async function validateLink() {
       try {
-
-        // 🔥 sem code
-        if (!code) {
-
+        // Se o Supabase voltou com erro na URL
+        if (errorParam) {
           setError(
-            "Link inválido ou expirado."
+            errorDescription ||
+              "Link inválido ou expirado. Peça um novo link de acesso."
           )
 
           setValidating(false)
-
           return
         }
 
-        // 🔥 cria sessão recovery
-        const { error } =
+        let recoveryCode = code
 
-          await supabase
-            .auth
-            .exchangeCodeForSession(
-              code
-            )
+        // Garantia extra: se o code não veio pelo server component,
+        // tenta pegar direto da URL no navegador.
+        if (!recoveryCode && typeof window !== "undefined") {
+          const url = new URL(window.location.href)
 
-        if (error) {
-
-          console.error(
-            "Erro exchange:",
-            error
-          )
-
-          setError(
-            "Link inválido ou expirado."
-          )
+          recoveryCode =
+            url.searchParams.get("code") || undefined
         }
 
+        // Se não tem code, verifica se já existe sessão ativa.
+        if (!recoveryCode) {
+          const {
+            data: { session }
+          } = await supabase.auth.getSession()
+
+          if (session) {
+            setHasSession(true)
+          } else {
+            setError(
+              "Link inválido ou expirado. Peça um novo link de acesso."
+            )
+          }
+
+          setValidating(false)
+          return
+        }
+
+        // Troca o code por uma sessão válida.
+        const { error } =
+          await supabase.auth.exchangeCodeForSession(
+            recoveryCode
+          )
+
+        if (error) {
+          console.error("Erro exchange:", error)
+
+          setError(
+            "Link inválido ou expirado. Peça um novo link de acesso."
+          )
+
+          setValidating(false)
+          return
+        }
+
+        setHasSession(true)
+        setValidating(false)
+
+        // Remove o code da URL depois de validar.
+        window.history.replaceState(
+          {},
+          document.title,
+          "/reset-password"
+        )
       } catch (err) {
+        console.error("Erro validateLink:", err)
 
-        console.error(
-          "Erro validateRecovery:",
-          err
-        )
-
-        setError(
-          "Erro ao validar link."
-        )
-
-      } finally {
-
+        setError("Erro ao validar link.")
         setValidating(false)
       }
     }
 
-    validateRecovery()
-
-  }, [code, supabase])
+    validateLink()
+  }, [
+    code,
+    errorParam,
+    errorDescription,
+    supabase.auth
+  ])
 
   // =========================
   // RESET PASSWORD
   // =========================
   async function handleReset() {
-
     setError("")
 
-    // 🔥 validação
-    if (password.length < 6) {
+    if (!hasSession) {
+      setError(
+        "Sessão inválida. Peça um novo link de acesso."
+      )
 
+      return
+    }
+
+    if (password.length < 6) {
       setError(
         "A senha precisa ter no mínimo 6 caracteres"
       )
@@ -170,37 +143,21 @@ export default function ResetPasswordClient({
       return
     }
 
-    if (
-      password !==
-      confirmPassword
-    ) {
-
-      setError(
-        "As senhas não coincidem"
-      )
-
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem")
       return
     }
 
     try {
-
       setLoading(true)
 
       const { error } =
-
-        await supabase
-          .auth
-          .updateUser({
-
-            password
-          })
+        await supabase.auth.updateUser({
+          password
+        })
 
       if (error) {
-
-        console.error(
-          "Erro update:",
-          error
-        )
+        console.error("Erro update:", error)
 
         setError(
           "Erro ao definir senha. Tente novamente."
@@ -209,27 +166,20 @@ export default function ResetPasswordClient({
         return
       }
 
+      // Depois de criar senha, sai da sessão temporária
+      // e manda para o login normal.
+      await supabase.auth.signOut()
+
       setSuccess(true)
 
       setTimeout(() => {
-
         router.push("/login")
-
-      }, 2000)
-
+      }, 1800)
     } catch (err) {
+      console.error("Erro reset:", err)
 
-      console.error(
-        "Erro reset:",
-        err
-      )
-
-      setError(
-        "Erro inesperado"
-      )
-
+      setError("Erro inesperado")
     } finally {
-
       setLoading(false)
     }
   }
@@ -238,36 +188,23 @@ export default function ResetPasswordClient({
   // VALIDATING
   // =========================
   if (validating) {
-
     return (
-
       <div className={styles.container}>
-
         <div className={styles.card}>
-
           <div className={styles.loading}>
-
             Validando link...
-
           </div>
-
         </div>
-
       </div>
     )
   }
 
   return (
-
     <div className={styles.container}>
-
       <div className={styles.card}>
-
         {/* HEADER */}
         <div className={styles.header}>
-
           <div className={styles.logoArea}>
-
             <Image
               src="/logo.png"
               alt="Moda Pink"
@@ -275,34 +212,41 @@ export default function ResetPasswordClient({
               height={140}
               priority
             />
-
           </div>
 
+          <h1>
+            Criar senha
+          </h1>
+
           <p>
-
-            Crie sua nova senha
-            para acessar sua conta
-
+            Defina sua senha para acessar o painel Moda Pink.
           </p>
-
         </div>
 
         {/* SUCCESS */}
         {success ? (
-
           <div className={styles.success}>
-
-            Senha criada com sucesso! 🎉
-
+            Senha criada com sucesso! Você será redirecionado para o login.
           </div>
-
-        ) : (
-
+        ) : !hasSession ? (
           <div className={styles.form}>
+            <span className={styles.error}>
+              {error ||
+                "Link inválido ou expirado. Peça um novo link de acesso."}
+            </span>
 
+            <button
+              className={styles.button}
+              type="button"
+              onClick={() => router.push("/login")}
+            >
+              Voltar para o login
+            </button>
+          </div>
+        ) : (
+          <div className={styles.form}>
             {/* PASSWORD */}
             <div className={styles.inputGroup}>
-
               <label>
                 Nova senha
               </label>
@@ -312,18 +256,13 @@ export default function ResetPasswordClient({
                 placeholder="Digite sua nova senha"
                 value={password}
                 onChange={(e) =>
-
-                  setPassword(
-                    e.target.value
-                  )
+                  setPassword(e.target.value)
                 }
               />
-
             </div>
 
             {/* CONFIRM */}
             <div className={styles.inputGroup}>
-
               <label>
                 Confirmar senha
               </label>
@@ -333,45 +272,30 @@ export default function ResetPasswordClient({
                 placeholder="Confirme sua senha"
                 value={confirmPassword}
                 onChange={(e) =>
-
-                  setConfirmPassword(
-                    e.target.value
-                  )
+                  setConfirmPassword(e.target.value)
                 }
               />
-
             </div>
 
             {/* ERROR */}
             {error && (
-
               <span className={styles.error}>
-
                 {error}
-
               </span>
             )}
 
             {/* BUTTON */}
             <button
               className={styles.button}
+              type="button"
               onClick={handleReset}
               disabled={loading}
             >
-
-              {loading
-
-                ? "Salvando..."
-
-                : "Salvar senha"}
-
+              {loading ? "Salvando..." : "Salvar senha"}
             </button>
-
           </div>
         )}
-
       </div>
-
     </div>
   )
 }

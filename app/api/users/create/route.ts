@@ -71,7 +71,7 @@ function buildInviteEmail({
         <p style="text-align:center;color:#6b7280;font-size:15px;line-height:1.7;margin:0;">
           Você foi convidado(a) para acessar o painel da Moda Pink.
           <br/>
-          Clique no botão abaixo para criar sua senha de acesso.
+          Clique no botão abaixo para criar sua senha.
         </p>
 
         <div style="text-align:center;margin:34px 0;">
@@ -114,6 +114,8 @@ function buildInviteEmail({
 }
 
 export async function POST(req: Request) {
+  let createdUserId: string | null = null
+
   try {
     const body = await req.json()
 
@@ -147,9 +149,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // =========================
-    // CHECK PROFILE
-    // =========================
     const {
       data: existingProfile,
       error: profileCheckError
@@ -181,14 +180,15 @@ export async function POST(req: Request) {
       )
     }
 
-    // =========================
-    // CREATE AUTH USER
-    // =========================
+    const temporaryPassword =
+      `${crypto.randomUUID()}Aa1!`
+
     const {
       data: userData,
       error: userError
     } = await supabase.auth.admin.createUser({
       email,
+      password: temporaryPassword,
       email_confirm: true,
       user_metadata: {
         name,
@@ -220,9 +220,8 @@ export async function POST(req: Request) {
       )
     }
 
-    // =========================
-    // CREATE PROFILE
-    // =========================
+    createdUserId = userId
+
     const {
       error: profileError
     } = await supabase
@@ -247,9 +246,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // =========================
-    // GENERATE PASSWORD LINK
-    // =========================
     const redirectTo =
       `${getSiteUrl()}/reset-password`
 
@@ -303,9 +299,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // =========================
-    // SEND EMAIL
-    // =========================
     const {
       error: emailError
     } = await resend.emails.send({
@@ -342,6 +335,15 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     console.error("💥 erro create user:", err)
+
+    if (createdUserId) {
+      await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", createdUserId)
+
+      await supabase.auth.admin.deleteUser(createdUserId)
+    }
 
     return Response.json(
       {
