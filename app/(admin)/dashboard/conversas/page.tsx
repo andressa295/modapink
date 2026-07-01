@@ -1791,82 +1791,47 @@ export default function Conversas() {
     setPausingHuman(true)
 
     try {
-      const now =
-        new Date().toISOString()
+      const response =
+        await fetch(
+          `${API}/conversations/${currentSelected.id}/request-human`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              "Cache-Control":
+                "no-cache"
+            },
+            body:
+              JSON.stringify({
+                requested_by:
+                  "dashboard",
 
-      const currentMemory =
-        parseMemory(
-          currentSelected.memory
+                reason:
+                  "manual_dashboard_intervention"
+              })
+          }
         )
 
-      const updatedMemory = {
-        ...currentMemory,
+      const result =
+        await response.json()
+          .catch(() => null)
 
-        bot_paused:
-          true,
-
-        human_requested:
-          true,
-
-        human_support_requested:
-          true,
-
-        human_intervention: {
-          ...(currentMemory.human_intervention || {}),
-
-          status:
-            "open",
-
-          source:
-            "dashboard",
-
-          requested_by:
-            "dashboard",
-
-          reason:
-            "manual_dashboard_intervention",
-
-          requested_at:
-            now,
-
-          bot_paused:
-            true
-        }
+      if (
+        !response.ok ||
+        !result?.ok
+      ) {
+        throw new Error(
+          result?.error ||
+          "Falha ao pausar o bot nesta conversa"
+        )
       }
 
-      const { data, error } =
-        await supabase
-          .from("conversations")
-          .update({
-            mode:
-              "HUMAN",
-            state:
-              "HUMAN",
-            status:
-              "open",
-            memory:
-              updatedMemory,
-            last_message:
-              "Atendimento manual iniciado pelo painel. Bot pausado para intervenção da equipe.",
-            updated_at:
-              now,
-            last_message_at:
-              now
-          })
-          .eq(
-            "id",
-            currentSelected.id
-          )
-          .select()
-          .single()
-
-      if (error) {
-        throw error
-      }
-
-      if (data?.id) {
+      if (result?.conversation?.id) {
         const updated =
-          normalizeConversation(data)
+          normalizeConversation(
+            result.conversation
+          )
 
         selectedRef.current =
           updated
@@ -1904,7 +1869,7 @@ export default function Conversas() {
       )
 
       window.alert(
-        "Não consegui pausar o bot nesta conversa. Verifique permissão do Supabase."
+        "Não consegui pausar o bot nesta conversa. Tente novamente em alguns segundos."
       )
 
     } finally {
