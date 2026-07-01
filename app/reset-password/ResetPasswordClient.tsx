@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 
@@ -19,8 +19,10 @@ export default function ResetPasswordClient({
   errorParam,
   errorDescription
 }: Props) {
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const router = useRouter()
+
+  const alreadyValidated = useRef(false)
 
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
@@ -32,6 +34,12 @@ export default function ResetPasswordClient({
 
   useEffect(() => {
     async function validateLink() {
+      if (alreadyValidated.current) {
+        return
+      }
+
+      alreadyValidated.current = true
+
       try {
         if (errorParam) {
           setError(
@@ -61,7 +69,10 @@ export default function ResetPasswordClient({
           if (sessionError) {
             console.error("Erro getSession:", sessionError)
 
-            setError(sessionError.message)
+            setError(
+              `Erro ao buscar sessão: ${sessionError.message}`
+            )
+
             setValidating(false)
             return
           }
@@ -80,16 +91,16 @@ export default function ResetPasswordClient({
 
         const {
           data,
-          error
+          error: exchangeError
         } = await supabase.auth.exchangeCodeForSession(
           recoveryCode
         )
 
-        if (error) {
-          console.error("Erro exchange:", error)
+        if (exchangeError) {
+          console.error("Erro exchange:", exchangeError)
 
           setError(
-            `Erro ao validar link: ${error.message}`
+            `Erro ao validar link: ${exchangeError.message}`
           )
 
           setValidating(false)
@@ -98,7 +109,7 @@ export default function ResetPasswordClient({
 
         if (!data.session) {
           setError(
-            "O link foi aberto, mas nenhuma sessão foi criada. Gere um novo link."
+            "O link foi aberto, mas a sessão não foi criada. Gere um novo link."
           )
 
           setValidating(false)
@@ -143,7 +154,7 @@ export default function ResetPasswordClient({
     code,
     errorParam,
     errorDescription,
-    supabase.auth
+    supabase
   ])
 
   async function handleReset() {
@@ -179,7 +190,10 @@ export default function ResetPasswordClient({
       } = await supabase.auth.getUser()
 
       if (userError || !userData.user) {
-        console.error("Erro getUser antes de salvar senha:", userError)
+        console.error(
+          "Erro getUser antes de salvar senha:",
+          userError
+        )
 
         setError(
           userError?.message ||
@@ -215,7 +229,7 @@ export default function ResetPasswordClient({
     } catch (err) {
       console.error("Erro reset:", err)
 
-      setError("Erro inesperado")
+      setError("Erro inesperado ao salvar senha.")
     } finally {
       setLoading(false)
     }
@@ -247,12 +261,8 @@ export default function ResetPasswordClient({
             />
           </div>
 
-          <h1>
-            Criar senha
-          </h1>
-
           <p>
-            Defina sua senha para acessar o painel Moda Pink.
+            Crie sua nova senha para acessar sua conta
           </p>
         </div>
 
