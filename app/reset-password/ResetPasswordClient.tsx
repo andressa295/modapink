@@ -22,9 +22,6 @@ export default function ResetPasswordClient({
   const supabase = createClient()
   const router = useRouter()
 
-  // =========================
-  // STATES
-  // =========================
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -33,13 +30,9 @@ export default function ResetPasswordClient({
   const [success, setSuccess] = useState(false)
   const [hasSession, setHasSession] = useState(false)
 
-  // =========================
-  // VALIDATE LINK
-  // =========================
   useEffect(() => {
     async function validateLink() {
       try {
-        // Se o Supabase voltou com erro na URL
         if (errorParam) {
           setError(
             errorDescription ||
@@ -52,8 +45,6 @@ export default function ResetPasswordClient({
 
         let recoveryCode = code
 
-        // Garantia extra: se o code não veio pelo server component,
-        // tenta pegar direto da URL no navegador.
         if (!recoveryCode && typeof window !== "undefined") {
           const url = new URL(window.location.href)
 
@@ -61,11 +52,19 @@ export default function ResetPasswordClient({
             url.searchParams.get("code") || undefined
         }
 
-        // Se não tem code, verifica se já existe sessão ativa.
         if (!recoveryCode) {
           const {
-            data: { session }
+            data: { session },
+            error: sessionError
           } = await supabase.auth.getSession()
+
+          if (sessionError) {
+            console.error("Erro getSession:", sessionError)
+
+            setError(sessionError.message)
+            setValidating(false)
+            return
+          }
 
           if (session) {
             setHasSession(true)
@@ -79,17 +78,44 @@ export default function ResetPasswordClient({
           return
         }
 
-        // Troca o code por uma sessão válida.
-        const { error } =
-          await supabase.auth.exchangeCodeForSession(
-            recoveryCode
-          )
+        const {
+          data,
+          error
+        } = await supabase.auth.exchangeCodeForSession(
+          recoveryCode
+        )
 
         if (error) {
           console.error("Erro exchange:", error)
 
           setError(
-            "Link inválido ou expirado. Peça um novo link de acesso."
+            `Erro ao validar link: ${error.message}`
+          )
+
+          setValidating(false)
+          return
+        }
+
+        if (!data.session) {
+          setError(
+            "O link foi aberto, mas nenhuma sessão foi criada. Gere um novo link."
+          )
+
+          setValidating(false)
+          return
+        }
+
+        const {
+          data: userData,
+          error: userError
+        } = await supabase.auth.getUser()
+
+        if (userError || !userData.user) {
+          console.error("Erro getUser:", userError)
+
+          setError(
+            userError?.message ||
+              "Sessão criada, mas usuário não encontrado."
           )
 
           setValidating(false)
@@ -99,7 +125,6 @@ export default function ResetPasswordClient({
         setHasSession(true)
         setValidating(false)
 
-        // Remove o code da URL depois de validar.
         window.history.replaceState(
           {},
           document.title,
@@ -121,9 +146,6 @@ export default function ResetPasswordClient({
     supabase.auth
   ])
 
-  // =========================
-  // RESET PASSWORD
-  // =========================
   async function handleReset() {
     setError("")
 
@@ -151,23 +173,38 @@ export default function ResetPasswordClient({
     try {
       setLoading(true)
 
-      const { error } =
-        await supabase.auth.updateUser({
-          password
-        })
+      const {
+        data: userData,
+        error: userError
+      } = await supabase.auth.getUser()
 
-      if (error) {
-        console.error("Erro update:", error)
+      if (userError || !userData.user) {
+        console.error("Erro getUser antes de salvar senha:", userError)
 
         setError(
-          "Erro ao definir senha. Tente novamente."
+          userError?.message ||
+            "Sessão inválida antes de salvar a senha. Gere um novo link."
         )
 
         return
       }
 
-      // Depois de criar senha, sai da sessão temporária
-      // e manda para o login normal.
+      const {
+        error: updateError
+      } = await supabase.auth.updateUser({
+        password
+      })
+
+      if (updateError) {
+        console.error("Erro update:", updateError)
+
+        setError(
+          `Erro ao definir senha: ${updateError.message}`
+        )
+
+        return
+      }
+
       await supabase.auth.signOut()
 
       setSuccess(true)
@@ -184,9 +221,6 @@ export default function ResetPasswordClient({
     }
   }
 
-  // =========================
-  // VALIDATING
-  // =========================
   if (validating) {
     return (
       <div className={styles.container}>
@@ -202,7 +236,6 @@ export default function ResetPasswordClient({
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        {/* HEADER */}
         <div className={styles.header}>
           <div className={styles.logoArea}>
             <Image
@@ -223,7 +256,6 @@ export default function ResetPasswordClient({
           </p>
         </div>
 
-        {/* SUCCESS */}
         {success ? (
           <div className={styles.success}>
             Senha criada com sucesso! Você será redirecionado para o login.
@@ -245,7 +277,6 @@ export default function ResetPasswordClient({
           </div>
         ) : (
           <div className={styles.form}>
-            {/* PASSWORD */}
             <div className={styles.inputGroup}>
               <label>
                 Nova senha
@@ -261,7 +292,6 @@ export default function ResetPasswordClient({
               />
             </div>
 
-            {/* CONFIRM */}
             <div className={styles.inputGroup}>
               <label>
                 Confirmar senha
@@ -277,14 +307,12 @@ export default function ResetPasswordClient({
               />
             </div>
 
-            {/* ERROR */}
             {error && (
               <span className={styles.error}>
                 {error}
               </span>
             )}
 
-            {/* BUTTON */}
             <button
               className={styles.button}
               type="button"
