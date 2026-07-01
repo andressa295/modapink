@@ -17,167 +17,125 @@ import {
 // MOBILE
 import MobileNav from "./layout/MobileNav"
 
-import Sidebar from "./Sidebar"
-
 export default function Topbar() {
-  const [
-    time,
-    setTime
-  ] = useState("")
+  const [time, setTime] = useState("")
+  const [date, setDate] = useState("")
+  const [greeting, setGreeting] = useState("Olá")
+  const [userName, setUserName] = useState("Usuário")
 
-  const [
-    date,
-    setDate
-  ] = useState("")
+  const pathname = usePathname()
 
-  const [
-    greeting,
-    setGreeting
-  ] = useState("Olá")
-
-  const [
-    userName,
-    setUserName
-  ] = useState("Usuário")
-
-  const pathname =
-    usePathname()
-
-  const pageTitle =
-    useMemo(() => {
-      if (pathname === "/dashboard") {
-        return "Dashboard"
-      }
-
-      if (pathname?.startsWith("/dashboard/conversas")) {
-        return "WhatsApp"
-      }
-
-      if (pathname?.startsWith("/dashboard/instagram")) {
-        return "Instagram"
-      }
-
-      if (pathname?.startsWith("/dashboard/numeros")) {
-        return "Números"
-      }
-
-      if (pathname?.startsWith("/dashboard/usuarios")) {
-        return "Usuários"
-      }
-
-      if (pathname?.startsWith("/dashboard/pedidos")) {
-        return "Pedidos"
-      }
-
-      if (pathname?.startsWith("/dashboard/relatorios")) {
-        return "Relatórios"
-      }
-
-      if (pathname?.startsWith("/dashboard/configuracoes")) {
-        return "Configurações"
-      }
-
+  const pageTitle = useMemo(() => {
+    if (pathname === "/dashboard") {
       return "Dashboard"
-    }, [pathname])
+    }
 
-  const userInitial =
-    useMemo(() => {
-      return (
-        userName
-          ?.trim()
-          ?.charAt(0)
-          ?.toUpperCase() || "U"
-      )
-    }, [userName])
+    if (
+      pathname?.startsWith("/dashboard/whatsapp") ||
+      pathname?.startsWith("/dashboard/conversas")
+    ) {
+      return "WhatsApp"
+    }
+
+    if (pathname?.startsWith("/dashboard/instagram")) {
+      return "Instagram"
+    }
+
+    if (pathname?.startsWith("/dashboard/numeros")) {
+      return "Números"
+    }
+
+    if (pathname?.startsWith("/dashboard/usuarios")) {
+      return "Usuários"
+    }
+
+    if (pathname?.startsWith("/dashboard/pedidos")) {
+      return "Pedidos"
+    }
+
+    if (pathname?.startsWith("/dashboard/relatorios")) {
+      return "Relatórios"
+    }
+
+    if (pathname?.startsWith("/dashboard/configuracoes")) {
+      return "Configurações"
+    }
+
+    return "Dashboard"
+  }, [pathname])
+
+  const userInitial = useMemo(() => {
+    return (
+      userName
+        ?.trim()
+        ?.charAt(0)
+        ?.toUpperCase() || "U"
+    )
+  }, [userName])
 
   // ======================
   // CLOCK
   // ======================
   useEffect(() => {
     const updateClock = () => {
-      const now =
-        new Date()
+      const now = new Date()
 
-      const formattedTime =
-        now.toLocaleTimeString(
-          "pt-BR",
-          {
-            hour: "2-digit",
-            minute: "2-digit"
-          }
-        )
+      const formattedTime = now.toLocaleTimeString(
+        "pt-BR",
+        {
+          hour: "2-digit",
+          minute: "2-digit"
+        }
+      )
 
-      const formattedDate =
-        now.toLocaleDateString(
-          "pt-BR",
-          {
-            weekday: "long",
-            day: "numeric",
-            month: "long"
-          }
-        )
+      const formattedDate = now.toLocaleDateString(
+        "pt-BR",
+        {
+          weekday: "long",
+          day: "numeric",
+          month: "long"
+        }
+      )
 
-      const hour =
-        now.getHours()
+      const hour = now.getHours()
 
-      let nextGreeting =
-        "Boa noite"
+      let nextGreeting = "Boa noite"
 
       if (hour >= 5 && hour < 12) {
-        nextGreeting =
-          "Bom dia"
+        nextGreeting = "Bom dia"
       } else if (hour >= 12 && hour < 18) {
-        nextGreeting =
-          "Boa tarde"
+        nextGreeting = "Boa tarde"
       }
 
-      setTime(
-        formattedTime
-      )
-
-      setDate(
-        formattedDate
-      )
-
-      setGreeting(
-        nextGreeting
-      )
+      setTime(formattedTime)
+      setDate(formattedDate)
+      setGreeting(nextGreeting)
     }
 
     updateClock()
 
-    const interval =
-      setInterval(
-        updateClock,
-        1000
-      )
+    const interval = setInterval(
+      updateClock,
+      1000
+    )
 
-    return () =>
-      clearInterval(
-        interval
-      )
+    return () => clearInterval(interval)
   }, [])
 
   // ======================
   // USER
   // ======================
   useEffect(() => {
-    const supabase =
-      createClient()
+    const supabase = createClient()
 
     async function loadUser() {
       try {
         const {
           data: { user }
-        } = await supabase
-          .auth
-          .getUser()
+        } = await supabase.auth.getUser()
 
         if (!user) {
-          setUserName(
-            "Usuário"
-          )
-
+          setUserName("Usuário")
           return
         }
 
@@ -187,37 +145,24 @@ export default function Topbar() {
         } = await supabase
           .from("profiles")
           .select("name")
-          .eq(
-            "id",
-            user.id
-          )
+          .eq("id", user.id)
           .single()
 
-        if (
-          error ||
-          !profile
-        ) {
-          setUserName(
-            "Usuário"
-          )
-
+        if (error || !profile) {
+          setUserName("Usuário")
           return
         }
 
         setUserName(
-          profile.name ||
-          "Usuário"
+          profile.name || "Usuário"
         )
-
       } catch (err) {
         console.error(
           "Erro ao carregar usuário:",
           err
         )
 
-        setUserName(
-          "Usuário"
-        )
+        setUserName("Usuário")
       }
     }
 
@@ -230,9 +175,7 @@ export default function Topbar() {
       <div className={styles["topbar-left"]}>
         {/* MOBILE ONLY */}
         <div className={styles["mobile-only"]}>
-          <MobileNav>
-            <Sidebar />
-          </MobileNav>
+          <MobileNav />
         </div>
 
         {/* INFO */}
@@ -249,6 +192,7 @@ export default function Topbar() {
 
           <div className={styles["topbar-date"]}>
             <CalendarDays size={13} />
+
             <span>
               {date}
             </span>
