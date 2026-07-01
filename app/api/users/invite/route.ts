@@ -1,14 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 import { Resend } from "resend"
 
-type UserRole = "admin" | "agent" | "user"
-
-const allowedRoles: UserRole[] = [
-  "admin",
-  "agent",
-  "user"
-]
-
 if (
   !process.env.NEXT_PUBLIC_SUPABASE_URL ||
   !process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -47,7 +39,7 @@ function getFromEmail() {
   )
 }
 
-function buildInviteEmail({
+function buildResetEmail({
   name,
   link
 }: {
@@ -65,13 +57,13 @@ function buildInviteEmail({
         </div>
 
         <h2 style="text-align:center;color:#111827;margin:0 0 12px;font-size:25px;line-height:1.25;">
-          Bem-vindo(a), ${name} 💗
+          Link de acesso solicitado 💗
         </h2>
 
         <p style="text-align:center;color:#6b7280;font-size:15px;line-height:1.7;margin:0;">
-          Você foi convidado(a) para acessar o painel da Moda Pink.
+          Olá, ${name || "tudo bem"}.
           <br/>
-          Clique no botão abaixo para criar sua senha de acesso.
+          Clique no botão abaixo para criar ou redefinir sua senha.
         </p>
 
         <div style="text-align:center;margin:34px 0;">
@@ -89,7 +81,7 @@ function buildInviteEmail({
               box-shadow:0 10px 22px rgba(230,0,126,0.24);
             "
           >
-            Criar minha senha
+            Criar/redefinir senha
           </a>
         </div>
 
@@ -104,9 +96,7 @@ function buildInviteEmail({
         <hr style="margin:32px 0;border:none;border-top:1px solid #eeeeee;" />
 
         <p style="font-size:12px;color:#9ca3af;text-align:center;line-height:1.6;margin:0;">
-          Este convite foi enviado por Phand.
-          <br/>
-          Caso você não reconheça este convite, apenas ignore este e-mail.
+          Se você não solicitou este acesso, ignore este e-mail.
         </p>
       </div>
     </div>
@@ -117,18 +107,14 @@ export async function POST(req: Request) {
   try {
     const body = await req.json()
 
-    const name = String(body.name || "").trim()
-
     const email = String(body.email || "")
       .trim()
       .toLowerCase()
 
-    const role = String(body.role || "agent") as UserRole
-
-    if (!name || !email) {
+    if (!email) {
       return Response.json(
         {
-          error: "Preencha nome e e-mail."
+          error: "E-mail é obrigatório."
         },
         {
           status: 400
@@ -136,107 +122,16 @@ export async function POST(req: Request) {
       )
     }
 
-    if (!allowedRoles.includes(role)) {
-      return Response.json(
-        {
-          error: "Cargo inválido."
-        },
-        {
-          status: 400
-        }
-      )
-    }
-
-    // =========================
-    // CHECK PROFILE
-    // =========================
     const {
-      data: existingProfile,
-      error: profileCheckError
-    } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle()
-
-    if (profileCheckError) {
-      return Response.json(
-        {
-          error: profileCheckError.message
-        },
-        {
-          status: 400
-        }
-      )
-    }
-
-    if (existingProfile) {
-      return Response.json(
-        {
-          error: "Usuário já existe."
-        },
-        {
-          status: 400
-        }
-      )
-    }
-
-    // =========================
-    // CREATE AUTH USER
-    // =========================
-    const {
-      data: userData,
-      error: userError
-    } = await supabase.auth.admin.createUser({
-      email,
-      email_confirm: true,
-      user_metadata: {
-        name,
-        role
-      }
-    })
-
-    if (userError) {
-      return Response.json(
-        {
-          error: userError.message
-        },
-        {
-          status: 400
-        }
-      )
-    }
-
-    const userId = userData.user?.id
-
-    if (!userId) {
-      return Response.json(
-        {
-          error: "Usuário criado, mas o ID não foi retornado."
-        },
-        {
-          status: 500
-        }
-      )
-    }
-
-    // =========================
-    // CREATE PROFILE
-    // =========================
-    const {
+      data: profile,
       error: profileError
     } = await supabase
       .from("profiles")
-      .insert({
-        id: userId,
-        name,
-        email,
-        role
-      })
+      .select("name, email")
+      .eq("email", email)
+      .maybeSingle()
 
     if (profileError) {
-      await supabase.auth.admin.deleteUser(userId)
-
       return Response.json(
         {
           error: profileError.message
@@ -247,9 +142,17 @@ export async function POST(req: Request) {
       )
     }
 
-    // =========================
-    // GENERATE PASSWORD LINK
-    // =========================
+    if (!profile) {
+      return Response.json(
+        {
+          error: "Usuário não encontrado."
+        },
+        {
+          status: 404
+        }
+      )
+    }
+
     const redirectTo =
       `${getSiteUrl()}/reset-password`
 
@@ -265,13 +168,6 @@ export async function POST(req: Request) {
     })
 
     if (linkError) {
-      await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId)
-
-      await supabase.auth.admin.deleteUser(userId)
-
       return Response.json(
         {
           error: linkError.message
@@ -286,16 +182,9 @@ export async function POST(req: Request) {
       linkData.properties?.action_link
 
     if (!link) {
-      await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId)
-
-      await supabase.auth.admin.deleteUser(userId)
-
       return Response.json(
         {
-          error: "Não foi possível gerar o link de senha."
+          error: "Não foi possível gerar o link."
         },
         {
           status: 500
@@ -303,29 +192,19 @@ export async function POST(req: Request) {
       )
     }
 
-    // =========================
-    // SEND EMAIL
-    // =========================
     const {
       error: emailError
     } = await resend.emails.send({
       from: getFromEmail(),
       to: email,
-      subject: "Crie sua senha de acesso",
-      html: buildInviteEmail({
-        name,
+      subject: "Acesse o painel Moda Pink",
+      html: buildResetEmail({
+        name: profile.name,
         link
       })
     })
 
     if (emailError) {
-      await supabase
-        .from("profiles")
-        .delete()
-        .eq("id", userId)
-
-      await supabase.auth.admin.deleteUser(userId)
-
       return Response.json(
         {
           error: emailError.message
@@ -338,10 +217,10 @@ export async function POST(req: Request) {
 
     return Response.json({
       success: true,
-      message: "Usuário criado e link de senha enviado."
+      message: "Link enviado por e-mail."
     })
   } catch (err) {
-    console.error("💥 erro create user:", err)
+    console.error("💥 erro invite user:", err)
 
     return Response.json(
       {
