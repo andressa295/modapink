@@ -1,6 +1,21 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from "react"
+
+import {
+  ArrowUpRight,
+  Clock3,
+  MessageCircle,
+  Phone,
+  Wifi
+} from "lucide-react"
 
 import styles from "./RecentConversations.module.css"
 
@@ -14,9 +29,7 @@ type Conversation = {
   time: string
 }
 
-function formatTime(
-  dateString?: string | null
-) {
+function formatTime(dateString?: string | null) {
   if (!dateString) {
     return "—"
   }
@@ -26,10 +39,7 @@ function formatTime(
 
   const diff =
     Math.floor(
-      (
-        Date.now() -
-        date.getTime()
-      ) / 60000
+      (Date.now() - date.getTime()) / 60000
     )
 
   if (diff <= 1) {
@@ -37,19 +47,17 @@ function formatTime(
   }
 
   if (diff < 60) {
-    return `${diff} min atrás`
+    return `${diff} min`
   }
 
   if (diff < 1440) {
-    return `${Math.floor(diff / 60)}h atrás`
+    return `${Math.floor(diff / 60)}h`
   }
 
-  return `${Math.floor(diff / 1440)}d atrás`
+  return `${Math.floor(diff / 1440)}d`
 }
 
-function formatPhone(
-  phone?: string | null
-) {
+function formatPhone(phone?: string | null) {
   if (!phone) {
     return "Sem número"
   }
@@ -57,6 +65,39 @@ function formatPhone(
   return phone
     .replace("@c.us", "")
     .replace("@lid", "")
+}
+
+function getInitials(name?: string) {
+  if (!name) {
+    return "C"
+  }
+
+  const clean =
+    name
+      .trim()
+      .replace(/\s+/g, " ")
+
+  const parts =
+    clean.split(" ")
+
+  if (parts.length === 1) {
+    return clean
+      .charAt(0)
+      .toUpperCase()
+  }
+
+  return `${parts[0].charAt(0)}${parts[1].charAt(0)}`
+    .toUpperCase()
+}
+
+function shortMessage(message?: string) {
+  if (!message) {
+    return "Sem mensagem recente"
+  }
+
+  return message
+    .replace(/\s+/g, " ")
+    .trim()
 }
 
 export default function RecentConversations() {
@@ -69,6 +110,22 @@ export default function RecentConversations() {
     loading,
     setLoading
   ] = useState(true)
+
+  const totalLabel =
+    useMemo(() => {
+      if (loading) {
+        return "Sincronizando"
+      }
+
+      if (conversations.length === 1) {
+        return "1 conversa"
+      }
+
+      return `${conversations.length} conversas`
+    }, [
+      loading,
+      conversations.length
+    ])
 
   const loadConversations =
     useCallback(async () => {
@@ -101,7 +158,7 @@ export default function RecentConversations() {
               nullsFirst: false
             }
           )
-          .limit(20)
+          .limit(30)
 
         if (error) {
           console.error(
@@ -110,6 +167,7 @@ export default function RecentConversations() {
           )
 
           setLoading(false)
+
           return
         }
 
@@ -136,7 +194,7 @@ export default function RecentConversations() {
           Array.from(
             uniqueByPhone.values()
           )
-            .slice(0, 3)
+            .slice(0, 4)
             .map((conv: any) => ({
               id:
                 conv.id,
@@ -150,8 +208,9 @@ export default function RecentConversations() {
                 formatPhone(conv.phone),
 
               message:
-                conv.last_message ||
-                "Sem mensagem",
+                shortMessage(
+                  conv.last_message
+                ),
 
               time:
                 formatTime(
@@ -208,79 +267,132 @@ export default function RecentConversations() {
   }, [loadConversations])
 
   return (
-    <div
-      className={
-        styles["dashboard-card"]
-      }
-    >
-      <h3>
-        Conversas recentes
-      </h3>
+    <div className={styles.card}>
+      <div className={styles.header}>
+        <div className={styles.headerLeft}>
+          <div className={styles.iconBox}>
+            <MessageCircle size={18} />
+          </div>
 
-      <div
-        className={
-          styles["conversation-list"]
-        }
-      >
+          <div>
+            <span className={styles.eyebrow}>
+              Atendimento
+            </span>
+
+            <h3>
+              Conversas recentes
+            </h3>
+          </div>
+        </div>
+
+        <div className={styles.headerRight}>
+          <span className={styles.liveBadge}>
+            <Wifi size={12} />
+            Ao vivo
+          </span>
+
+          <Link
+            href="/dashboard/conversas"
+            className={styles.viewAll}
+          >
+            Ver todas
+            <ArrowUpRight size={13} />
+          </Link>
+        </div>
+      </div>
+
+      <div className={styles.summary}>
+        <div>
+          <strong>
+            {totalLabel}
+          </strong>
+
+          <span>
+            Últimas interações do WhatsApp.
+          </span>
+        </div>
+
+        <span className={styles.sync}>
+          <Clock3 size={12} />
+          10s
+        </span>
+      </div>
+
+      <div className={styles.list}>
         {loading && (
-          <p className={styles.empty}>
-            Carregando...
-          </p>
+          <>
+            {[1, 2, 3].map((item) => (
+              <div
+                key={item}
+                className={styles.skeleton}
+              >
+                <div className={styles.skeletonAvatar} />
+
+                <div className={styles.skeletonLines}>
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              </div>
+            ))}
+          </>
         )}
 
         {!loading &&
           conversations.length === 0 && (
-            <p className={styles.empty}>
-              Nenhuma conversa ainda
-            </p>
+            <div className={styles.empty}>
+              <strong>
+                Nenhuma conversa ainda
+              </strong>
+
+              <span>
+                Quando uma cliente chamar, a conversa aparece aqui.
+              </span>
+            </div>
           )}
 
         {!loading &&
           conversations.map((conv) => (
-            <div
+            <Link
               key={conv.id}
-              className={
-                styles["conversation-item"]
-              }
+              href={`/dashboard/conversas?conversation=${conv.id}`}
+              className={styles.item}
             >
-              <div
-                className={
-                  styles["conversation-content"]
-                }
-              >
-                <strong
-                  className={
-                    styles["conversation-name"]
-                  }
-                >
-                  {conv.name}
-                </strong>
+              <div className={styles.avatar}>
+                {getInitials(conv.name)}
+              </div>
 
-                <p
-                  className={
-                    styles["conversation-message"]
-                  }
-                >
+              <div className={styles.content}>
+                <div className={styles.top}>
+                  <strong>
+                    {conv.name}
+                  </strong>
+
+                  <span>
+                    {conv.time}
+                  </span>
+                </div>
+
+                <p>
                   {conv.message}
                 </p>
 
-                <small
-                  className={
-                    styles["conversation-phone"]
-                  }
-                >
-                  {conv.phone}
-                </small>
+                <div className={styles.meta}>
+                  <span>
+                    <Phone size={11} />
+                    {conv.phone}
+                  </span>
+
+                  <small>
+                    WhatsApp
+                  </small>
+                </div>
               </div>
 
-              <span
-                className={
-                  styles["conversation-time"]
-                }
-              >
-                {conv.time}
-              </span>
-            </div>
+              <div className={styles.arrow}>
+                <ArrowUpRight size={14} />
+              </div>
+            </Link>
           ))}
       </div>
     </div>

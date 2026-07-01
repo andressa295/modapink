@@ -1,80 +1,49 @@
 // app/(admin)/dashboard/page.tsx
 
-import RecentConversations from "./components/RecentConversations"
+import { redirect } from "next/navigation"
 
-
-import ConversationsChart from "./components/ConversationsChart"
-
-import WhatsappStatus from "./components/WhatsappStatus"
+import { Sparkles } from "lucide-react"
 
 import DashboardMetrics from "./components/DashboardMetrics"
+import ConversationsChart from "./components/ConversationsChart"
+import RecentConversations from "./components/RecentConversations"
+import WhatsappStatus from "./components/WhatsappStatus"
 
 import styles from "./styles/dashboard.module.css"
 
-
 import { createClient } from "@/lib/supabase/server"
 
-import { redirect } from "next/navigation"
-
 export default async function Dashboard() {
+  const supabase = await createClient()
 
-  // ======================
-  // SUPABASE
-  // ======================
-  const supabase =
-    await createClient()
-
-  // ======================
-  // AUTH
-  // ======================
   const {
     data: { user },
     error
-  } = await supabase
-    .auth
-    .getUser()
+  } = await supabase.auth.getUser()
 
-  if (
-    error ||
-    !user
-  ) {
+  if (error || !user) {
     redirect("/login")
   }
 
   return (
-    <div
-      className={
-        styles["dashboard-container"]
-      }
-    >
+    <main className={styles["dashboard-container"]}>
+      
+          
 
-      {/* METRICS */}
-      <div
-        className={
-          styles["dashboard-grid"]
-        }
-      >
-
+      <section className={styles["dashboard-grid"]}>
         <DashboardMetrics />
+      </section>
 
-      </div>
+      <section className={styles["dashboard-content-grid"]}>
+        <div className={styles["dashboard-main-column"]}>
+          <ConversationsChart />
+          <RecentConversations />
+        </div>
 
-      {/* CONTENT */}
-      <div
-        className={
-          styles["dashboard-content-grid"]
-        }
-      >
-
-        <ConversationsChart />
-
-        <RecentConversations />
-
-
-        <WhatsappStatus />
-
-      </div>
-
-    </div>
+        <div className={styles["dashboard-side-column"]}>
+          <WhatsappStatus />
+        </div>
+      </section>
+    </main>
   )
 }

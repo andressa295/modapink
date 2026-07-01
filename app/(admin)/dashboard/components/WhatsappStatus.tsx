@@ -2,345 +2,206 @@
 
 import { useEffect, useState } from "react"
 
+import {
+  Activity,
+  Clock3,
+  LoaderCircle,
+  Phone,
+  Wifi,
+  WifiOff
+} from "lucide-react"
+
 import styles from "./WhatsappStatus.module.css"
 
 type Status =
-
   | "online"
-
   | "offline"
-
   | "connecting"
 
 type StatusResponse = {
-
   status?: Status
-
   phone?: string | null
-
   lastSeen?: string | null
 }
 
 export default function WhatsappStatus() {
+  const [mounted, setMounted] = useState(false)
 
-  // ======================
-  // HYDRATION
-  // ======================
-  const [
+  const [loading, setLoading] = useState(true)
 
-    mounted,
+  const [status, setStatus] = useState<Status>("connecting")
 
-    setMounted
+  const [phone, setPhone] = useState("Não conectado")
 
-  ] = useState(false)
+  const [lastSeen, setLastSeen] = useState("—")
 
-  // ======================
-  // STATES
-  // ======================
-  const [
-
-    loading,
-
-    setLoading
-
-  ] = useState(true)
-
-  const [
-
-    status,
-
-    setStatus
-
-  ] = useState<Status>(
-    "connecting"
-  )
-
-  const [
-
-    phone,
-
-    setPhone
-
-  ] = useState(
-    "Não conectado"
-  )
-
-  const [
-
-    lastSeen,
-
-    setLastSeen
-
-  ] = useState("—")
-
-  // ======================
-  // MOUNT
-  // ======================
   useEffect(() => {
-
     setMounted(true)
-
   }, [])
 
-  // ======================
-  // LOAD STATUS
-  // ======================
   useEffect(() => {
-
     if (!mounted) {
       return
     }
 
     async function loadStatus() {
-
       try {
-
         const res = await fetch(
-
           "https://api.modapink.phand.com.br/status",
-
           {
             cache: "no-store"
           }
         )
 
         if (!res.ok) {
-
-          throw new Error(
-            "Erro ao buscar status"
-          )
+          throw new Error("Erro ao buscar status")
         }
 
-        const data:
-          StatusResponse =
-            await res.json()
+        const data: StatusResponse = await res.json()
 
-        // ======================
-        // STATUS
-        // ======================
-        setStatus(
+        setStatus(data.status || "offline")
 
-          data.status ||
+        setPhone(data.phone || "Não conectado")
 
-          "offline"
-        )
-
-        // ======================
-        // PHONE
-        // ======================
-        setPhone(
-
-          data.phone ||
-
-          "Não conectado"
-        )
-
-        // ======================
-        // LAST SEEN
-        // ======================
         if (!data.lastSeen) {
-
           setLastSeen("—")
-
         } else {
+          const date = new Date(data.lastSeen)
 
-          const date =
-            new Date(
-              data.lastSeen
-            )
-
-          const diff =
-            Math.floor(
-
-              (
-                Date.now() -
-
-                date.getTime()
-
-              ) / 60000
-            )
+          const diff = Math.floor(
+            (Date.now() - date.getTime()) / 60000
+          )
 
           if (diff < 1) {
-
-            setLastSeen(
-              "agora"
-            )
-
-          } else if (
-            diff < 60
-          ) {
-
-            setLastSeen(
-
-              `${diff} min atrás`
-            )
-
+            setLastSeen("agora")
+          } else if (diff < 60) {
+            setLastSeen(`${diff} min atrás`)
           } else {
-
-            setLastSeen(
-
-              `${Math.floor(
-                diff / 60
-              )}h atrás`
-            )
+            setLastSeen(`${Math.floor(diff / 60)}h atrás`)
           }
         }
-
       } catch (err) {
+        console.error("Erro ao buscar status do WhatsApp:", err)
 
-        console.error(
-          "❌ erro status:",
-          err
-        )
-
-        setStatus(
-          "offline"
-        )
-
-        setPhone(
-          "Não conectado"
-        )
-
+        setStatus("offline")
+        setPhone("Não conectado")
         setLastSeen("—")
-
       } finally {
-
         setLoading(false)
       }
     }
 
     loadStatus()
 
-    // ======================
-    // AUTO UPDATE
-    // ======================
-    const interval =
-      setInterval(
-        loadStatus,
-        5000
-      )
+    const interval = window.setInterval(
+      loadStatus,
+      5000
+    )
 
-    return () =>
-
-      clearInterval(
-        interval
-      )
-
+    return () => window.clearInterval(interval)
   }, [mounted])
 
-  // ======================
-  // HYDRATION FIX
-  // ======================
   if (!mounted) {
-
     return null
   }
 
   const statusText = {
-
     online: "Online",
-
     offline: "Offline",
-
-    connecting:
-      "Conectando..."
+    connecting: "Conectando"
   }
 
+  const StatusIcon =
+    status === "online"
+      ? Wifi
+      : status === "offline"
+        ? WifiOff
+        : LoaderCircle
+
   return (
+    <article className={styles["dashboard-card"]}>
+      <div className={styles["card-glow"]} />
 
-    <div
-      className={
-        styles["dashboard-card"]
-      }
-    >
+      <header className={styles["card-header"]}>
+        <div className={styles["card-title-group"]}>
+          <span className={styles["card-icon"]}>
+            <Activity size={17} />
+          </span>
 
-      {/* HEADER */}
-      <div
-        className={
-          styles["card-header"]
-        }
-      >
+          <div>
+            <span className={styles["card-kicker"]}>
+              Conexão
+            </span>
 
-        <h3>
-          Status do WhatsApp
-        </h3>
+            <h3>
+              Status do WhatsApp
+            </h3>
+          </div>
+        </div>
 
         {!loading && (
-
           <span
-
             className={`
-
               ${styles["status-badge"]}
-
               ${styles[status]}
-
             `}
-
           >
+            <StatusIcon
+              size={13}
+              className={
+                status === "connecting"
+                  ? styles["spin-icon"]
+                  : undefined
+              }
+            />
 
             {statusText[status]}
-
           </span>
         )}
+      </header>
 
-      </div>
-
-      {/* STATUS */}
-      <div
-        className={
-          styles["whatsapp-status"]
-        }
-      >
-
+      <div className={styles["status-box"]}>
         <div
-
           className={`
-
             ${styles["status-indicator"]}
-
             ${styles[status]}
-
           `}
-
         />
 
-        <span>
+        <div>
+          <span className={styles["status-label"]}>
+            {loading ? "Carregando..." : statusText[status]}
+          </span>
 
-          {loading
-
-            ? "Carregando..."
-
-            : statusText[status]}
-
-        </span>
-
+          <small>
+            Monitoramento automático da sessão principal
+          </small>
+        </div>
       </div>
 
-      {/* PHONE */}
-      <p
-        className={
-          styles["whatsapp-number"]
-        }
-      >
+      <div className={styles["info-list"]}>
+        <div className={styles["info-item"]}>
+          <span className={styles["info-icon"]}>
+            <Phone size={15} />
+          </span>
 
-        {phone}
+          <div>
+            <small>Número conectado</small>
+            <strong>{phone}</strong>
+          </div>
+        </div>
 
-      </p>
+        <div className={styles["info-item"]}>
+          <span className={styles["info-icon"]}>
+            <Clock3 size={15} />
+          </span>
 
-      {/* LAST SEEN */}
-      <small
-        className={
-          styles["last-seen"]
-        }
-      >
-
-        Última atividade:{" "}
-
-        {lastSeen}
-
-      </small>
-
-    </div>
+          <div>
+            <small>Última atividade</small>
+            <strong>{lastSeen}</strong>
+          </div>
+        </div>
+      </div>
+    </article>
   )
 }
