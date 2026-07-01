@@ -9,17 +9,28 @@ const allowedRoles: UserRole[] = [
   "user"
 ]
 
-if (
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  !process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  !process.env.RESEND_API_KEY
-) {
-  throw new Error("Variáveis de ambiente ausentes")
+function requiredEnv(name: string) {
+  const value = process.env[name]
+
+  if (!value) {
+    throw new Error(`Variável ausente: ${name}`)
+  }
+
+  return value
 }
 
+const supabaseUrl =
+  requiredEnv("NEXT_PUBLIC_SUPABASE_URL")
+
+const serviceRoleKey =
+  requiredEnv("SUPABASE_SERVICE_ROLE_KEY")
+
+const resendApiKey =
+  requiredEnv("RESEND_API_KEY")
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  supabaseUrl,
+  serviceRoleKey,
   {
     auth: {
       autoRefreshToken: false,
@@ -28,9 +39,7 @@ const supabase = createClient(
   }
 )
 
-const resend = new Resend(
-  process.env.RESEND_API_KEY
-)
+const resend = new Resend(resendApiKey)
 
 function getSiteUrl() {
   return (
@@ -151,17 +160,22 @@ export async function POST(req: Request) {
 
     const {
       data: existingProfile,
-      error: profileCheckError
+      error: existingProfileError
     } = await supabase
       .from("profiles")
       .select("id")
       .eq("email", email)
       .maybeSingle()
 
-    if (profileCheckError) {
+    if (existingProfileError) {
+      console.error(
+        "Erro ao verificar profile:",
+        existingProfileError
+      )
+
       return Response.json(
         {
-          error: profileCheckError.message
+          error: existingProfileError.message
         },
         {
           status: 400
@@ -197,9 +211,14 @@ export async function POST(req: Request) {
     })
 
     if (userError) {
+      console.error(
+        "Erro ao criar usuário no Auth:",
+        userError
+      )
+
       return Response.json(
         {
-          error: userError.message
+          error: `Erro Auth: ${userError.message}`
         },
         {
           status: 400
@@ -234,11 +253,16 @@ export async function POST(req: Request) {
       })
 
     if (profileError) {
+      console.error(
+        "Erro ao criar profile:",
+        profileError
+      )
+
       await supabase.auth.admin.deleteUser(userId)
 
       return Response.json(
         {
-          error: profileError.message
+          error: `Erro Profile: ${profileError.message}`
         },
         {
           status: 400
@@ -261,6 +285,11 @@ export async function POST(req: Request) {
     })
 
     if (linkError) {
+      console.error(
+        "Erro ao gerar link:",
+        linkError
+      )
+
       await supabase
         .from("profiles")
         .delete()
@@ -270,7 +299,7 @@ export async function POST(req: Request) {
 
       return Response.json(
         {
-          error: linkError.message
+          error: `Erro Link: ${linkError.message}`
         },
         {
           status: 400
@@ -312,6 +341,11 @@ export async function POST(req: Request) {
     })
 
     if (emailError) {
+      console.error(
+        "Erro ao enviar e-mail:",
+        emailError
+      )
+
       await supabase
         .from("profiles")
         .delete()
@@ -321,7 +355,7 @@ export async function POST(req: Request) {
 
       return Response.json(
         {
-          error: emailError.message
+          error: `Erro E-mail: ${emailError.message}`
         },
         {
           status: 400

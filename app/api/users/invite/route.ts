@@ -1,17 +1,28 @@
 import { createClient } from "@supabase/supabase-js"
 import { Resend } from "resend"
 
-if (
-  !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-  !process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  !process.env.RESEND_API_KEY
-) {
-  throw new Error("Variáveis de ambiente ausentes")
+function requiredEnv(name: string) {
+  const value = process.env[name]
+
+  if (!value) {
+    throw new Error(`Variável ausente: ${name}`)
+  }
+
+  return value
 }
 
+const supabaseUrl =
+  requiredEnv("NEXT_PUBLIC_SUPABASE_URL")
+
+const serviceRoleKey =
+  requiredEnv("SUPABASE_SERVICE_ROLE_KEY")
+
+const resendApiKey =
+  requiredEnv("RESEND_API_KEY")
+
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
+  supabaseUrl,
+  serviceRoleKey,
   {
     auth: {
       autoRefreshToken: false,
@@ -20,9 +31,7 @@ const supabase = createClient(
   }
 )
 
-const resend = new Resend(
-  process.env.RESEND_API_KEY
-)
+const resend = new Resend(resendApiKey)
 
 function getSiteUrl() {
   return (
@@ -132,6 +141,11 @@ export async function POST(req: Request) {
       .maybeSingle()
 
     if (profileError) {
+      console.error(
+        "Erro ao buscar profile:",
+        profileError
+      )
+
       return Response.json(
         {
           error: profileError.message
@@ -168,9 +182,14 @@ export async function POST(req: Request) {
     })
 
     if (linkError) {
+      console.error(
+        "Erro ao gerar link:",
+        linkError
+      )
+
       return Response.json(
         {
-          error: linkError.message
+          error: `Erro Link: ${linkError.message}`
         },
         {
           status: 400
@@ -205,9 +224,14 @@ export async function POST(req: Request) {
     })
 
     if (emailError) {
+      console.error(
+        "Erro ao enviar e-mail:",
+        emailError
+      )
+
       return Response.json(
         {
-          error: emailError.message
+          error: `Erro E-mail: ${emailError.message}`
         },
         {
           status: 400
