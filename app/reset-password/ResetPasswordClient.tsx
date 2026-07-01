@@ -51,96 +51,204 @@ export default function ResetPasswordClient({
           return
         }
 
-        let recoveryCode = code
+        const currentUrl =
+          typeof window !== "undefined"
+            ? new URL(window.location.href)
+            : null
 
-        if (!recoveryCode && typeof window !== "undefined") {
-          const url = new URL(window.location.href)
+        const searchParams =
+          currentUrl?.searchParams
 
-          recoveryCode =
-            url.searchParams.get("code") || undefined
-        }
+        const hashParams =
+          currentUrl?.hash
+            ? new URLSearchParams(
+                currentUrl.hash.replace("#", "")
+              )
+            : null
 
-        if (!recoveryCode) {
+        const recoveryCode =
+          code ||
+          searchParams?.get("code") ||
+          undefined
+
+        const accessToken =
+          hashParams?.get("access_token") ||
+          searchParams?.get("access_token")
+
+        const refreshToken =
+          hashParams?.get("refresh_token") ||
+          searchParams?.get("refresh_token")
+
+        const tokenHash =
+          searchParams?.get("token_hash") ||
+          hashParams?.get("token_hash")
+
+        const type =
+          searchParams?.get("type") ||
+          hashParams?.get("type")
+
+        // =========================
+        // CASO 1: Supabase voltou com ?code=
+        // =========================
+        if (recoveryCode) {
           const {
-            data: { session },
-            error: sessionError
-          } = await supabase.auth.getSession()
+            data,
+            error: exchangeError
+          } = await supabase.auth.exchangeCodeForSession(
+            recoveryCode
+          )
 
-          if (sessionError) {
-            console.error("Erro getSession:", sessionError)
+          if (exchangeError) {
+            console.error("Erro exchange:", exchangeError)
 
             setError(
-              `Erro ao buscar sessão: ${sessionError.message}`
+              `Erro ao validar link: ${exchangeError.message}`
             )
 
             setValidating(false)
             return
           }
 
-          if (session) {
-            setHasSession(true)
-          } else {
+          if (!data.session) {
             setError(
-              "Link inválido ou expirado. Peça um novo link de acesso."
+              "O link foi aberto, mas a sessão não foi criada. Gere um novo link."
             )
+
+            setValidating(false)
+            return
           }
 
+          setHasSession(true)
           setValidating(false)
+
+          window.history.replaceState(
+            {},
+            document.title,
+            "/reset-password"
+          )
+
           return
         }
 
+        // =========================
+        // CASO 2: Supabase voltou com #access_token=
+        // =========================
+        if (accessToken && refreshToken) {
+          const {
+            data,
+            error: sessionError
+          } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          })
+
+          if (sessionError) {
+            console.error("Erro setSession:", sessionError)
+
+            setError(
+              `Erro ao validar sessão: ${sessionError.message}`
+            )
+
+            setValidating(false)
+            return
+          }
+
+          if (!data.session) {
+            setError(
+              "A sessão não foi criada. Gere um novo link de acesso."
+            )
+
+            setValidating(false)
+            return
+          }
+
+          setHasSession(true)
+          setValidating(false)
+
+          window.history.replaceState(
+            {},
+            document.title,
+            "/reset-password"
+          )
+
+          return
+        }
+
+        // =========================
+        // CASO 3: Supabase voltou com token_hash
+        // =========================
+        if (tokenHash) {
+          const {
+            data,
+            error: verifyError
+          } = await supabase.auth.verifyOtp({
+            token_hash: tokenHash,
+            type:
+              type === "invite"
+                ? "invite"
+                : "recovery"
+          })
+
+          if (verifyError) {
+            console.error("Erro verifyOtp:", verifyError)
+
+            setError(
+              `Erro ao validar link: ${verifyError.message}`
+            )
+
+            setValidating(false)
+            return
+          }
+
+          if (!data.session) {
+            setError(
+              "Link validado, mas a sessão não foi criada. Gere um novo link."
+            )
+
+            setValidating(false)
+            return
+          }
+
+          setHasSession(true)
+          setValidating(false)
+
+          window.history.replaceState(
+            {},
+            document.title,
+            "/reset-password"
+          )
+
+          return
+        }
+
+        // =========================
+        // CASO 4: já existe sessão
+        // =========================
         const {
-          data,
-          error: exchangeError
-        } = await supabase.auth.exchangeCodeForSession(
-          recoveryCode
-        )
+          data: { session },
+          error: sessionError
+        } = await supabase.auth.getSession()
 
-        if (exchangeError) {
-          console.error("Erro exchange:", exchangeError)
+        if (sessionError) {
+          console.error("Erro getSession:", sessionError)
 
           setError(
-            `Erro ao validar link: ${exchangeError.message}`
+            `Erro ao buscar sessão: ${sessionError.message}`
           )
 
           setValidating(false)
           return
         }
 
-        if (!data.session) {
+        if (session) {
+          setHasSession(true)
+        } else {
           setError(
-            "O link foi aberto, mas a sessão não foi criada. Gere um novo link."
+            "Link inválido ou expirado. Peça um novo link de acesso."
           )
-
-          setValidating(false)
-          return
         }
 
-        const {
-          data: userData,
-          error: userError
-        } = await supabase.auth.getUser()
-
-        if (userError || !userData.user) {
-          console.error("Erro getUser:", userError)
-
-          setError(
-            userError?.message ||
-              "Sessão criada, mas usuário não encontrado."
-          )
-
-          setValidating(false)
-          return
-        }
-
-        setHasSession(true)
         setValidating(false)
-
-        window.history.replaceState(
-          {},
-          document.title,
-          "/reset-password"
-        )
       } catch (err) {
         console.error("Erro validateLink:", err)
 
