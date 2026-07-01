@@ -1,0 +1,638 @@
+.container {
+  width: 100%;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 22px;
+
+  animation: fadePage 0.24s ease;
+}
+
+/* ============================= */
+/* HERO */
+/* ============================= */
+
+.hero {
+  position: relative;
+
+  display: grid;
+
+  grid-template-columns: minmax(0, 1fr) 360px;
+
+  gap: 24px;
+
+  padding: 30px;
+
+  border-radius: 30px;
+
+  background:
+    radial-gradient(
+      circle at top right,
+      rgba(230, 0, 126, 0.18),
+      transparent 34%
+    ),
+    linear-gradient(
+      135deg,
+      #ffffff,
+      #fdf2f8
+    );
+
+  border: 1px solid #fbcfe8;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.03),
+    0 18px 42px rgba(236, 72, 153, 0.10);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  flex-direction: column;
+
+  justify-content: center;
+
+  gap: 14px;
+}
+
+.eyebrow {
+  width: fit-content;
+
+  padding: 7px 12px;
+
+  border-radius: 999px;
+
+  background: #111827;
+
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.hero h1 {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 42px;
+  font-weight: 950;
+
+  letter-spacing: -0.06em;
+  line-height: 1;
+}
+
+.hero p {
+  max-width: 780px;
+
+  margin: 0;
+
+  color: #4b5563;
+
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+
+  gap: 12px;
+
+  margin-top: 8px;
+}
+
+.primaryButton {
+  height: 46px;
+
+  padding: 0 20px;
+
+  border: none;
+  border-radius: 999px;
+
+  background: #e6007e;
+
+  color: #ffffff;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  cursor: default;
+
+  box-shadow:
+    0 16px 30px rgba(230, 0, 126, 0.22);
+}
+
+.statusBadge {
+  height: 38px;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 7px;
+
+  padding: 0 13px;
+
+  border-radius: 999px;
+
+  background: #ffffff;
+
+  color: #be185d;
+
+  font-size: 12px;
+  font-weight: 900;
+
+  border: 1px solid #fbcfe8;
+}
+
+/* ============================= */
+/* PHONE PREVIEW */
+/* ============================= */
+
+.phonePreview {
+  position: relative;
+  z-index: 1;
+
+  min-height: 360px;
+
+  padding: 18px;
+
+  border-radius: 30px;
+
+  background: #111827;
+
+  color: #ffffff;
+
+  box-shadow:
+    0 24px 50px rgba(17, 24, 39, 0.24);
+}
+
+.phoneHeader {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding-bottom: 16px;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+}
+
+.instagramIcon {
+  width: 46px;
+  height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 16px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f58529,
+      #dd2a7b,
+      #8134af,
+      #515bd4
+    );
+}
+
+.phoneHeader strong {
+  display: block;
+
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.phoneHeader span {
+  display: block;
+
+  margin-top: 2px;
+
+  color: #d1d5db;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.chatPreview {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  padding: 18px 0;
+}
+
+.messageLeft,
+.messageRight {
+  max-width: 82%;
+
+  padding: 11px 13px;
+
+  border-radius: 16px;
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.messageLeft {
+  align-self: flex-start;
+
+  background: rgba(255, 255, 255, 0.10);
+
+  color: #ffffff;
+}
+
+.messageRight {
+  align-self: flex-end;
+
+  background: #fdf2f8;
+
+  color: #9d174d;
+}
+
+.previewFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  margin-top: 8px;
+
+  padding: 11px;
+
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  color: #fce7f3;
+
+  font-size: 12px;
+  font-weight: 900;
+}
+
+/* ============================= */
+/* NOTICE */
+/* ============================= */
+
+.noticeCard {
+  display: flex;
+  align-items: flex-start;
+
+  gap: 14px;
+
+  padding: 20px;
+
+  border-radius: 24px;
+
+  background: #ffffff;
+
+  border: 1px solid #eef2f7;
+
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.03),
+    0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.noticeIcon {
+  width: 46px;
+  height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 16px;
+
+  background: #fdf2f8;
+
+  color: #e6007e;
+
+  flex-shrink: 0;
+}
+
+.noticeCard h2 {
+  margin: 0 0 6px;
+
+  color: #111827;
+
+  font-size: 18px;
+  font-weight: 900;
+
+  letter-spacing: -0.03em;
+}
+
+.noticeCard p {
+  margin: 0;
+
+  color: #6b7280;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ============================= */
+/* FEATURES */
+/* ============================= */
+
+.grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(230px, 1fr));
+
+  gap: 18px;
+}
+
+.featureCard,
+.panelCard {
+  border: 1px solid #eef2f7;
+
+  border-radius: 24px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff,
+      #fcfcfd
+    );
+
+  box-shadow:
+    0 2px 6px rgba(15, 23, 42, 0.03),
+    0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.featureCard {
+  padding: 22px;
+}
+
+.featureIcon {
+  width: 44px;
+  height: 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  border-radius: 16px;
+
+  background: #fdf2f8;
+
+  color: #e6007e;
+}
+
+.featureCard h3 {
+  margin: 0 0 7px;
+
+  color: #111827;
+
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.featureCard p {
+  margin: 0;
+
+  color: #6b7280;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* ============================= */
+/* BOTTOM */
+/* ============================= */
+
+.bottomGrid {
+  display: grid;
+
+  grid-template-columns: 1.2fr 0.8fr;
+
+  gap: 18px;
+}
+
+.panelCard {
+  padding: 22px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 18px;
+}
+
+.cardHeader {
+  display: flex;
+  flex-direction: column;
+
+  gap: 7px;
+}
+
+.cardHeader > span {
+  width: fit-content;
+
+  padding: 6px 10px;
+
+  border-radius: 999px;
+
+  background: #fdf2f8;
+
+  color: #be185d;
+
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.cardHeader h2 {
+  margin: 0;
+
+  color: #111827;
+
+  font-size: 19px;
+  font-weight: 900;
+
+  letter-spacing: -0.03em;
+}
+
+.cardHeader p {
+  margin: 0;
+
+  color: #6b7280;
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 12px;
+
+  border-radius: 16px;
+
+  background: #f8fafc;
+
+  border: 1px solid #eef2f7;
+}
+
+.stepItem span {
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 10px;
+
+  background: #111827;
+
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 900;
+
+  flex-shrink: 0;
+}
+
+.stepItem p {
+  margin: 0;
+
+  color: #374151;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.statusList {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.statusList div {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+
+  padding: 12px;
+
+  border-radius: 16px;
+
+  background: #f8fafc;
+
+  color: #374151;
+
+  border: 1px solid #eef2f7;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.statusList svg {
+  color: #e6007e;
+
+  flex-shrink: 0;
+}
+
+/* ============================= */
+/* ANIMATION */
+/* ============================= */
+
+@keyframes fadePage {
+  from {
+    opacity: 0;
+
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+
+    transform: translateY(0);
+  }
+}
+
+/* ============================= */
+/* RESPONSIVO */
+/* ============================= */
+
+@media (max-width: 1080px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .phonePreview {
+    max-width: 420px;
+  }
+
+  .bottomGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 760px) {
+  .hero {
+    padding: 22px;
+
+    border-radius: 24px;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+  }
+
+  .hero p {
+    font-size: 13px;
+  }
+
+  .heroActions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .primaryButton,
+  .statusBadge {
+    justify-content: center;
+
+    width: 100%;
+  }
+
+  .noticeCard {
+    border-radius: 18px;
+  }
+
+  .featureCard,
+  .panelCard {
+    border-radius: 18px;
+  }
+
+  .phonePreview {
+    min-height: auto;
+
+    border-radius: 24px;
+  }
+}
