@@ -252,7 +252,7 @@ export default function Sidebar() {
           className={styles["sidebar-logo"]}
         >
           <Image
-            src="/modapink.png"
+            src="/modapiink.png"
             alt="Moda Pink"
             width={140}
             height={50}
