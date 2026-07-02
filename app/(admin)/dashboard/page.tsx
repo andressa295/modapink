@@ -1,8 +1,11 @@
+// app/(admin)/dashboard/page.tsx
+
 import { redirect } from "next/navigation"
 import { Sparkles } from "lucide-react"
 
 import DashboardMetrics from "./components/DashboardMetrics"
 import ConversationsChart from "./components/ConversationsChart"
+import SalesFunnel from "./components/SalesFunnel"
 import RecentConversations from "./components/RecentConversations"
 import WhatsappStatus from "./components/WhatsappStatus"
 
@@ -26,7 +29,7 @@ export default async function Dashboard() {
     <main className={styles["dashboard-container"]}>
       <section className={styles["dashboard-hero"]}>
         <div className={styles["dashboard-hero-content"]}>
-            
+          
         </div>
       </section>
 
@@ -37,15 +40,13 @@ export default async function Dashboard() {
       <section className={styles["showcase-grid"]}>
         <div className={styles["showcase-chart"]}>
           <ConversationsChart />
+          <SalesFunnel />
         </div>
 
-        <div className={styles["showcase-status"]}>
+        <aside className={styles["showcase-status"]}>
           <WhatsappStatus />
-        </div>
-      </section>
-
-      <section className={styles["bottom-grid"]}>
-        <RecentConversations />
+          <RecentConversations />
+        </aside>
       </section>
     </main>
   )

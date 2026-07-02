@@ -3,14 +3,18 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   min-width: 0;
   height: 100%;
   padding: 20px;
   border: 1px solid rgba(236, 72, 153, 0.10);
   border-radius: 28px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 248, 252, 0.92) 100%);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.97) 0%,
+      rgba(255, 248, 252, 0.92) 100%
+    );
   box-shadow:
     0 18px 45px rgba(148, 45, 101, 0.07),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
@@ -37,7 +41,11 @@
   height: 210px;
   border-radius: 999px;
   background:
-    radial-gradient(circle, rgba(236, 72, 153, 0.12), transparent 68%);
+    radial-gradient(
+      circle,
+      rgba(236, 72, 153, 0.12),
+      transparent 68%
+    );
   pointer-events: none;
 }
 
@@ -103,6 +111,79 @@
   white-space: nowrap;
 }
 
+/* ============================= */
+/* CONTROLES */
+/* ============================= */
+
+.chart-controls {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 10px;
+}
+
+.metric-tabs,
+.period-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.metric-tabs::-webkit-scrollbar,
+.period-tabs::-webkit-scrollbar,
+.chart::-webkit-scrollbar {
+  height: 4px;
+}
+
+.metric-tabs::-webkit-scrollbar-thumb,
+.period-tabs::-webkit-scrollbar-thumb,
+.chart::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(236, 72, 153, 0.18);
+}
+
+.metric-tab,
+.period-tab {
+  flex: 0 0 auto;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(236, 72, 153, 0.10);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.70);
+  color: #9b7285;
+  font-size: 11px;
+  font-weight: 850;
+  cursor: pointer;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.metric-tab:hover,
+.period-tab:hover {
+  transform: translateY(-1px);
+  border-color: rgba(236, 72, 153, 0.18);
+  background: rgba(236, 72, 153, 0.07);
+  color: #be185d;
+}
+
+.metric-tab-active,
+.period-tab-active {
+  border-color: rgba(236, 72, 153, 0.18);
+  background: rgba(236, 72, 153, 0.12);
+  color: #be185d;
+}
+
+/* ============================= */
+/* RESUMO */
+/* ============================= */
+
 .summary-grid {
   position: relative;
   z-index: 1;
@@ -139,6 +220,10 @@
   font-weight: 900;
 }
 
+/* ============================= */
+/* GRÁFICO */
+/* ============================= */
+
 .chart {
   position: relative;
   z-index: 1;
@@ -146,8 +231,11 @@
   align-items: flex-end;
   justify-content: space-between;
   gap: 10px;
-  height: 210px;
-  padding: 10px 2px 0;
+  height: 220px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 12px 2px 4px;
 }
 
 .chart::before,
@@ -171,13 +259,14 @@
 .bar {
   position: relative;
   display: flex;
-  flex: 1;
+  flex: 1 0 34px;
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
   height: 100%;
-  min-width: 0;
+  min-width: 30px;
+  max-width: 58px;
 }
 
 .bar-value {
@@ -197,7 +286,11 @@
   padding: 0 6px;
   border-radius: 999px;
   background:
-    linear-gradient(180deg, rgba(236, 72, 153, 0.05), rgba(236, 72, 153, 0.02));
+    linear-gradient(
+      180deg,
+      rgba(236, 72, 153, 0.05),
+      rgba(236, 72, 153, 0.02)
+    );
 }
 
 .bar-fill {
@@ -206,7 +299,11 @@
   min-height: 8px;
   border-radius: 999px;
   background:
-    linear-gradient(180deg, #f9a8d4 0%, #ec4899 100%);
+    linear-gradient(
+      180deg,
+      #f9a8d4 0%,
+      #ec4899 100%
+    );
   box-shadow: 0 10px 22px rgba(236, 72, 153, 0.18);
   overflow: hidden;
   transition:
@@ -221,7 +318,11 @@
   inset: 0 0 auto;
   height: 45%;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent);
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.48),
+      transparent
+    );
 }
 
 .bar:hover .bar-fill {
@@ -233,7 +334,12 @@
   color: #9b7285;
   font-size: 11px;
   font-weight: 850;
+  white-space: nowrap;
 }
+
+/* ============================= */
+/* RESPONSIVO */
+/* ============================= */
 
 @media (max-width: 820px) {
   .dashboard-card {
@@ -242,17 +348,32 @@
     border-radius: 24px;
   }
 
+  .card-header {
+    gap: 12px;
+  }
+
+  .period-badge {
+    min-height: 29px;
+    padding: 0 10px;
+    font-size: 10px;
+  }
+
   .summary-grid {
     grid-template-columns: 1fr;
   }
 
   .chart {
-    height: 190px;
+    height: 195px;
     gap: 8px;
   }
 
+  .bar {
+    flex-basis: 30px;
+    min-width: 28px;
+  }
+
   .bar-track {
-    height: 130px;
+    height: 128px;
     max-width: 34px;
     padding: 0 5px;
   }
