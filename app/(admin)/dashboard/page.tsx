@@ -36,7 +36,7 @@ export default async function Dashboard() {
           </h1>
 
           <p className={styles["dashboard-subtitle"]}>
-            Uma visão elegante do atendimento, desempenho das conversas e status do WhatsApp.
+            Desempenho das conversas e status do WhatsApp.
           </p>
         </div>
       </section>
