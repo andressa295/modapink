@@ -3,17 +3,14 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
   min-width: 0;
-  padding: 22px;
-  border: 1px solid rgba(236, 72, 153, 0.1);
+  height: 100%;
+  padding: 20px;
+  border: 1px solid rgba(236, 72, 153, 0.10);
   border-radius: 28px;
   background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.97) 0%,
-      rgba(255, 248, 252, 0.92) 100%
-    );
+    linear-gradient(180deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 248, 252, 0.92) 100%);
   box-shadow:
     0 18px 45px rgba(148, 45, 101, 0.07),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
@@ -28,7 +25,7 @@
   transform: translateY(-2px);
   border-color: rgba(236, 72, 153, 0.18);
   box-shadow:
-    0 24px 58px rgba(148, 45, 101, 0.1),
+    0 24px 58px rgba(148, 45, 101, 0.10),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
@@ -40,11 +37,7 @@
   height: 210px;
   border-radius: 999px;
   background:
-    radial-gradient(
-      circle,
-      rgba(236, 72, 153, 0.12),
-      transparent 68%
-    );
+    radial-gradient(circle, rgba(236, 72, 153, 0.12), transparent 68%);
   pointer-events: none;
 }
 
@@ -72,7 +65,7 @@
   height: 38px;
   border-radius: 16px;
   color: #d9468f;
-  background: rgba(236, 72, 153, 0.1);
+  background: rgba(236, 72, 153, 0.10);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
 }
 
@@ -124,7 +117,7 @@
   justify-content: space-between;
   gap: 12px;
   min-width: 0;
-  padding: 12px;
+  padding: 11px 12px;
   border: 1px solid rgba(236, 72, 153, 0.08);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.68);
@@ -142,7 +135,7 @@
 
 .summary-item strong {
   color: #2a1520;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
 }
 
@@ -152,17 +145,17 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 12px;
-  height: 245px;
-  padding: 12px 4px 0;
+  gap: 10px;
+  height: 210px;
+  padding: 10px 2px 0;
 }
 
 .chart::before,
 .chart::after {
   content: "";
   position: absolute;
-  left: 4px;
-  right: 4px;
+  left: 2px;
+  right: 2px;
   border-top: 1px dashed rgba(236, 72, 153, 0.12);
   pointer-events: none;
 }
@@ -182,14 +175,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  gap: 9px;
+  gap: 8px;
   height: 100%;
   min-width: 0;
 }
 
 .bar-value {
   color: #b9859e;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 850;
 }
 
@@ -199,16 +192,12 @@
   align-items: flex-end;
   justify-content: center;
   width: 100%;
-  height: 178px;
-  max-width: 52px;
-  padding: 0 7px;
+  height: 150px;
+  max-width: 42px;
+  padding: 0 6px;
   border-radius: 999px;
   background:
-    linear-gradient(
-      180deg,
-      rgba(236, 72, 153, 0.06),
-      rgba(236, 72, 153, 0.025)
-    );
+    linear-gradient(180deg, rgba(236, 72, 153, 0.05), rgba(236, 72, 153, 0.02));
 }
 
 .bar-fill {
@@ -217,13 +206,8 @@
   min-height: 8px;
   border-radius: 999px;
   background:
-    linear-gradient(
-      180deg,
-      #f9a8d4 0%,
-      #ec4899 100%
-    );
-  box-shadow:
-    0 10px 22px rgba(236, 72, 153, 0.18);
+    linear-gradient(180deg, #f9a8d4 0%, #ec4899 100%);
+  box-shadow: 0 10px 22px rgba(236, 72, 153, 0.18);
   overflow: hidden;
   transition:
     height 0.35s ease,
@@ -237,50 +221,25 @@
   inset: 0 0 auto;
   height: 45%;
   background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.48),
-      transparent
-    );
+    linear-gradient(180deg, rgba(255, 255, 255, 0.48), transparent);
 }
 
 .bar:hover .bar-fill {
   transform: translateY(-3px);
-  box-shadow:
-    0 16px 30px rgba(236, 72, 153, 0.26);
+  box-shadow: 0 16px 30px rgba(236, 72, 153, 0.26);
 }
 
 .bar-label {
   color: #9b7285;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 850;
 }
 
 @media (max-width: 820px) {
   .dashboard-card {
-    gap: 18px;
+    gap: 16px;
     padding: 18px;
     border-radius: 24px;
-  }
-
-  .card-header {
-    gap: 12px;
-  }
-
-  .card-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 15px;
-  }
-
-  .card-header h3 {
-    font-size: 15px;
-  }
-
-  .period-badge {
-    min-height: 29px;
-    padding: 0 10px;
-    font-size: 10px;
   }
 
   .summary-grid {
@@ -288,14 +247,13 @@
   }
 
   .chart {
-    height: 210px;
+    height: 190px;
     gap: 8px;
-    padding-inline: 0;
   }
 
   .bar-track {
-    height: 145px;
-    max-width: 38px;
+    height: 130px;
+    max-width: 34px;
     padding: 0 5px;
   }
 

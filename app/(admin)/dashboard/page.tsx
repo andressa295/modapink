@@ -1,7 +1,4 @@
-// app/(admin)/dashboard/page.tsx
-
 import { redirect } from "next/navigation"
-
 import { Sparkles } from "lucide-react"
 
 import DashboardMetrics from "./components/DashboardMetrics"
@@ -27,22 +24,39 @@ export default async function Dashboard() {
 
   return (
     <main className={styles["dashboard-container"]}>
-      
-          
+      <section className={styles["dashboard-hero"]}>
+        <div className={styles["dashboard-hero-content"]}>
+          <span className={styles["dashboard-kicker"]}>
+            <Sparkles size={14} />
+            Painel Moda Pink
+          </span>
+
+          <h1 className={styles["dashboard-title"]}>
+            Dashboard de atendimento
+          </h1>
+
+          <p className={styles["dashboard-subtitle"]}>
+            Uma visão elegante do atendimento, desempenho das conversas e status do WhatsApp.
+          </p>
+        </div>
+      </section>
 
       <section className={styles["dashboard-grid"]}>
         <DashboardMetrics />
       </section>
 
-      <section className={styles["dashboard-content-grid"]}>
-        <div className={styles["dashboard-main-column"]}>
+      <section className={styles["showcase-grid"]}>
+        <div className={styles["showcase-chart"]}>
           <ConversationsChart />
-          <RecentConversations />
         </div>
 
-        <div className={styles["dashboard-side-column"]}>
+        <div className={styles["showcase-status"]}>
           <WhatsappStatus />
         </div>
+      </section>
+
+      <section className={styles["bottom-grid"]}>
+        <RecentConversations />
       </section>
     </main>
   )
