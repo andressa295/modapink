@@ -26,18 +26,7 @@ export default async function Dashboard() {
     <main className={styles["dashboard-container"]}>
       <section className={styles["dashboard-hero"]}>
         <div className={styles["dashboard-hero-content"]}>
-          <span className={styles["dashboard-kicker"]}>
-            <Sparkles size={14} />
-            Painel Moda Pink
-          </span>
-
-          <h1 className={styles["dashboard-title"]}>
-            Dashboard de atendimento
-          </h1>
-
-          <p className={styles["dashboard-subtitle"]}>
-            Desempenho das conversas e status do WhatsApp.
-          </p>
+            
         </div>
       </section>
 
