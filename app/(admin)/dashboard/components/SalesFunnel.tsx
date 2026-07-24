@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState
 } from "react"
 
@@ -60,6 +61,9 @@ function formatCurrency(
 }
 
 export default function SalesFunnel() {
+  const requestInFlightRef =
+    useRef(false)
+
   const [
     loading,
     setLoading
@@ -79,9 +83,21 @@ export default function SalesFunnel() {
     const supabase =
       createClient()
 
-    async function loadFunnel() {
+    let active = true
+
+    async function loadFunnel(
+      showInitialLoading = false
+    ) {
+      if (requestInFlightRef.current) {
+        return
+      }
+
+      requestInFlightRef.current = true
+
       try {
-        setLoading(true)
+        if (showInitialLoading) {
+          setLoading(true)
+        }
 
         const {
           data: result,
@@ -103,6 +119,10 @@ export default function SalesFunnel() {
             ? result[0] as SalesFunnelRpcRow | undefined
             : result as SalesFunnelRpcRow | undefined
 
+        if (!active) {
+          return
+        }
+
         setData({
           cartsSent:
             toNumber(row?.carts_sent),
@@ -117,22 +137,30 @@ export default function SalesFunnel() {
             toNumber(row?.recovered_value)
         })
       } finally {
-        setLoading(false)
+        requestInFlightRef.current = false
+
+        if (active) {
+          setLoading(false)
+        }
       }
     }
 
-    loadFunnel()
+    loadFunnel(true)
 
     const interval =
       window.setInterval(
-        loadFunnel,
+        () => loadFunnel(false),
         30000
       )
 
-    return () =>
+    return () => {
+      active = false
+      requestInFlightRef.current = false
+
       window.clearInterval(
         interval
       )
+    }
   }, [])
 
   const recoveryRate =

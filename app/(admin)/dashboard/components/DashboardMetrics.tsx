@@ -4,6 +4,7 @@
 
 import {
   useEffect,
+  useRef,
   useState
 } from "react"
 
@@ -324,6 +325,9 @@ async function loadMessagesWithText(
 }
 
 export default function DashboardMetrics() {
+  const requestInFlightRef =
+    useRef(false)
+
   const [
     loading,
     setLoading
@@ -348,9 +352,21 @@ export default function DashboardMetrics() {
     const supabase =
       createClient()
 
-    async function loadMetrics() {
+    let active = true
+
+    async function loadMetrics(
+      showInitialLoading = false
+    ) {
+      if (requestInFlightRef.current) {
+        return
+      }
+
+      requestInFlightRef.current = true
+
       try {
-        setLoading(true)
+        if (showInitialLoading) {
+          setLoading(true)
+        }
 
         const today =
           startOfToday()
@@ -685,6 +701,10 @@ export default function DashboardMetrics() {
           }
         })
 
+        if (!active) {
+          return
+        }
+
         setMetrics({
           conversationsToday,
           clientsToday,
@@ -715,22 +735,30 @@ export default function DashboardMetrics() {
             salesConversationIds.size
         })
       } finally {
-        setLoading(false)
+        requestInFlightRef.current = false
+
+        if (active) {
+          setLoading(false)
+        }
       }
     }
 
-    loadMetrics()
+    loadMetrics(true)
 
     const interval =
       window.setInterval(
-        loadMetrics,
+        () => loadMetrics(false),
         30000
       )
 
-    return () =>
+    return () => {
+      active = false
+      requestInFlightRef.current = false
+
       window.clearInterval(
         interval
       )
+    }
   }, [])
 
   return (

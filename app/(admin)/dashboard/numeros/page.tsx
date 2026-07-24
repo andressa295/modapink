@@ -2,6 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 
+import {
+  Link2,
+  Plus,
+  QrCode,
+  RefreshCw,
+  ShieldCheck,
+  Smartphone,
+  Trash2,
+  X
+} from "lucide-react"
+
 import styles from "../styles/numeros.module.css"
 
 type SessionStatus =
@@ -317,11 +328,26 @@ export default function Numeros() {
   const [loading, setLoading] =
     useState(false)
 
+  const [sessionsLoading, setSessionsLoading] =
+    useState(true)
+
+  const [errorMessage, setErrorMessage] =
+    useState("")
+
+  const [lastSyncAt, setLastSyncAt] =
+    useState<Date | null>(null)
+
   const qrIntervalRef =
     useRef<NodeJS.Timeout | null>(null)
 
   const statusIntervalRef =
     useRef<NodeJS.Timeout | null>(null)
+
+  const qrTimeoutRef =
+    useRef<NodeJS.Timeout | null>(null)
+
+  const sessionsRequestInFlightRef =
+    useRef(false)
 
   const connectedIds =
     useMemo(
@@ -341,6 +367,11 @@ export default function Numeros() {
   // LOAD SESSIONS
   // =========================
   async function loadSessions() {
+    if (sessionsRequestInFlightRef.current) {
+      return
+    }
+
+    sessionsRequestInFlightRef.current = true
 
     try {
 
@@ -352,14 +383,30 @@ export default function Numeros() {
           }
         )
 
+      if (!res.ok) {
+        throw new Error(
+          `Falha ao atualizar conexões: ${res.status}`
+        )
+      }
+
       const data =
         await res.json()
 
+      if (!Array.isArray(data)) {
+        throw new Error(
+          "A API retornou um formato inesperado para as conexões."
+        )
+      }
+
       setSessions(
-        Array.isArray(data)
-          ? normalizeSessions(data)
-          : []
+        normalizeSessions(data)
       )
+
+      setLastSyncAt(
+        new Date()
+      )
+
+      setErrorMessage("")
 
     } catch (err) {
 
@@ -368,7 +415,12 @@ export default function Numeros() {
         err
       )
 
-      setSessions([])
+      setErrorMessage(
+        "Não foi possível atualizar agora. As conexões conhecidas foram mantidas."
+      )
+    } finally {
+      sessionsRequestInFlightRef.current = false
+      setSessionsLoading(false)
     }
   }
 
@@ -394,6 +446,14 @@ export default function Numeros() {
 
       statusIntervalRef.current = null
     }
+
+    if (qrTimeoutRef.current) {
+      clearTimeout(
+        qrTimeoutRef.current
+      )
+
+      qrTimeoutRef.current = null
+    }
   }
 
   // =========================
@@ -411,33 +471,53 @@ export default function Numeros() {
       return
     }
 
+    if (
+      connectedIds.has(
+        selectedSessionId
+      )
+    ) {
+      setErrorMessage(
+        "Essa sessão já está conectada. Não é necessário gerar outro QR Code."
+      )
+
+      return
+    }
+
     clearAllIntervals()
 
     setLoading(true)
 
     setQr(null)
+    setErrorMessage("")
 
     try {
 
       // =========================
       // CREATE
       // =========================
-      await fetch(
-        `${API}/sessions/create`,
-        {
-          method: "POST",
+      const createResponse =
+        await fetch(
+          `${API}/sessions/create`,
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
 
-          body: JSON.stringify({
-            sessionId:
-              selectedSessionId
-          })
-        }
-      )
+            body: JSON.stringify({
+              sessionId:
+                selectedSessionId
+            })
+          }
+        )
+
+      if (!createResponse.ok) {
+        throw new Error(
+          `Não foi possível iniciar a sessão: ${createResponse.status}`
+        )
+      }
 
       // =========================
       // DELAY
@@ -449,8 +529,8 @@ export default function Numeros() {
       // =========================
       // QR POLLING
       // =========================
-      qrIntervalRef.current =
-        setInterval(async () => {
+      const loadQr =
+        async () => {
 
           try {
 
@@ -460,38 +540,38 @@ export default function Numeros() {
               )
 
             if (!res.ok) {
-              return
+              return false
             }
 
             const data =
               await res.json()
 
             if (data.qr) {
-
-              setQr(data.qr)
+              setQr(currentQr =>
+                currentQr === data.qr
+                  ? currentQr
+                  : data.qr
+              )
 
               setLoading(false)
-
-              if (
-                qrIntervalRef.current
-              ) {
-
-                clearInterval(
-                  qrIntervalRef.current
-                )
-
-                qrIntervalRef.current = null
-              }
             }
 
           } catch {}
-        }, 2000)
+        }
+
+      await loadQr()
+
+      qrIntervalRef.current =
+        setInterval(
+          loadQr,
+          5000
+        )
 
       // =========================
       // STATUS POLLING
       // =========================
-      statusIntervalRef.current =
-        setInterval(async () => {
+      const loadStatus =
+        async () => {
 
           try {
 
@@ -507,9 +587,14 @@ export default function Numeros() {
             const data =
               await res.json()
 
+            const currentStatus =
+              normalizeStatus(
+                data.status
+              )
+
             if (
-              data.status === "ready" ||
-              data.status === "connected"
+              currentStatus === "ready" ||
+              currentStatus === "connected"
             ) {
 
               clearAllIntervals()
@@ -524,18 +609,50 @@ export default function Numeros() {
 
               setLoading(false)
 
-              loadSessions()
+              await loadSessions()
+
+              return true
             }
 
           } catch {}
 
-        }, 3000)
+          return false
+        }
+
+      const alreadyConnected =
+        await loadStatus()
+
+      if (alreadyConnected) {
+        return
+      }
+
+      statusIntervalRef.current =
+        setInterval(
+          loadStatus,
+          3000
+        )
+
+      qrTimeoutRef.current =
+        setTimeout(() => {
+          clearAllIntervals()
+          setLoading(false)
+
+          setErrorMessage(
+            "O QR Code expirou. Gere um novo código para continuar a conexão."
+          )
+        }, 120000)
 
     } catch (err) {
 
       console.error(
         "❌ erro createSession:",
         err
+      )
+
+      setErrorMessage(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível iniciar a conexão."
       )
 
       setLoading(false)
@@ -592,8 +709,32 @@ export default function Numeros() {
 
     loadSessions()
 
-    return () =>
+    const interval =
+      setInterval(
+        loadSessions,
+        15000
+      )
+
+    function handleVisibilityChange() {
+      if (!document.hidden) {
+        loadSessions()
+      }
+    }
+
+    document.addEventListener(
+      "visibilitychange",
+      handleVisibilityChange
+    )
+
+    return () => {
+      clearInterval(interval)
       clearAllIntervals()
+
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange
+      )
+    }
 
   }, [])
 
@@ -611,10 +752,25 @@ export default function Numeros() {
           styles["numbers-header"]
         }
       >
+        <div className={styles["header-copy"]}>
+          <span className={styles["header-icon"]}>
+            <Link2 size={18} />
+          </span>
 
-        <h1>
-          Conexões WhatsApp
-        </h1>
+          <div>
+            <span className={styles["header-eyebrow"]}>
+              Infraestrutura
+            </span>
+
+            <h1>
+              Conexões WhatsApp
+            </h1>
+
+            <p>
+              Acompanhe as sessões sem interromper os números já autenticados.
+            </p>
+          </div>
+        </div>
 
         <button
           className={
@@ -623,21 +779,77 @@ export default function Numeros() {
 
           onClick={() => {
 
+            const nextSession =
+              idsPermitidos.find(
+                option =>
+                  !connectedIds.has(
+                    option.id
+                  )
+              )
+
             setSessionId(
-              "principal"
+              nextSession?.id ||
+                "principal"
             )
 
             setQr(null)
+            setErrorMessage("")
 
             setShowModal(true)
           }}
+          disabled={
+            connectedIds.size >=
+              idsPermitidos.length
+          }
         >
-
-          + Conectar novo número
+          <Plus size={15} />
+          {connectedIds.size >=
+          idsPermitidos.length
+            ? "Todas conectadas"
+            : "Conectar número"}
 
         </button>
 
       </div>
+
+      <div className={styles["connection-summary"]}>
+        <div>
+          <span className={styles["summary-icon"]}>
+            <ShieldCheck size={16} />
+          </span>
+
+          <div>
+            <strong>
+              {connectedIds.size} de {idsPermitidos.length} sessões online
+            </strong>
+
+            <span>
+              {sessionsLoading
+                ? "Sincronizando conexões..."
+                : "Sessões autenticadas continuam salvas no servidor."}
+            </span>
+          </div>
+        </div>
+
+        <span className={styles["last-sync"]}>
+          <RefreshCw size={12} />
+          {lastSyncAt
+            ? `Atualizado às ${lastSyncAt.toLocaleTimeString(
+                "pt-BR",
+                {
+                  hour: "2-digit",
+                  minute: "2-digit"
+                }
+              )}`
+            : "Aguardando atualização"}
+        </span>
+      </div>
+
+      {errorMessage && !showModal && (
+        <div className={styles["connection-alert"]}>
+          {errorMessage}
+        </div>
+      )}
 
       {/* GRID */}
       <div
@@ -654,8 +866,14 @@ export default function Numeros() {
             }
           >
 
+            <Smartphone size={26} />
+
+            <strong>
+              Nenhum número conectado
+            </strong>
+
             <p>
-              Nenhum número conectado no momento.
+              Conecte uma sessão para começar o atendimento.
             </p>
 
           </div>
@@ -682,8 +900,9 @@ export default function Numeros() {
                 className={
                   styles.badge
                 }
-              >
+            >
 
+                <Smartphone size={11} />
                 Sessão
 
               </span>
@@ -745,8 +964,8 @@ export default function Numeros() {
                   )
                 }
               >
-
-                Remover Conexão
+                <Trash2 size={14} />
+                Remover conexão
 
               </button>
 
@@ -773,7 +992,7 @@ export default function Numeros() {
           >
 
             <h2>
-              Vincular Novo Aparelho
+              Vincular aparelho
             </h2>
 
             <p>
@@ -808,6 +1027,11 @@ export default function Numeros() {
                   <option
                     key={opt.id}
                     value={opt.id}
+                    disabled={
+                      connectedIds.has(
+                        opt.id
+                      )
+                    }
                   >
 
                     {opt.nome}
@@ -835,9 +1059,9 @@ export default function Numeros() {
 
                 disabled={loading}
               >
-
+                <QrCode size={16} />
                 {loading
-                  ? "Iniciando Puppeteer..."
+                  ? "Preparando conexão..."
                   : "Gerar QR Code"}
 
               </button>
@@ -857,11 +1081,20 @@ export default function Numeros() {
                 />
 
                 <p>
-                  Abra o WhatsApp {" > "}
-                  Aparelhos Conectados {" > "}
-                  Conectar um aparelho
+                  No celular, abra WhatsApp, vá em Aparelhos conectados
+                  e toque em Conectar um aparelho.
                 </p>
 
+                <small>
+                  O código é atualizado automaticamente enquanto esta janela estiver aberta.
+                </small>
+
+              </div>
+            )}
+
+            {errorMessage && (
+              <div className={styles["modal-alert"]}>
+                {errorMessage}
               </div>
             )}
 
@@ -885,9 +1118,9 @@ export default function Numeros() {
                   "principal"
                 )
               }}
-            >
-
-              Cancelar e Fechar
+              >
+              <X size={14} />
+              Fechar
 
             </button>
 

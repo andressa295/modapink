@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 
+import {
+  ArrowLeft,
+  MessageCircle,
+  Search,
+  SendHorizontal
+} from "lucide-react"
+
 import styles from "../styles/chat.module.css"
 
 import { createBrowserClient } from "@supabase/ssr"
@@ -934,6 +941,27 @@ function getConversationUrl(
   return `${API}/conversations?session_key=${encodeURIComponent(activeTab)}`
 }
 
+function getConversationsSignature(
+  conversations: Conversation[]
+) {
+  return conversations
+    .map(conversation =>
+      [
+        conversation.id,
+        conversation.last_message_at,
+        conversation.updated_at,
+        conversation.last_message,
+        conversation.mode,
+        conversation.state,
+        conversation.status,
+        JSON.stringify(
+          parseMemory(conversation.memory)
+        )
+      ].join("::")
+    )
+    .join("||")
+}
+
 // ======================
 // AVATAR
 // ======================
@@ -1047,6 +1075,37 @@ export default function Conversas() {
     setActiveTab
   ] = useState<TabId>("all")
 
+  const [
+    searchQuery,
+    setSearchQuery
+  ] = useState("")
+
+  const visibleConversations =
+    useMemo(() => {
+      const query =
+        normalizeText(searchQuery)
+
+      if (!query) {
+        return conversations
+      }
+
+      return conversations.filter(
+        conversation =>
+          normalizeText(
+            [
+              getDisplayName(conversation),
+              formatPhone(conversation.phone),
+              conversation.last_message
+            ]
+              .filter(Boolean)
+              .join(" ")
+          ).includes(query)
+      )
+    }, [
+      conversations,
+      searchQuery
+    ])
+
   const messagesRef =
     useRef<HTMLDivElement | null>(null)
 
@@ -1058,6 +1117,15 @@ export default function Conversas() {
 
   const messagesRequestRef =
     useRef(0)
+
+  const conversationsRequestRef =
+    useRef(0)
+
+  const conversationsSignatureRef =
+    useRef("")
+
+  const requestedConversationOpenedRef =
+    useRef(false)
 
   const messagesLoadedForRef =
     useRef<string | null>(null)
@@ -1175,6 +1243,9 @@ export default function Conversas() {
       silent?: boolean
     } = {}
   ) {
+    const requestId =
+      ++conversationsRequestRef.current
+
     try {
       if (!options.silent) {
         setLoadingConversations(true)
@@ -1195,6 +1266,12 @@ export default function Conversas() {
           }
         )
 
+      if (!res.ok) {
+        throw new Error(
+          `Erro ao carregar conversas: ${res.status}`
+        )
+      }
+
       const data =
         await res.json()
 
@@ -1210,7 +1287,27 @@ export default function Conversas() {
           currentTab
         )
 
-      setConversations(normalized)
+      if (
+        requestId !==
+        conversationsRequestRef.current
+      ) {
+        return
+      }
+
+      const signature =
+        getConversationsSignature(
+          normalized
+        )
+
+      if (
+        signature !==
+        conversationsSignatureRef.current
+      ) {
+        conversationsSignatureRef.current =
+          signature
+
+        setConversations(normalized)
+      }
 
       const currentSelected =
         selectedRef.current
@@ -1222,10 +1319,20 @@ export default function Conversas() {
           )
 
         if (refreshedSelected) {
-          selectedRef.current =
-            refreshedSelected
+          const selectedChanged =
+            getConversationsSignature([
+              currentSelected
+            ]) !==
+            getConversationsSignature([
+              refreshedSelected
+            ])
 
-          setSelected(refreshedSelected)
+          if (selectedChanged) {
+            selectedRef.current =
+              refreshedSelected
+
+            setSelected(refreshedSelected)
+          }
 
           // Se a conversa selecionada recebeu mensagem nova,
           // força o miolo do chat a recarregar também.
@@ -1263,6 +1370,30 @@ export default function Conversas() {
           setMessages([])
           messagesLoadedForRef.current =
             null
+        }
+      } else if (
+        !requestedConversationOpenedRef.current &&
+        typeof window !== "undefined"
+      ) {
+        requestedConversationOpenedRef.current =
+          true
+
+        const requestedId =
+          new URLSearchParams(
+            window.location.search
+          ).get("conversation")
+
+        const requestedConversation =
+          requestedId
+            ? normalized.find(
+                item => item.id === requestedId
+              )
+            : null
+
+        if (requestedConversation) {
+          openConversation(
+            requestedConversation
+          )
         }
       }
 
@@ -1344,7 +1475,6 @@ export default function Conversas() {
         selectedRef.current
 
       if (
-        !options.force &&
         currentSelected?.id &&
         currentSelected.id !== id
       ) {
@@ -1352,8 +1482,7 @@ export default function Conversas() {
       }
 
       if (
-        requestId !== messagesRequestRef.current &&
-        !options.force
+        requestId !== messagesRequestRef.current
       ) {
         return
       }
@@ -1479,17 +1608,17 @@ export default function Conversas() {
     lastMessagesCountRef.current =
       0
 
+    conversationsRequestRef.current +=
+      1
+
+    conversationsSignatureRef.current =
+      ""
+
     setActiveTab(tabId)
     setSelected(null)
     setMessages([])
     setLoadingConversations(true)
-
-    requestAnimationFrame(() => {
-      loadConversations({
-        silent:
-          false
-      })
-    })
+    setSearchQuery("")
   }
 
   // ======================
@@ -1508,7 +1637,7 @@ export default function Conversas() {
           silent:
             true
         })
-      }, 2200)
+      }, 8000)
 
     const filterConfig: any = {
       event: "*",
@@ -1661,7 +1790,7 @@ export default function Conversas() {
               true
           })
         }
-      }, 1200)
+      }, 4000)
 
     const channel =
       supabase
@@ -2414,9 +2543,14 @@ export default function Conversas() {
 
   return (
     <div
-      className={
-        styles["chat-app"]
-      }
+      className={`
+        ${styles["chat-app"]}
+        ${
+          selected
+            ? styles["chat-app-open"]
+            : ""
+        }
+      `}
     >
       {/* SIDEBAR */}
       <div
@@ -2429,16 +2563,42 @@ export default function Conversas() {
             styles["sidebar-header"]
           }
         >
-          <div>
-            <h2>
-              Conversas
-            </h2>
+          <div className={styles["sidebar-title-group"]}>
+            <span className={styles["sidebar-title-icon"]}>
+              <MessageCircle size={17} />
+            </span>
 
-            <p>
-              Atendimento por número
-            </p>
+            <div>
+              <h2>
+                Conversas
+              </h2>
+
+              <p>
+                {conversations.length} atendimento(s) centralizado(s)
+              </p>
+            </div>
           </div>
+
+          <span className={styles["sidebar-live"]}>
+            <i />
+            Ao vivo
+          </span>
         </div>
+
+        <label className={styles["conversation-search"]}>
+          <Search size={15} />
+
+          <input
+            value={searchQuery}
+            onChange={(event) =>
+              setSearchQuery(
+                event.target.value
+              )
+            }
+            placeholder="Buscar cliente, telefone ou mensagem"
+            aria-label="Buscar conversas"
+          />
+        </label>
 
         {/* ABAS */}
         <div
@@ -2494,16 +2654,18 @@ export default function Conversas() {
             >
               Carregando conversas...
             </div>
-          ) : conversations.length === 0 ? (
+          ) : visibleConversations.length === 0 ? (
             <div
               className={
                 styles["chat-empty"]
               }
             >
-              Nenhuma conversa
+              {searchQuery.trim()
+                ? "Nenhuma conversa encontrada"
+                : "Nenhuma conversa"}
             </div>
           ) : (
-            conversations.map((c) => {
+            visibleConversations.map((c) => {
               const session =
                 getConversationSession(c)
 
@@ -2625,6 +2787,19 @@ export default function Conversas() {
                 styles["chat-header"]
               }
             >
+              <button
+                type="button"
+                className={styles["mobile-back-button"]}
+                onClick={() => {
+                  selectedRef.current = null
+                  setSelected(null)
+                  setMessages([])
+                }}
+                aria-label="Voltar para a lista de conversas"
+              >
+                <ArrowLeft size={18} />
+              </button>
+
               <Avatar
                 src={selected.avatar_url}
                 name={getDisplayName(selected)}
@@ -2860,7 +3035,7 @@ export default function Conversas() {
               >
                 {sending
                   ? "..."
-                  : "➤"}
+                  : <SendHorizontal size={18} />}
               </button>
             </div>
           </>
@@ -2875,7 +3050,7 @@ export default function Conversas() {
                 styles["empty-icon"]
               }
             >
-              💬
+              <MessageCircle size={30} />
             </div>
 
             <h3>
