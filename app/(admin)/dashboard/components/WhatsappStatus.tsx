@@ -1,6 +1,10 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import {
+  useEffect,
+  useRef,
+  useState
+} from "react"
 
 import {
   Activity,
@@ -19,12 +23,46 @@ type Status =
   | "connecting"
 
 type StatusResponse = {
-  status?: Status
+  status?: string
   phone?: string | null
   lastSeen?: string | null
 }
 
+function normalizeStatus(
+  value?: string | null
+): Status {
+  const clean =
+    String(value || "")
+      .toLowerCase()
+      .trim()
+
+  if (
+    clean === "online" ||
+    clean === "ready" ||
+    clean === "connected"
+  ) {
+    return "online"
+  }
+
+  if (
+    clean === "connecting" ||
+    clean === "initializing" ||
+    clean === "authenticated" ||
+    clean === "qr"
+  ) {
+    return "connecting"
+  }
+
+  return "offline"
+}
+
 export default function WhatsappStatus() {
+  const requestInFlightRef =
+    useRef(false)
+
+  const consecutiveFailuresRef =
+    useRef(0)
+
   const [mounted, setMounted] = useState(false)
 
   const [loading, setLoading] = useState(true)
@@ -45,6 +83,12 @@ export default function WhatsappStatus() {
     }
 
     async function loadStatus() {
+      if (requestInFlightRef.current) {
+        return
+      }
+
+      requestInFlightRef.current = true
+
       try {
         const res = await fetch(
           "https://api.modapink.phand.com.br/status",
@@ -59,7 +103,11 @@ export default function WhatsappStatus() {
 
         const data: StatusResponse = await res.json()
 
-        setStatus(data.status || "offline")
+        consecutiveFailuresRef.current = 0
+
+        setStatus(
+          normalizeStatus(data.status)
+        )
 
         setPhone(data.phone || "Não conectado")
 
@@ -83,10 +131,15 @@ export default function WhatsappStatus() {
       } catch (err) {
         console.error("Erro ao buscar status do WhatsApp:", err)
 
-        setStatus("offline")
-        setPhone("Não conectado")
-        setLastSeen("—")
+        consecutiveFailuresRef.current += 1
+
+        if (
+          consecutiveFailuresRef.current >= 3
+        ) {
+          setStatus("offline")
+        }
       } finally {
+        requestInFlightRef.current = false
         setLoading(false)
       }
     }
@@ -98,7 +151,10 @@ export default function WhatsappStatus() {
       5000
     )
 
-    return () => window.clearInterval(interval)
+    return () => {
+      requestInFlightRef.current = false
+      window.clearInterval(interval)
+    }
   }, [mounted])
 
   if (!mounted) {

@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from "react"
 
@@ -101,6 +102,9 @@ function shortMessage(message?: string) {
 }
 
 export default function RecentConversations() {
+  const requestInFlightRef =
+    useRef(false)
+
   const [
     conversations,
     setConversations
@@ -129,6 +133,12 @@ export default function RecentConversations() {
 
   const loadConversations =
     useCallback(async () => {
+      if (requestInFlightRef.current) {
+        return
+      }
+
+      requestInFlightRef.current = true
+
       const supabase =
         createClient()
 
@@ -228,6 +238,7 @@ export default function RecentConversations() {
           err
         )
       } finally {
+        requestInFlightRef.current = false
         setLoading(false)
       }
     }, [])
@@ -262,6 +273,7 @@ export default function RecentConversations() {
 
     return () => {
       clearInterval(interval)
+      requestInFlightRef.current = false
       supabase.removeChannel(channel)
     }
   }, [loadConversations])

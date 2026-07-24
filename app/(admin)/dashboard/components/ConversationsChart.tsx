@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState
 } from "react"
 
@@ -628,6 +629,9 @@ function incrementUniqueConversationByDay(
 }
 
 export default function ConversationsChart() {
+  const requestSequenceRef =
+    useRef(0)
+
   const [
     period,
     setPeriod
@@ -652,9 +656,25 @@ export default function ConversationsChart() {
     const supabase =
       createClient()
 
-    async function loadData() {
+    let active = true
+    let requestInFlight = false
+
+    async function loadData(
+      showInitialLoading = false
+    ) {
+      if (requestInFlight) {
+        return
+      }
+
+      requestInFlight = true
+
+      const requestSequence =
+        ++requestSequenceRef.current
+
       try {
-        setLoading(true)
+        if (showInitialLoading) {
+          setLoading(true)
+        }
 
         const {
           start,
@@ -692,7 +712,14 @@ export default function ConversationsChart() {
               error
             )
 
-            setData(emptyData)
+            if (
+              showInitialLoading &&
+              active &&
+              requestSequence === requestSequenceRef.current
+            ) {
+              setData(emptyData)
+            }
+
             return
           }
 
@@ -708,7 +735,13 @@ export default function ConversationsChart() {
             }
           )
 
-          setData(emptyData)
+          if (
+            active &&
+            requestSequence === requestSequenceRef.current
+          ) {
+            setData(emptyData)
+          }
+
           return
         }
 
@@ -755,22 +788,37 @@ export default function ConversationsChart() {
           )
         }
 
-        setData(emptyData)
+        if (
+          active &&
+          requestSequence === requestSequenceRef.current
+        ) {
+          setData(emptyData)
+        }
       } finally {
-        setLoading(false)
+        requestInFlight = false
+
+        if (
+          active &&
+          requestSequence === requestSequenceRef.current
+        ) {
+          setLoading(false)
+        }
       }
     }
 
-    loadData()
+    loadData(true)
 
     const interval =
       window.setInterval(
-        loadData,
+        () => loadData(false),
         30000
       )
 
-    return () =>
+    return () => {
+      active = false
+
       window.clearInterval(interval)
+    }
   }, [period, metric])
 
   const max =
