@@ -262,6 +262,33 @@
   background-clip: padding-box;
 }
 
+.chat-pagination-status {
+  padding: 13px 14px;
+  color: #a06a87;
+  background: #fffafd;
+  font-size: 10px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.chat-load-more-button {
+  display: block;
+  min-height: 34px;
+  margin: 12px auto 0;
+  padding: 0 13px;
+  border: 1px solid rgba(231, 2, 137, 0.14);
+  border-radius: 999px;
+  color: #be185d;
+  background: #fff0f7;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.chat-load-more-button:hover {
+  background: #ffe5f2;
+}
+
 .chat-item {
   width: 100%;
   min-height: 70px;

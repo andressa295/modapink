@@ -30,11 +30,11 @@ type AttendanceChannel = {
 const ATTENDANCE_CHANNELS: AttendanceChannel[] = [
   {
     id: "principal",
-    name: "Número principal"
+    name: "Atendimento automático 1"
   },
   {
     id: "vendedora_1",
-    name: "Vendedora 1"
+    name: "Atendimento automático 2"
   },
   {
     id: "sac",

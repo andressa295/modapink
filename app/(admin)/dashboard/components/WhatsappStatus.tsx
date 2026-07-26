@@ -230,7 +230,7 @@ export default function WhatsappStatus() {
           </span>
 
           <small>
-            Monitoramento automático da sessão principal
+            Monitoramento do Atendimento automático 1
           </small>
         </div>
       </div>

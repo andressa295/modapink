@@ -43,15 +43,15 @@ const API = process.env.NEXT_PUBLIC_API_URL!
 const idsPermitidos: SessionOption[] = [
   {
     id: "principal",
-    nome: "Número principal"
+    nome: "Atendimento automático 1"
   },
   {
     id: "vendedora_1",
-    nome: "Vendedora 1"
+    nome: "Atendimento automático 2"
   },
   {
     id: "vendedora_2",
-    nome: "Vendedora 2"
+    nome: "Vendedora"
   },
   {
     id: "sac",

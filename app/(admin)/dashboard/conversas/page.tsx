@@ -16,6 +16,9 @@ import { createBrowserClient } from "@supabase/ssr"
 const API =
   process.env.NEXT_PUBLIC_API_URL!
 
+const CONVERSATIONS_PAGE_SIZE =
+  50
+
 const supabase =
   createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -91,7 +94,7 @@ type ChatTab = {
 const chatTabs: ChatTab[] = [
   {
     id: "all",
-    nome: "Todas as conversas",
+    nome: "Todos os atendimentos",
     short: "Todos"
   },
   {
@@ -101,18 +104,18 @@ const chatTabs: ChatTab[] = [
   },
   {
     id: "principal",
-    nome: "Número principal",
-    short: "Principal"
+    nome: "Atendimento automático 1",
+    short: "Atend. Auto 1"
   },
   {
     id: "vendedora_1",
-    nome: "Vendedora 1",
-    short: "Vendedora 1"
+    nome: "Atendimento automático 2",
+    short: "Atend. Auto 2"
   },
   {
     id: "vendedora_2",
-    nome: "Vendedora 2 / Monitoramento",
-    short: "Vendedora 2"
+    nome: "Vendedora",
+    short: "Vendedora"
   },
   {
     id: "sac",
@@ -802,16 +805,28 @@ function normalizeConversations(
     data
       .map(normalizeConversation)
       .filter(conversation => {
+        const session =
+          getConversationSession(
+            conversation
+          )
+
         if (activeTab === "human") {
-          return isHumanInterventionConversation(conversation)
+          return (
+            session !== "automacoes" &&
+            isHumanInterventionConversation(
+              conversation
+            )
+          )
         }
 
         if (activeTab === "all") {
-          return true
+          return (
+            session !== "automacoes"
+          )
         }
 
         return (
-          getConversationSession(conversation) === activeTab
+          session === activeTab
         )
       })
 
@@ -928,19 +943,6 @@ function formatPreview(
   return truncate(preview)
 }
 
-function getConversationUrl(
-  activeTab: TabId
-) {
-  if (
-    activeTab === "all" ||
-    activeTab === "human"
-  ) {
-    return `${API}/conversations`
-  }
-
-  return `${API}/conversations?session_key=${encodeURIComponent(activeTab)}`
-}
-
 function getConversationsSignature(
   conversations: Conversation[]
 ) {
@@ -960,6 +962,40 @@ function getConversationsSignature(
       ].join("::")
     )
     .join("||")
+}
+
+function mergeConversationPages(
+  current: Conversation[],
+  incoming: Array<
+    Record<string, unknown>
+  >,
+  activeTab: TabId
+) {
+  const incomingIds =
+    new Set(
+      incoming
+        .map(normalizeConversation)
+        .map(conversation =>
+          conversation.id
+        )
+        .filter(Boolean)
+    )
+
+  const retained =
+    current.filter(
+      conversation =>
+        !incomingIds.has(
+          conversation.id
+        )
+    )
+
+  return normalizeConversations(
+    [
+      ...retained,
+      ...incoming
+    ],
+    activeTab
+  )
 }
 
 // ======================
@@ -1066,6 +1102,16 @@ export default function Conversas() {
   ] = useState(false)
 
   const [
+    loadingMoreConversations,
+    setLoadingMoreConversations
+  ] = useState(false)
+
+  const [
+    hasMoreConversations,
+    setHasMoreConversations
+  ] = useState(true)
+
+  const [
     loadingMessages,
     setLoadingMessages
   ] = useState(false)
@@ -1121,6 +1167,15 @@ export default function Conversas() {
   const conversationsRequestRef =
     useRef(0)
 
+  const conversationsLoadRequestRef =
+    useRef(0)
+
+  const conversationsRef =
+    useRef<Conversation[]>([])
+
+  const conversationsOffsetRef =
+    useRef(0)
+
   const conversationsSignatureRef =
     useRef("")
 
@@ -1149,6 +1204,11 @@ export default function Conversas() {
     selectedRef.current =
       selected
   }, [selected])
+
+  useEffect(() => {
+    conversationsRef.current =
+      conversations
+  }, [conversations])
 
   useEffect(() => {
     activeTabRef.current =
@@ -1241,57 +1301,128 @@ export default function Conversas() {
   async function loadConversations(
     options: {
       silent?: boolean
+      append?: boolean
     } = {}
   ) {
+    if (
+      conversationsLoadRequestRef.current
+    ) {
+      return
+    }
+
     const requestId =
       ++conversationsRequestRef.current
 
+    conversationsLoadRequestRef.current =
+      requestId
+
+    const append =
+      Boolean(options.append)
+
     try {
-      if (!options.silent) {
+      if (append) {
+        setLoadingMoreConversations(true)
+      } else if (!options.silent) {
         setLoadingConversations(true)
       }
 
       const currentTab =
         activeTabRef.current
 
-      const res =
-        await fetch(
-          getConversationUrl(currentTab),
-          {
-            cache: "no-store",
-            headers: {
-              Pragma: "no-cache",
-              "Cache-Control": "no-cache"
+      const offset =
+        append
+          ? conversationsOffsetRef.current
+          : 0
+
+      let query =
+        supabase
+          .from("conversations")
+          .select("*")
+          .order(
+            "last_message_at",
+            {
+              ascending:
+                false
             }
-          }
+          )
+          .range(
+            offset,
+            offset +
+              CONVERSATIONS_PAGE_SIZE -
+              1
         )
 
-      if (!res.ok) {
+      if (
+        currentTab === "all" ||
+        currentTab === "human"
+      ) {
+        query =
+          query.or(
+            "session_key.neq.automacoes,session_key.is.null"
+          )
+      } else {
+        query =
+          query.eq(
+            "session_key",
+            currentTab
+          )
+      }
+
+      const {
+        data,
+        error
+      } = await query
+
+      if (error) {
         throw new Error(
-          `Erro ao carregar conversas: ${res.status}`
+          `Erro ao carregar conversas: ${error.message}`
         )
       }
 
-      const data =
-        await res.json()
-
       const list:
-        Conversation[] =
+        Array<
+          Record<string, unknown>
+        > =
         Array.isArray(data)
           ? data
-          : data?.data || []
+          : []
 
       const normalized =
-        normalizeConversations(
-          list,
-          currentTab
-        )
+        append ||
+        options.silent
+          ? mergeConversationPages(
+              conversationsRef.current,
+              list,
+              currentTab
+            )
+          : normalizeConversations(
+              list,
+              currentTab
+            )
 
       if (
         requestId !==
         conversationsRequestRef.current
       ) {
         return
+      }
+
+      if (append) {
+        conversationsOffsetRef.current +=
+          list.length
+      } else if (!options.silent) {
+        conversationsOffsetRef.current =
+          list.length
+      }
+
+      if (
+        append ||
+        !options.silent
+      ) {
+        setHasMoreConversations(
+          list.length ===
+            CONVERSATIONS_PAGE_SIZE
+        )
       }
 
       const signature =
@@ -1305,6 +1436,9 @@ export default function Conversas() {
       ) {
         conversationsSignatureRef.current =
           signature
+
+        conversationsRef.current =
+          normalized
 
         setConversations(normalized)
       }
@@ -1403,7 +1537,17 @@ export default function Conversas() {
         err
       )
     } finally {
-      if (!options.silent) {
+      if (
+        conversationsLoadRequestRef.current ===
+        requestId
+      ) {
+        conversationsLoadRequestRef.current =
+          0
+      }
+
+      if (append) {
+        setLoadingMoreConversations(false)
+      } else if (!options.silent) {
         setLoadingConversations(false)
       }
     }
@@ -1611,14 +1755,55 @@ export default function Conversas() {
     conversationsRequestRef.current +=
       1
 
+    conversationsLoadRequestRef.current =
+      0
+
     conversationsSignatureRef.current =
       ""
 
+    conversationsOffsetRef.current =
+      0
+
+    conversationsRef.current =
+      []
+
+    setConversations([])
+    setHasMoreConversations(true)
+    setLoadingMoreConversations(false)
     setActiveTab(tabId)
     setSelected(null)
     setMessages([])
     setLoadingConversations(true)
     setSearchQuery("")
+  }
+
+  function handleConversationListScroll(
+    event: {
+      currentTarget:
+        HTMLDivElement
+    }
+  ) {
+    const element =
+      event.currentTarget
+
+    const distanceFromBottom =
+      element.scrollHeight -
+      element.scrollTop -
+      element.clientHeight
+
+    if (
+      distanceFromBottom <= 260 &&
+      hasMoreConversations &&
+      !loadingConversations &&
+      !loadingMoreConversations
+    ) {
+      loadConversations({
+        silent:
+          true,
+        append:
+          true
+      })
+    }
   }
 
   // ======================
@@ -2574,7 +2759,7 @@ export default function Conversas() {
               </h2>
 
               <p>
-                {conversations.length} atendimento(s) centralizado(s)
+                {conversations.length} conversa(s) carregada(s)
               </p>
             </div>
           </div>
@@ -2645,6 +2830,9 @@ export default function Conversas() {
           className={
             styles["chat-list"]
           }
+          onScroll={
+            handleConversationListScroll
+          }
         >
           {loadingConversations ? (
             <div
@@ -2663,36 +2851,55 @@ export default function Conversas() {
               {searchQuery.trim()
                 ? "Nenhuma conversa encontrada"
                 : "Nenhuma conversa"}
+
+              {searchQuery.trim() &&
+                hasMoreConversations && (
+                  <button
+                    type="button"
+                    className={styles["chat-load-more-button"]}
+                    onClick={() =>
+                      loadConversations({
+                        silent:
+                          true,
+                        append:
+                          true
+                      })
+                    }
+                  >
+                    Buscar em conversas mais antigas
+                  </button>
+                )}
             </div>
           ) : (
-            visibleConversations.map((c) => {
-              const session =
-                getConversationSession(c)
+            <>
+              {visibleConversations.map((c) => {
+                const session =
+                  getConversationSession(c)
 
-              const needsHuman =
-                isHumanInterventionConversation(c)
+                const needsHuman =
+                  isHumanInterventionConversation(c)
 
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={`
-                    ${styles["chat-item"]}
-                    ${
-                      selected?.id === c.id
-                        ? styles["chat-item-active"]
-                        : ""
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`
+                      ${styles["chat-item"]}
+                      ${
+                        selected?.id === c.id
+                          ? styles["chat-item-active"]
+                          : ""
+                      }
+                      ${
+                        needsHuman
+                          ? styles["chat-item-human"]
+                          : ""
+                      }
+                    `}
+                    onClick={() =>
+                      openConversation(c)
                     }
-                    ${
-                      needsHuman
-                        ? styles["chat-item-human"]
-                        : ""
-                    }
-                  `}
-                  onClick={() =>
-                    openConversation(c)
-                  }
-                >
+                  >
                   <Avatar
                     src={c.avatar_url}
                     name={getDisplayName(c)}
@@ -2766,9 +2973,23 @@ export default function Conversas() {
                       )}
                     </div>
                   </div>
-                </button>
-              )
-            })
+                  </button>
+                )
+              })}
+
+              {loadingMoreConversations && (
+                <div className={styles["chat-pagination-status"]}>
+                  Carregando conversas mais antigas...
+                </div>
+              )}
+
+              {!hasMoreConversations &&
+                conversations.length > 0 && (
+                  <div className={styles["chat-pagination-status"]}>
+                    Todas as conversas foram carregadas
+                  </div>
+                )}
+            </>
           )}
         </div>
       </div>

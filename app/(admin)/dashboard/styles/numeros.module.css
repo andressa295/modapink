@@ -129,7 +129,8 @@
 
 .summary-icon {
   display: grid;
-  place-items: center;
+  align-items: center;
+  justify-items: center;
   flex: 0 0 auto;
   width: 32px;
   height: 32px;
@@ -138,18 +139,23 @@
   background: rgba(34, 197, 94, 0.09);
 }
 
-.connection-summary strong,
-.connection-summary span {
+.summary-icon svg {
+  display: block;
+  margin: 0;
+}
+
+.connection-summary > div > div strong,
+.connection-summary > div > div span {
   display: block;
 }
 
-.connection-summary strong {
+.connection-summary > div > div strong {
   color: #2b1823;
   font-size: 11px;
   font-weight: 900;
 }
 
-.connection-summary div span {
+.connection-summary > div > div span {
   margin-top: 2px;
   color: #9a8190;
   font-size: 9.5px;
