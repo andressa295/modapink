@@ -409,7 +409,7 @@ export default function CatalogClient({
       .map(variant => variant.price)
     const hasDifferentPrices = new Set(prices).size > 1
 
-    return `${hasDifferentPrices ? "a partir de " : ""}${money(item.priceFrom)}`
+    return `Cartão: ${hasDifferentPrices ? "a partir de " : ""}${money(item.priceFrom)}`
   }
 
   if (loading) {
@@ -585,13 +585,13 @@ export default function CatalogClient({
                   <div className={styles.priceBlock}>
                     {item.compareAtPriceFrom && (
                       <span className={styles.comparePrice}>
-                        {money(item.compareAtPriceFrom)}
+                        De: {money(item.compareAtPriceFrom)}
                       </span>
                     )}
                     <strong>{productPriceLabel(item)}</strong>
                     <small>
                       {catalog.settings.pixDiscountPercent > 0
-                        ? `${money(item.pixPriceFrom)} no Pix`
+                        ? `Pix: ${money(item.pixPriceFrom)} (${catalog.settings.pixDiscountPercent}% OFF)`
                         : "no Pix ou cartão"}
                     </small>
                   </div>
@@ -701,19 +701,15 @@ export default function CatalogClient({
 
               <div className={styles.modalPrice}>
                 {selectedVariant?.compareAtPrice && (
-                  <span>{money(selectedVariant.compareAtPrice)}</span>
+                  <span>De: {money(selectedVariant.compareAtPrice)}</span>
                 )}
-                <strong>{money(selectedVariant?.price || product.priceFrom)}</strong>
+                <strong>Cartão: {money(selectedVariant?.price || product.priceFrom)}</strong>
                 <small>
                   {catalog.settings.pixDiscountPercent > 0
-                    ? `${money(selectedVariant?.pixPrice || product.pixPriceFrom)} no Pix`
+                    ? `Pix: ${money(selectedVariant?.pixPrice || product.pixPriceFrom)} (${catalog.settings.pixDiscountPercent}% OFF)`
                     : "Pix ou cartão"}
                 </small>
               </div>
-
-              {product.description && (
-                <p className={styles.description}>{product.description}</p>
-              )}
 
               {product.attributes.map((attribute, attributeIndex) => {
                 const options = Array.from(new Set(
@@ -743,6 +739,13 @@ export default function CatalogClient({
                   </fieldset>
                 )
               })}
+
+              {product.description && (
+                <details className={styles.descriptionBox} key={product.id}>
+                  <summary>Ver descrição da peça</summary>
+                  <p className={styles.description}>{product.description}</p>
+                </details>
+              )}
 
               <div className={styles.modalFooter}>
                 <div className={styles.quantityControl}>
