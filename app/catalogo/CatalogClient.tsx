@@ -126,7 +126,52 @@ export default function CatalogClient({
           throw new Error(data?.error || "Não foi possível abrir o catálogo.")
         }
 
-        setCatalog(data)
+        const catalogData =
+          data as CatalogResponse
+
+        setCatalog(catalogData)
+
+        const params =
+          new URLSearchParams(
+            window.location.search
+          )
+
+        const requestedProductId =
+          Number(
+            params.get("produto") || 0
+          )
+
+        const requestedSearch =
+          String(
+            params.get("busca") || ""
+          ).trim()
+
+        const requestedProduct =
+          Number.isInteger(requestedProductId) &&
+          requestedProductId > 0
+            ? catalogData.products.find(
+                item =>
+                  item.id === requestedProductId
+              )
+            : null
+
+        if (requestedProduct) {
+          const initialVariant =
+            requestedProduct.variants.find(
+              variant => variant.available
+            ) ||
+            requestedProduct.variants[0]
+
+          setProduct(requestedProduct)
+          setSelectedValues(
+            initialVariant?.values || []
+          )
+          setQuantity(1)
+          setImageIndex(0)
+          setAdded(false)
+        } else if (requestedSearch) {
+          setSearch(requestedSearch)
+        }
       } catch (error) {
         setLoadError(
           error instanceof Error
