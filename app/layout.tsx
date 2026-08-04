@@ -29,10 +29,48 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
 
+  metadataBase:
+    new URL("https://modapink.phand.com.br"),
+
   title: "Moda Pink",
 
   description:
-    "Dashboard Moda Pink"
+    "Escolha suas peças e monte seu pedido na Moda Pink.",
+
+  openGraph: {
+    title:
+      "Catálogo Moda Pink",
+    description:
+      "Escolha suas peças, cores e tamanhos e finalize seu pedido.",
+    siteName:
+      "Moda Pink",
+    type:
+      "website",
+    images: [
+      {
+        url:
+          "/modapiink.png",
+        width:
+          820,
+        height:
+          503,
+        alt:
+          "Moda Pink"
+      }
+    ]
+  },
+
+  twitter: {
+    card:
+      "summary_large_image",
+    title:
+      "Catálogo Moda Pink",
+    description:
+      "Escolha suas peças, cores e tamanhos e finalize seu pedido.",
+    images: [
+      "/modapiink.png"
+    ]
+  }
 }
 
 export default function RootLayout({
