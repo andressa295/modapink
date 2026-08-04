@@ -11,6 +11,10 @@ import type {
   CatalogSettings
 } from "./types"
 
+import {
+  resolveVariantPricing
+} from "./pricing"
+
 const NUVEMSHOP_API = "https://api.nuvemshop.com.br/v1"
 const USER_AGENT = "Phandshop/1.0 (contato@phand.com.br)"
 const DEFAULT_SITE = "https://atacadomodapink.com.br"
@@ -101,15 +105,20 @@ function buildSettings(raw: any, defaultPhone = ""): CatalogSettings {
   const automaticHelpUrl = cleanPhone
     ? `https://wa.me/${cleanPhone}?text=${encodeURIComponent("Oi, preciso de ajuda para montar meu pedido no catálogo da Moda Pink.")}`
     : `${siteUrl}/contato`
+  const configuredPixDiscount =
+    toNumber(
+      raw?.catalog_pix_discount_percent ??
+      process.env.CATALOG_PIX_DISCOUNT_PERCENT ??
+      10,
+      10
+    )
   const pixDiscountPercent = Math.min(
     100,
     Math.max(
       0,
-      toNumber(
-        raw?.catalog_pix_discount_percent ??
-        process.env.CATALOG_PIX_DISCOUNT_PERCENT,
-        0
-      )
+      configuredPixDiscount > 0
+        ? configuredPixDiscount
+        : 10
     )
   )
 
@@ -237,11 +246,10 @@ export function mapNuvemshopProducts(
     .map(product => {
       const attributes = (product.attributes || []).map(localize)
       const variants = (product.variants || []).map((variant: any) => {
-        const regularPrice = toNumber(variant.price)
-        const promotionalPrice = toNumber(variant.promotional_price)
-        const price = promotionalPrice > 0
-          ? promotionalPrice
-          : regularPrice
+        const {
+          price,
+          compareAtPrice
+        } = resolveVariantPricing(variant)
         const hasStock =
           variant.stock_management !== true ||
           variant.stock === null ||
@@ -252,10 +260,7 @@ export function mapNuvemshopProducts(
           values: (variant.values || []).map(localize),
           price: roundMoney(price),
           pixPrice: roundMoney(price * discountFactor),
-          compareAtPrice:
-            promotionalPrice > 0 && regularPrice > promotionalPrice
-              ? roundMoney(regularPrice)
-              : null,
+          compareAtPrice,
           stock:
             variant.stock_management === true
               ? Math.max(0, toNumber(variant.stock))
@@ -270,11 +275,14 @@ export function mapNuvemshopProducts(
       const pricedVariants = availableVariants.length > 0
         ? availableVariants
         : variants
-      const prices = pricedVariants.map((variant: any) => variant.price)
-      const pixPrices = pricedVariants.map((variant: any) => variant.pixPrice)
-      const comparePrices = pricedVariants
-        .map((variant: any) => variant.compareAtPrice)
-        .filter((price: unknown): price is number => typeof price === "number")
+      const lowestPriceVariant =
+        pricedVariants.reduce(
+          (lowest: any, variant: any) =>
+            !lowest || variant.price < lowest.price
+              ? variant
+              : lowest,
+          null
+        )
 
       const categories: CatalogCategory[] = (product.categories || [])
         .map((category: any) => ({
@@ -295,11 +303,9 @@ export function mapNuvemshopProducts(
         categories,
         attributes,
         variants,
-        priceFrom: prices.length ? Math.min(...prices) : 0,
-        pixPriceFrom: pixPrices.length ? Math.min(...pixPrices) : 0,
-        compareAtPriceFrom: comparePrices.length
-          ? Math.min(...comparePrices)
-          : null,
+        priceFrom: lowestPriceVariant?.price || 0,
+        pixPriceFrom: lowestPriceVariant?.pixPrice || 0,
+        compareAtPriceFrom: lowestPriceVariant?.compareAtPrice || null,
         available: availableVariants.length > 0
       }
     })
@@ -311,7 +317,7 @@ export async function loadCatalog(): Promise<CatalogResponse> {
   const products: any[] = []
   const perPage = 200
 
-  for (let page = 1; page <= 10; page += 1) {
+  for (let page = 1; page <= 50; page += 1) {
     const batch = await nuvemshopRequest<any[]>(
       store,
       `/products?visibility=visible&sort_by=created-at-descending&page=${page}&per_page=${perPage}`
@@ -328,7 +334,20 @@ export async function loadCatalog(): Promise<CatalogResponse> {
     }
   }
 
-  const mappedProducts = mapNuvemshopProducts(products, settings)
+  const uniqueProducts =
+    Array.from(
+      new Map(
+        products.map(product => [
+          Number(product?.id || 0),
+          product
+        ])
+      ).values()
+    )
+      .filter(product =>
+        Number(product?.id || 0) > 0
+      )
+
+  const mappedProducts = mapNuvemshopProducts(uniqueProducts, settings)
   const categoryMap = new Map<number, CatalogCategory>()
 
   mappedProducts.forEach(product => {
