@@ -28,6 +28,11 @@ function dateKey(date: Date) {
   }).format(date)
 }
 
+function safeDateKey(value: unknown) {
+  const date = new Date(String(value || ""))
+  return Number.isNaN(date.getTime()) ? null : dateKey(date)
+}
+
 function getRange(url: URL) {
   const now = new Date()
   const today = dateKey(now)
@@ -107,7 +112,7 @@ function refundDate(order: any) {
     .map((item: any) => item.created_at || item.date || item.updated_at)
     .filter(Boolean)
     .sort()
-  return raw.refunded_at || negative.at(-1) || order.updated_at || order.created_at
+  return raw.refunded_at || negative.at(-1) || raw.updated_at || raw.modified_at || order.created_at
 }
 
 function realFee(order: any) {
@@ -127,6 +132,13 @@ function realFee(order: any) {
   return 0
 }
 
+function itemsSubtotal(order: any) {
+  if (!Array.isArray(order.items)) return 0
+  return money(order.items.reduce((sum: number, item: any) => {
+    return sum + money(item.price) * Number(item.quantity || 0)
+  }, 0))
+}
+
 export async function GET(request: Request) {
   try {
     const url = new URL(request.url)
@@ -134,7 +146,7 @@ export async function GET(request: Request) {
 
     const { data, error } = await supabase
       .from("orders")
-      .select("id,external_id,order_number,customer_name,payment_status,payment_method,shipping_method,total,subtotal,items,raw,created_at,updated_at")
+      .select("id,external_id,order_number,customer_name,payment_status,payment_method,shipping_method,total,items,raw,created_at")
       .order("created_at", { ascending: false })
       .limit(10000)
 
@@ -148,10 +160,11 @@ export async function GET(request: Request) {
 
       const raw = order.raw || {}
       const total = money(order.total)
-      const subtotal = money(order.subtotal || raw.subtotal)
-      const freight = money(raw.shipping_cost_customer ?? raw.shipping_cost_owner ?? Math.max(0, total - subtotal))
-      const discount = money(raw.discount_coupon ?? raw.discount ?? Math.max(0, subtotal + freight - total))
+      const knownFreight = money(raw.shipping_cost_customer ?? raw.shipping_cost_owner ?? raw.shipping_cost)
+      const subtotal = money(raw.subtotal ?? itemsSubtotal(order) ?? Math.max(0, total - knownFreight))
+      const discount = money(raw.discount_coupon ?? raw.discount ?? Math.max(0, subtotal + knownFreight - total))
       const productNet = money(Math.max(0, subtotal - discount))
+      const freight = knownFreight > 0 ? knownFreight : money(Math.max(0, total - productNet))
       const group = paymentGroup(order)
       const shipping = shippingGroup(order)
       const actualFee = realFee(order)
@@ -177,7 +190,7 @@ export async function GET(request: Request) {
         allMovements.push({
           id: `${order.id}-sale`,
           date: raw.paid_at || order.created_at,
-          orderNumber: String(order.order_number || order.external_id),
+          orderNumber: String(order.order_number || order.external_id || "—"),
           customer: order.customer_name || "Cliente",
           type: "sale",
           paymentGroup: group,
@@ -204,7 +217,7 @@ export async function GET(request: Request) {
         allMovements.push({
           id: `${order.id}-refund`,
           date: refundDate(order),
-          orderNumber: String(order.order_number || order.external_id),
+          orderNumber: String(order.order_number || order.external_id || "—"),
           customer: order.customer_name || "Cliente",
           type: "refund",
           paymentGroup: group,
@@ -230,8 +243,8 @@ export async function GET(request: Request) {
 
     const movements = allMovements
       .filter((movement) => {
-        const key = dateKey(new Date(movement.date))
-        return key >= from && key <= to
+        const key = safeDateKey(movement.date)
+        return Boolean(key && key >= from && key <= to)
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
@@ -260,7 +273,8 @@ export async function GET(request: Request) {
     const chartMap = new Map<string, any>()
 
     for (const movement of movements) {
-      const key = dateKey(new Date(movement.date))
+      const key = safeDateKey(movement.date)
+      if (!key) continue
       const day = chartMap.get(key) || { date: key, sales: 0, fees: 0, refunds: 0, net: 0 }
 
       if (movement.type === "sale") {
@@ -292,6 +306,7 @@ export async function GET(request: Request) {
       } else {
         summary.refunds += movement.refund
         methods[movement.paymentGroup].refunds += movement.refund
+        if (movement.shippingGroup === "bus") methods.bus.net -= movement.refund
         day.refunds += movement.refund
       }
 
