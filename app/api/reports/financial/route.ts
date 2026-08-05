@@ -6,14 +6,8 @@ export const maxDuration = 60
 
 const TZ = "America/Sao_Paulo"
 const PIX_RATE = 0.99
-const CARD_RATES: Record<number, number> = {
-  1: 3.49,
-  2: 5.99,
-  3: 7.99,
-  4: 9.99,
-  5: 11.99,
-  6: 13.99
-}
+const CARD_RATE = 4.09
+const CARD_FIXED_FEE = 0.35
 
 type Store = {
   id: string
@@ -142,24 +136,10 @@ function isPaid(order: any) {
   return status === "paid" || status.includes("pago") || Boolean(order.paid_at)
 }
 
-function installmentsFor(order: any) {
-  const candidates = [
-    order.payment_details?.installments,
-    order.payment_details?.installment_count,
-    order.installments,
-    order.gateway_data?.installments
-  ]
-
-  for (const candidate of candidates) {
-    const value = Number(candidate)
-    if (Number.isFinite(value) && value > 0) return Math.min(6, Math.max(1, Math.trunc(value)))
-  }
-  return 1
-}
-
-function feeRate(payment: PaymentGroup, installments: number) {
-  if (payment === "pix") return PIX_RATE
-  if (payment === "card") return CARD_RATES[installments] ?? CARD_RATES[6]
+function paymentFeeFor(payment: PaymentGroup, total: number) {
+  if (total <= 0) return 0
+  if (payment === "pix") return money(total * PIX_RATE / 100)
+  if (payment === "card") return money(total * CARD_RATE / 100 + CARD_FIXED_FEE)
   return 0
 }
 
@@ -233,23 +213,6 @@ function refundDate(order: any) {
     .sort()
 
   return order.refunded_at || dates.at(-1) || order.updated_at || order.modified_at || order.created_at
-}
-
-function realFee(order: any) {
-  const candidates = [
-    order.payment_details?.fee,
-    order.payment_details?.gateway_fee,
-    order.payment_details?.transaction_fee,
-    order.gateway_fee,
-    order.payment_fee,
-    order.costs?.payment
-  ]
-
-  for (const candidate of candidates) {
-    const fee = money(candidate)
-    if (fee > 0) return fee
-  }
-  return 0
 }
 
 function customerName(order: any) {
@@ -401,18 +364,15 @@ export async function GET(request: Request) {
       const freight = knownFreight > 0 ? knownFreight : money(Math.max(0, total - productNet))
       const payment = paymentGroup(order)
       const shipping = shippingGroup(order)
-      const installments = installmentsFor(order)
-      const actualFee = realFee(order)
-      const rate = feeRate(payment, installments)
-      const feeEstimated = actualFee <= 0 && rate > 0
-      const paymentFee = actualFee > 0 ? actualFee : money(total * rate / 100)
+      const paymentFee = paymentFeeFor(payment, total)
+      const feeEstimated = payment === "pix" || payment === "card"
       const itemCount = Array.isArray(order.products)
         ? order.products.reduce((sum: number, item: any) => sum + Number(item.quantity || 0), 0)
         : 0
       const paymentLabel = payment === "pix"
         ? "Pix"
         : payment === "card"
-          ? `Cartão ${installments}x`
+          ? "Cartão de crédito"
           : payment === "cash"
             ? "Dinheiro"
             : String(order.gateway_name || order.payment_details?.method || "Outro")
@@ -432,7 +392,6 @@ export async function GET(request: Request) {
           paymentLabel,
           shippingGroup: shipping,
           shippingLabel,
-          installments,
           itemCount,
           productGross: subtotal,
           discount,
@@ -459,7 +418,6 @@ export async function GET(request: Request) {
           paymentLabel,
           shippingGroup: shipping,
           shippingLabel,
-          installments,
           itemCount: 0,
           productGross: 0,
           discount: 0,
@@ -581,8 +539,8 @@ export async function GET(request: Request) {
       movements,
       feeConfig: {
         pixPercent: PIX_RATE,
-        cardPercent: CARD_RATES[1],
-        cardRates: CARD_RATES,
+        cardPercent: CARD_RATE,
+        cardFixedFee: CARD_FIXED_FEE,
         otherPercent: 0,
         estimatedFeeOrders: metrics.estimatedFeeOrders
       }
