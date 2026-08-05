@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js"
+import { createClient, SupabaseClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -8,6 +8,8 @@ const TZ = "America/Sao_Paulo"
 const PIX_RATE = 0.99
 const CARD_RATE = 4.09
 const CARD_FIXED_FEE = 0.35
+const ORDER_PAGE_SIZE = 100
+const MAX_ORDER_PAGES = 20
 
 type Store = {
   id: string
@@ -19,6 +21,11 @@ type Store = {
 
 type PaymentGroup = "pix" | "card" | "cash" | "other"
 type ShippingGroup = "bus" | "pickup" | "postal" | "other"
+type ReportRange = {
+  key: string
+  from: string
+  to: string
+}
 
 function money(value: unknown) {
   const parsed = Number(value ?? 0)
@@ -32,6 +39,40 @@ function normalize(value: unknown) {
     .replace(/[\u0300-\u036f]/g, "")
 }
 
+function objectValue(value: unknown): Record<string, any> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, any>
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value)
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed
+        : {}
+    } catch {
+      return {}
+    }
+  }
+
+  return {}
+}
+
+function arrayValue(value: unknown) {
+  if (Array.isArray(value)) return value
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value)
+      return Array.isArray(parsed) ? parsed : []
+    } catch {
+      return []
+    }
+  }
+
+  return []
+}
+
 function dateKey(value: Date) {
   const parts = new Intl.DateTimeFormat("pt-BR", {
     timeZone: TZ,
@@ -43,6 +84,7 @@ function dateKey(value: Date) {
   const year = parts.find((part) => part.type === "year")?.value ?? "0000"
   const month = parts.find((part) => part.type === "month")?.value ?? "00"
   const day = parts.find((part) => part.type === "day")?.value ?? "00"
+
   return `${year}-${month}-${day}`
 }
 
@@ -57,7 +99,7 @@ function addDays(base: string, days: number) {
   return dateKey(value)
 }
 
-function getRange(url: URL) {
+function getRange(url: URL): ReportRange {
   const today = dateKey(new Date())
   const key = url.searchParams.get("range") || "today"
   let from = today
@@ -77,6 +119,7 @@ function getRange(url: URL) {
     const start = new Date(`${today}T12:00:00-03:00`)
     start.setMonth(start.getMonth() - 1, 1)
     from = dateKey(start)
+
     const end = new Date(start)
     end.setMonth(end.getMonth() + 1, 0)
     to = dateKey(end)
@@ -108,12 +151,14 @@ function paymentGroup(order: any): PaymentGroup {
   ].join(" "))
 
   if (value.includes("pix")) return "pix"
+
   if (
     value.includes("card") ||
     value.includes("cart") ||
     value.includes("credito") ||
     value.includes("credit")
   ) return "card"
+
   if (value.includes("dinheiro") || value.includes("cash")) return "cash"
   return "other"
 }
@@ -144,16 +189,23 @@ function paymentFeeFor(payment: PaymentGroup, total: number) {
 }
 
 function itemSubtotal(order: any) {
-  if (!Array.isArray(order.products)) return 0
-  return money(order.products.reduce((sum: number, item: any) => {
-    return sum + money(item.price) * Number(item.quantity || 0)
+  const products = arrayValue(order.products)
+
+  return money(products.reduce((sum: number, item: any) => {
+    return sum + money(item?.price) * Number(item?.quantity || 0)
   }, 0))
+}
+
+function financialHistory(order: any) {
+  return arrayValue(order._financial_history || order.financial_history)
 }
 
 function explicitRefundAmount(order: any) {
   const scalarCandidates = [
     order.refunded_amount,
-    typeof order.refund === "number" || typeof order.refund === "string" ? order.refund : undefined,
+    typeof order.refund === "number" || typeof order.refund === "string"
+      ? order.refund
+      : undefined,
     order.refund?.amount,
     order.refund?.value,
     order.payment_details?.refunded_amount,
@@ -162,27 +214,46 @@ function explicitRefundAmount(order: any) {
   ]
 
   let scalar = 0
-  for (const candidate of scalarCandidates) scalar = Math.max(scalar, money(candidate))
+  for (const candidate of scalarCandidates) {
+    scalar = Math.max(scalar, money(candidate))
+  }
 
   const refundRows = [
-    ...(Array.isArray(order.refunds) ? order.refunds : []),
-    ...(Array.isArray(order.payment_details?.refunds) ? order.payment_details.refunds : [])
+    ...arrayValue(order.refunds),
+    ...arrayValue(order.payment_details?.refunds)
   ]
 
   const rowsTotal = refundRows.reduce((sum: number, row: any) => {
     return sum + money(row?.amount ?? row?.value ?? row?.total)
   }, 0)
 
-  const transactionTotal = (Array.isArray(order.transactions) ? order.transactions : [])
+  const transactionTotal = arrayValue(order.transactions)
     .filter((transaction: any) => {
-      const value = normalize(`${transaction?.type} ${transaction?.status} ${transaction?.kind}`)
-      return value.includes("refund") || value.includes("estorn") || value.includes("chargeback")
+      const value = normalize(
+        `${transaction?.type} ${transaction?.status} ${transaction?.kind}`
+      )
+
+      return (
+        value.includes("refund") ||
+        value.includes("estorn") ||
+        value.includes("chargeback")
+      )
     })
     .reduce((sum: number, transaction: any) => {
-      return sum + money(transaction?.amount ?? transaction?.value ?? transaction?.total)
+      return sum + money(
+        transaction?.amount ?? transaction?.value ?? transaction?.total
+      )
     }, 0)
 
-  return money(Math.max(scalar, rowsTotal, transactionTotal))
+  const historyTotal = financialHistory(order).reduce((sum: number, item: any) => {
+    const difference = money(
+      item?.total_paid_diff ?? item?.amount_diff ?? item?.value
+    )
+
+    return difference < 0 ? sum + Math.abs(difference) : sum
+  }, 0)
+
+  return money(Math.max(scalar, rowsTotal, transactionTotal, historyTotal))
 }
 
 function refundValue(order: any) {
@@ -190,6 +261,7 @@ function refundValue(order: any) {
   if (explicit > 0) return explicit
 
   const status = normalize(`${order.payment_status} ${order.status}`)
+
   if (
     status.includes("refunded") ||
     status.includes("reembols") ||
@@ -203,22 +275,45 @@ function refundValue(order: any) {
 
 function refundDate(order: any) {
   const refundRows = [
-    ...(Array.isArray(order.refunds) ? order.refunds : []),
-    ...(Array.isArray(order.payment_details?.refunds) ? order.payment_details.refunds : [])
+    ...arrayValue(order.refunds),
+    ...arrayValue(order.payment_details?.refunds)
   ]
 
-  const dates = refundRows
+  const refundDates = refundRows
     .map((row: any) => row?.created_at || row?.refunded_at || row?.date)
     .filter(Boolean)
-    .sort()
 
-  return order.refunded_at || dates.at(-1) || order.updated_at || order.modified_at || order.created_at
+  const historyDates = financialHistory(order)
+    .filter((item: any) => {
+      return money(item?.total_paid_diff ?? item?.amount_diff ?? item?.value) < 0
+    })
+    .map((item: any) => item?.created_at || item?.date || item?.updated_at)
+    .filter(Boolean)
+
+  const dates = [...refundDates, ...historyDates].sort()
+
+  return (
+    order.refunded_at ||
+    dates.at(-1) ||
+    order.updated_at ||
+    order.modified_at ||
+    order.created_at
+  )
 }
 
 function customerName(order: any) {
-  const customer = order.customer || {}
-  const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(" ")
-  return customer.name || fullName || order.billing_address?.name || "Cliente"
+  const customer = objectValue(order.customer)
+  const fullName = [customer.first_name, customer.last_name]
+    .filter(Boolean)
+    .join(" ")
+
+  return (
+    customer.name ||
+    fullName ||
+    order.billing_address?.name ||
+    order.customer_name ||
+    "Cliente"
+  )
 }
 
 function storeTimestamp(store: Store) {
@@ -230,6 +325,7 @@ function groupStores(stores: Store[]) {
 
   for (const store of stores) {
     if (!store.user_id || !store.access_token) continue
+
     const key = String(store.user_id)
     const list = grouped.get(key) || []
     list.push(store)
@@ -239,15 +335,25 @@ function groupStores(stores: Store[]) {
   for (const list of grouped.values()) {
     list.sort((a, b) => storeTimestamp(b) - storeTimestamp(a))
   }
+
   return grouped
 }
 
-async function fetchPage(store: Store, from: string, to: string, page: number) {
+function isTransientNuvemshopStatus(status: number) {
+  return [408, 425, 429, 500, 502, 503, 504].includes(status)
+}
+
+async function fetchNuvemshopPage(
+  store: Store,
+  range: ReportRange,
+  page: number,
+  attempt = 1
+): Promise<any[]> {
   const params = new URLSearchParams({
-    updated_at_min: isoStart(from),
-    updated_at_max: isoEnd(to),
+    updated_at_min: isoStart(range.from),
+    updated_at_max: isoEnd(range.to),
     page: String(page),
-    per_page: "100"
+    per_page: String(ORDER_PAGE_SIZE)
   })
 
   const controller = new AbortController()
@@ -270,24 +376,85 @@ async function fetchPage(store: Store, from: string, to: string, page: number) {
 
     if (!response.ok) {
       const body = await response.text()
-      throw new Error(`NUVEMSHOP_${response.status}:${body.slice(0, 120)}`)
+
+      if (attempt < 2 && isTransientNuvemshopStatus(response.status)) {
+        await new Promise((resolve) => setTimeout(resolve, 450))
+        return fetchNuvemshopPage(store, range, page, attempt + 1)
+      }
+
+      throw new Error(
+        `NUVEMSHOP_${response.status}:${body.slice(0, 160)}`
+      )
     }
 
     const payload = await response.json()
     return Array.isArray(payload) ? payload : []
+  } catch (error) {
+    if (attempt < 2 && error instanceof Error && error.name === "AbortError") {
+      await new Promise((resolve) => setTimeout(resolve, 450))
+      return fetchNuvemshopPage(store, range, page, attempt + 1)
+    }
+
+    throw error
   } finally {
     clearTimeout(timeout)
   }
 }
 
-async function fetchOrdersForRange(store: Store, from: string, to: string) {
+async function fetchNuvemshopOrders(store: Store, range: ReportRange) {
   const orders: any[] = []
-  for (let page = 1; page <= 50; page++) {
-    const batch = await fetchPage(store, from, to, page)
+
+  for (let page = 1; page <= MAX_ORDER_PAGES; page++) {
+    const batch = await fetchNuvemshopPage(store, range, page)
     orders.push(...batch)
-    if (batch.length < 100) break
+
+    if (batch.length < ORDER_PAGE_SIZE) break
   }
+
   return orders
+}
+
+function normalizeLocalOrder(row: any) {
+  const raw = objectValue(row.raw)
+  const rawCustomer = objectValue(raw.customer)
+  const items = arrayValue(raw.products).length
+    ? arrayValue(raw.products)
+    : arrayValue(row.items)
+
+  return {
+    ...raw,
+    id: raw.id || row.external_id || row.id,
+    number: raw.number || row.order_number || row.external_id || row.id,
+    customer: Object.keys(rawCustomer).length
+      ? rawCustomer
+      : { name: row.customer_name || "Cliente" },
+    customer_name: row.customer_name,
+    payment_status: row.payment_status || raw.payment_status,
+    payment_method: row.payment_method || raw.payment_method,
+    gateway_name: raw.gateway_name || row.payment_method,
+    shipping_method: row.shipping_method || raw.shipping_method,
+    total: row.total ?? raw.total,
+    products: items,
+    created_at: raw.created_at || row.created_at,
+    paid_at: raw.paid_at,
+    _financial_history: raw._financial_history
+  }
+}
+
+async function fetchLocalOrders(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from("orders")
+    .select(
+      "id,external_id,order_number,customer_name,payment_status,payment_method,shipping_method,total,items,raw,created_at"
+    )
+    .order("created_at", { ascending: false })
+    .limit(10000)
+
+  if (error) {
+    throw new Error(`LOCAL_ORDERS:${error.message}`)
+  }
+
+  return (data || []).map(normalizeLocalOrder)
 }
 
 function emptyMethods() {
@@ -296,16 +463,280 @@ function emptyMethods() {
     card: { orders: 0, received: 0, fees: 0, refunds: 0, net: 0 },
     cash: { orders: 0, received: 0, fees: 0, refunds: 0, net: 0 },
     other: { orders: 0, received: 0, fees: 0, refunds: 0, net: 0 },
-    bus: { orders: 0, salesWithoutFreight: 0, charged: 0, paymentFees: 0, net: 0 }
+    bus: {
+      orders: 0,
+      salesWithoutFreight: 0,
+      charged: 0,
+      paymentFees: 0,
+      net: 0
+    }
   } as any
 }
 
 function safeErrorMessage(error: unknown) {
   const message = error instanceof Error ? error.message : String(error)
-  if (message.includes("NUVEMSHOP_401")) return "A conexão da Nuvemshop precisa ser renovada."
-  if (message.includes("NUVEMSHOP_429")) return "A Nuvemshop limitou temporariamente as consultas. Tente novamente em instantes."
-  if (message.includes("AbortError") || message.includes("aborted")) return "A Nuvemshop demorou para responder. Tente novamente."
+
+  if (message.includes("NUVEMSHOP_401")) {
+    return "A conexão da Nuvemshop precisa ser renovada."
+  }
+
+  if (message.includes("NUVEMSHOP_429")) {
+    return "A Nuvemshop limitou temporariamente as consultas."
+  }
+
+  if (message.includes("AbortError") || message.includes("aborted")) {
+    return "A Nuvemshop demorou para responder."
+  }
+
   return "Não foi possível consultar os pedidos da Nuvemshop."
+}
+
+function buildReport(
+  orders: any[],
+  range: ReportRange,
+  source: "nuvemshop" | "database",
+  warning?: string
+) {
+  const allMovements: any[] = []
+
+  for (const order of orders) {
+    const total = money(order.total)
+    const knownFreight = money(
+      order.shipping_cost_customer ??
+      order.shipping_cost_owner ??
+      order.shipping_cost
+    )
+    const subtotal = money(
+      order.subtotal ||
+      itemSubtotal(order) ||
+      Math.max(0, total - knownFreight)
+    )
+    const discount = money(
+      order.discount ??
+      order.discount_coupon ??
+      Math.max(0, subtotal + knownFreight - total)
+    )
+    const productNet = money(Math.max(0, subtotal - discount))
+    const freight = knownFreight > 0
+      ? knownFreight
+      : money(Math.max(0, total - productNet))
+    const payment = paymentGroup(order)
+    const shipping = shippingGroup(order)
+    const paymentFee = paymentFeeFor(payment, total)
+    const feeEstimated = payment === "pix" || payment === "card"
+    const products = arrayValue(order.products)
+    const itemCount = products.reduce((sum: number, item: any) => {
+      return sum + Number(item?.quantity || 0)
+    }, 0)
+    const paymentLabel = payment === "pix"
+      ? "Pix"
+      : payment === "card"
+        ? "Cartão de crédito"
+        : payment === "cash"
+          ? "Dinheiro"
+          : String(
+              order.gateway_name ||
+              order.payment_details?.method ||
+              order.payment_method ||
+              "Outro"
+            )
+    const shippingLabel = shipping === "bus"
+      ? "Ônibus / excursão"
+      : String(
+          order.shipping_option ||
+          order.shipping_option_reference ||
+          order.shipping_method ||
+          "Não informado"
+        )
+    const refund = refundValue(order)
+
+    if (isPaid(order)) {
+      allMovements.push({
+        id: `${order.id}-sale`,
+        date: order.paid_at || order.created_at,
+        orderNumber: String(order.number || order.id || "—"),
+        customer: customerName(order),
+        type: "sale",
+        paymentGroup: payment,
+        paymentLabel,
+        shippingGroup: shipping,
+        shippingLabel,
+        itemCount,
+        productGross: subtotal,
+        discount,
+        productNet,
+        freight,
+        busFee: shipping === "bus" ? freight : 0,
+        totalReceived: total,
+        paymentFee,
+        refund: 0,
+        net: money(total - paymentFee),
+        feeEstimated,
+        status: String(order.payment_status || "Pago")
+      })
+    }
+
+    if (refund > 0) {
+      allMovements.push({
+        id: `${order.id}-refund`,
+        date: refundDate(order),
+        orderNumber: String(order.number || order.id || "—"),
+        customer: customerName(order),
+        type: "refund",
+        paymentGroup: payment,
+        paymentLabel,
+        shippingGroup: shipping,
+        shippingLabel,
+        itemCount: 0,
+        productGross: 0,
+        discount: 0,
+        productNet: 0,
+        freight: 0,
+        busFee: 0,
+        totalReceived: 0,
+        paymentFee: 0,
+        refund,
+        net: -refund,
+        feeEstimated: false,
+        status: String(order.payment_status || "Reembolsado")
+      })
+    }
+  }
+
+  const movements = allMovements
+    .filter((movement) => {
+      const key = safeDateKey(movement.date)
+      return Boolean(key && key >= range.from && key <= range.to)
+    })
+    .sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime()
+    })
+
+  const metrics: any = {
+    orders: 0,
+    items: 0,
+    productGross: 0,
+    discounts: 0,
+    salesWithoutFreight: 0,
+    freight: 0,
+    busFees: 0,
+    totalReceived: 0,
+    paymentFees: 0,
+    refunds: 0,
+    net: 0,
+    ticketWithoutFreight: 0,
+    estimatedFeeOrders: 0
+  }
+
+  const methods = emptyMethods()
+  const chartMap = new Map<string, any>()
+
+  for (const movement of movements) {
+    const key = safeDateKey(movement.date)
+    if (!key) continue
+
+    const day = chartMap.get(key) || {
+      date: key,
+      sales: 0,
+      fees: 0,
+      refunds: 0,
+      net: 0
+    }
+    const method = methods[movement.paymentGroup] || methods.other
+
+    if (movement.type === "sale") {
+      metrics.orders += 1
+      metrics.items += movement.itemCount
+      metrics.productGross += movement.productGross
+      metrics.discounts += movement.discount
+      metrics.salesWithoutFreight += movement.productNet
+      metrics.freight += movement.freight
+      metrics.busFees += movement.busFee
+      metrics.totalReceived += movement.totalReceived
+      metrics.paymentFees += movement.paymentFee
+
+      if (movement.feeEstimated) metrics.estimatedFeeOrders += 1
+
+      method.orders += 1
+      method.received += movement.totalReceived
+      method.fees += movement.paymentFee
+
+      if (movement.shippingGroup === "bus") {
+        methods.bus.orders += 1
+        methods.bus.salesWithoutFreight += movement.productNet
+        methods.bus.charged += movement.busFee
+        methods.bus.paymentFees += movement.paymentFee
+        methods.bus.net += movement.net
+      }
+
+      day.sales += movement.totalReceived
+      day.fees += movement.paymentFee
+    } else {
+      metrics.refunds += movement.refund
+      method.refunds += movement.refund
+
+      if (movement.shippingGroup === "bus") {
+        methods.bus.net -= movement.refund
+      }
+
+      day.refunds += movement.refund
+    }
+
+    metrics.net += movement.net
+    method.net += movement.net
+    day.net += movement.net
+    chartMap.set(key, day)
+  }
+
+  metrics.ticketWithoutFreight = metrics.orders
+    ? money(metrics.salesWithoutFreight / metrics.orders)
+    : 0
+
+  for (const key of Object.keys(metrics)) {
+    if (typeof metrics[key] === "number") metrics[key] = money(metrics[key])
+  }
+
+  for (const key of ["pix", "card", "cash", "other"]) {
+    methods[key].received = money(methods[key].received)
+    methods[key].fees = money(methods[key].fees)
+    methods[key].refunds = money(methods[key].refunds)
+    methods[key].net = money(methods[key].net)
+  }
+
+  for (const key of ["salesWithoutFreight", "charged", "paymentFees", "net"]) {
+    methods.bus[key] = money(methods.bus[key])
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    source,
+    warning: warning || null,
+    range: {
+      key: range.key,
+      label: `${range.from} a ${range.to}`,
+      from: range.from,
+      to: range.to
+    },
+    metrics,
+    methods,
+    chart: Array.from(chartMap.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((item) => ({
+        ...item,
+        sales: money(item.sales),
+        fees: money(item.fees),
+        refunds: money(item.refunds),
+        net: money(item.net)
+      })),
+    movements,
+    feeConfig: {
+      pixPercent: PIX_RATE,
+      cardPercent: CARD_RATE,
+      cardFixedFee: CARD_FIXED_FEE,
+      otherPercent: 0,
+      estimatedFeeOrders: metrics.estimatedFeeOrders
+    }
+  }
 }
 
 export async function GET(request: Request) {
@@ -314,239 +745,86 @@ export async function GET(request: Request) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !serviceKey) {
-      return Response.json({ error: "A configuração do financeiro está incompleta." }, { status: 500 })
+      return Response.json(
+        { error: "A configuração do financeiro está incompleta." },
+        { status: 500 }
+      )
     }
 
     const supabase = createClient(supabaseUrl, serviceKey)
     const range = getRange(new URL(request.url))
-    const { data: storeRows, error: storesError } = await supabase.from("stores").select("*")
+    const { data: storeRows, error: storesError } = await supabase
+      .from("stores")
+      .select("*")
 
-    if (storesError) {
-      console.error("Financeiro: erro ao buscar lojas", storesError)
-      return Response.json({ error: "Não foi possível acessar o cadastro da loja." }, { status: 500 })
-    }
-
-    const groupedStores = groupStores((storeRows || []) as Store[])
-    if (groupedStores.size === 0) {
-      return Response.json({ error: "Nenhuma loja Nuvemshop conectada foi encontrada." }, { status: 409 })
-    }
-
-    const orderMap = new Map<string, any>()
     const failures: string[] = []
+    const orderMap = new Map<string, any>()
     let successfulStores = 0
 
-    for (const [storeId, credentials] of groupedStores) {
-      for (const store of credentials) {
-        try {
-          const orders = await fetchOrdersForRange(store, range.from, range.to)
-          for (const order of orders) orderMap.set(`${storeId}:${order.id}`, order)
-          successfulStores += 1
-          break
-        } catch (error) {
-          console.error(`Financeiro: falha na loja ${storeId}`, error)
-          failures.push(safeErrorMessage(error))
+    if (!storesError) {
+      const groupedStores = groupStores((storeRows || []) as Store[])
+
+      for (const [storeId, credentials] of groupedStores) {
+        for (const store of credentials) {
+          try {
+            const orders = await fetchNuvemshopOrders(store, range)
+
+            for (const order of orders) {
+              orderMap.set(`${storeId}:${order.id}`, order)
+            }
+
+            successfulStores += 1
+            break
+          } catch (error) {
+            console.error(`Financeiro: falha na Nuvemshop para loja ${storeId}`, error)
+            failures.push(safeErrorMessage(error))
+          }
         }
       }
+    } else {
+      console.error("Financeiro: erro ao buscar lojas", storesError)
+      failures.push("Não foi possível acessar o cadastro da loja.")
     }
 
-    if (successfulStores === 0) {
-      return Response.json({ error: failures[0] || "Não foi possível consultar a Nuvemshop." }, { status: 502 })
+    if (successfulStores > 0) {
+      return Response.json(
+        buildReport(
+          Array.from(orderMap.values()),
+          range,
+          "nuvemshop"
+        )
+      )
     }
 
-    const allMovements: any[] = []
+    try {
+      const localOrders = await fetchLocalOrders(supabase)
 
-    for (const order of orderMap.values()) {
-      const total = money(order.total)
-      const knownFreight = money(order.shipping_cost_customer ?? order.shipping_cost_owner ?? order.shipping_cost)
-      const subtotal = money(order.subtotal || itemSubtotal(order) || Math.max(0, total - knownFreight))
-      const discount = money(order.discount ?? order.discount_coupon ?? Math.max(0, subtotal + knownFreight - total))
-      const productNet = money(Math.max(0, subtotal - discount))
-      const freight = knownFreight > 0 ? knownFreight : money(Math.max(0, total - productNet))
-      const payment = paymentGroup(order)
-      const shipping = shippingGroup(order)
-      const paymentFee = paymentFeeFor(payment, total)
-      const feeEstimated = payment === "pix" || payment === "card"
-      const itemCount = Array.isArray(order.products)
-        ? order.products.reduce((sum: number, item: any) => sum + Number(item.quantity || 0), 0)
-        : 0
-      const paymentLabel = payment === "pix"
-        ? "Pix"
-        : payment === "card"
-          ? "Cartão de crédito"
-          : payment === "cash"
-            ? "Dinheiro"
-            : String(order.gateway_name || order.payment_details?.method || "Outro")
-      const shippingLabel = shipping === "bus"
-        ? "Ônibus / excursão"
-        : String(order.shipping_option || order.shipping_option_reference || "Não informado")
-      const refund = refundValue(order)
+      return Response.json(
+        buildReport(
+          localOrders,
+          range,
+          "database",
+          "A Nuvemshop não respondeu. Os valores exibidos vieram dos pedidos já sincronizados no sistema."
+        )
+      )
+    } catch (fallbackError) {
+      console.error("Financeiro: fallback local também falhou", fallbackError)
 
-      if (isPaid(order)) {
-        allMovements.push({
-          id: `${order.id}-sale`,
-          date: order.paid_at || order.created_at,
-          orderNumber: String(order.number || order.id || "—"),
-          customer: customerName(order),
-          type: "sale",
-          paymentGroup: payment,
-          paymentLabel,
-          shippingGroup: shipping,
-          shippingLabel,
-          itemCount,
-          productGross: subtotal,
-          discount,
-          productNet,
-          freight,
-          busFee: shipping === "bus" ? freight : 0,
-          totalReceived: total,
-          paymentFee,
-          refund: 0,
-          net: money(total - paymentFee),
-          feeEstimated,
-          status: String(order.payment_status || "Pago")
-        })
-      }
-
-      if (refund > 0) {
-        allMovements.push({
-          id: `${order.id}-refund`,
-          date: refundDate(order),
-          orderNumber: String(order.number || order.id || "—"),
-          customer: customerName(order),
-          type: "refund",
-          paymentGroup: payment,
-          paymentLabel,
-          shippingGroup: shipping,
-          shippingLabel,
-          itemCount: 0,
-          productGross: 0,
-          discount: 0,
-          productNet: 0,
-          freight: 0,
-          busFee: 0,
-          totalReceived: 0,
-          paymentFee: 0,
-          refund,
-          net: -refund,
-          feeEstimated: false,
-          status: String(order.payment_status || "Reembolsado")
-        })
-      }
+      return Response.json(
+        {
+          error:
+            failures[0] ||
+            "Não foi possível consultar os pedidos da Nuvemshop nem o histórico sincronizado."
+        },
+        { status: 502 }
+      )
     }
-
-    const movements = allMovements
-      .filter((movement) => {
-        const key = safeDateKey(movement.date)
-        return Boolean(key && key >= range.from && key <= range.to)
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-
-    const metrics: any = {
-      orders: 0,
-      items: 0,
-      productGross: 0,
-      discounts: 0,
-      salesWithoutFreight: 0,
-      freight: 0,
-      busFees: 0,
-      totalReceived: 0,
-      paymentFees: 0,
-      refunds: 0,
-      net: 0,
-      ticketWithoutFreight: 0,
-      estimatedFeeOrders: 0
-    }
-
-    const methods = emptyMethods()
-    const chartMap = new Map<string, any>()
-
-    for (const movement of movements) {
-      const key = safeDateKey(movement.date)
-      if (!key) continue
-      const day = chartMap.get(key) || { date: key, sales: 0, fees: 0, refunds: 0, net: 0 }
-      const method = methods[movement.paymentGroup] || methods.other
-
-      if (movement.type === "sale") {
-        metrics.orders += 1
-        metrics.items += movement.itemCount
-        metrics.productGross += movement.productGross
-        metrics.discounts += movement.discount
-        metrics.salesWithoutFreight += movement.productNet
-        metrics.freight += movement.freight
-        metrics.busFees += movement.busFee
-        metrics.totalReceived += movement.totalReceived
-        metrics.paymentFees += movement.paymentFee
-        if (movement.feeEstimated) metrics.estimatedFeeOrders += 1
-
-        method.orders += 1
-        method.received += movement.totalReceived
-        method.fees += movement.paymentFee
-
-        if (movement.shippingGroup === "bus") {
-          methods.bus.orders += 1
-          methods.bus.salesWithoutFreight += movement.productNet
-          methods.bus.charged += movement.busFee
-          methods.bus.paymentFees += movement.paymentFee
-          methods.bus.net += movement.net
-        }
-
-        day.sales += movement.totalReceived
-        day.fees += movement.paymentFee
-      } else {
-        metrics.refunds += movement.refund
-        method.refunds += movement.refund
-        if (movement.shippingGroup === "bus") methods.bus.net -= movement.refund
-        day.refunds += movement.refund
-      }
-
-      metrics.net += movement.net
-      method.net += movement.net
-      day.net += movement.net
-      chartMap.set(key, day)
-    }
-
-    metrics.ticketWithoutFreight = metrics.orders ? money(metrics.salesWithoutFreight / metrics.orders) : 0
-
-    for (const key of Object.keys(metrics)) {
-      if (typeof metrics[key] === "number") metrics[key] = money(metrics[key])
-    }
-
-    for (const key of ["pix", "card", "cash", "other"]) {
-      methods[key].received = money(methods[key].received)
-      methods[key].fees = money(methods[key].fees)
-      methods[key].refunds = money(methods[key].refunds)
-      methods[key].net = money(methods[key].net)
-    }
-
-    for (const key of ["salesWithoutFreight", "charged", "paymentFees", "net"]) {
-      methods.bus[key] = money(methods.bus[key])
-    }
-
-    return Response.json({
-      generatedAt: new Date().toISOString(),
-      range: { key: range.key, label: `${range.from} a ${range.to}`, from: range.from, to: range.to },
-      metrics,
-      methods,
-      chart: Array.from(chartMap.values())
-        .sort((a, b) => a.date.localeCompare(b.date))
-        .map((item) => ({
-          ...item,
-          sales: money(item.sales),
-          fees: money(item.fees),
-          refunds: money(item.refunds),
-          net: money(item.net)
-        })),
-      movements,
-      feeConfig: {
-        pixPercent: PIX_RATE,
-        cardPercent: CARD_RATE,
-        cardFixedFee: CARD_FIXED_FEE,
-        otherPercent: 0,
-        estimatedFeeOrders: metrics.estimatedFeeOrders
-      }
-    })
   } catch (error) {
     console.error("Erro relatório financeiro:", error)
-    return Response.json({ error: safeErrorMessage(error) }, { status: 500 })
+
+    return Response.json(
+      { error: "Não foi possível carregar o financeiro." },
+      { status: 500 }
+    )
   }
 }
