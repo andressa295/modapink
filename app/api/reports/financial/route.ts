@@ -8,8 +8,9 @@ const TZ = "America/Sao_Paulo"
 const PIX_RATE = 0.99
 const CARD_RATE = 4.09
 const CARD_FIXED_FEE = 0.35
-const ORDER_PAGE_SIZE = 100
-const MAX_ORDER_PAGES = 20
+const PAGE_SIZE = 100
+const MAX_FILTERED_PAGES = 20
+const MAX_SIMPLE_PAGES = 30
 
 type Store = {
   id: string
@@ -19,13 +20,16 @@ type Store = {
   updated_at?: string | null
 }
 
-type PaymentGroup = "pix" | "card" | "cash" | "other"
-type ShippingGroup = "bus" | "pickup" | "postal" | "other"
 type ReportRange = {
   key: string
   from: string
   to: string
 }
+
+type PaymentGroup = "pix" | "card" | "cash" | "other"
+type ShippingGroup = "bus" | "pickup" | "postal" | "other"
+type OrderSource = "nuvemshop" | "database"
+type FetchMode = "filtered" | "simple"
 
 function money(value: unknown) {
   const parsed = Number(value ?? 0)
@@ -58,7 +62,7 @@ function objectValue(value: unknown): Record<string, any> {
   return {}
 }
 
-function arrayValue(value: unknown) {
+function arrayValue(value: unknown): any[] {
   if (Array.isArray(value)) return value
 
   if (typeof value === "string") {
@@ -84,7 +88,6 @@ function dateKey(value: Date) {
   const year = parts.find((part) => part.type === "year")?.value ?? "0000"
   const month = parts.find((part) => part.type === "month")?.value ?? "00"
   const day = parts.find((part) => part.type === "day")?.value ?? "00"
-
   return `${year}-${month}-${day}`
 }
 
@@ -151,14 +154,12 @@ function paymentGroup(order: any): PaymentGroup {
   ].join(" "))
 
   if (value.includes("pix")) return "pix"
-
   if (
     value.includes("card") ||
     value.includes("cart") ||
     value.includes("credito") ||
     value.includes("credit")
   ) return "card"
-
   if (value.includes("dinheiro") || value.includes("cash")) return "cash"
   return "other"
 }
@@ -189,9 +190,7 @@ function paymentFeeFor(payment: PaymentGroup, total: number) {
 }
 
 function itemSubtotal(order: any) {
-  const products = arrayValue(order.products)
-
-  return money(products.reduce((sum: number, item: any) => {
+  return money(arrayValue(order.products).reduce((sum: number, item: any) => {
     return sum + money(item?.price) * Number(item?.quantity || 0)
   }, 0))
 }
@@ -232,24 +231,14 @@ function explicitRefundAmount(order: any) {
       const value = normalize(
         `${transaction?.type} ${transaction?.status} ${transaction?.kind}`
       )
-
-      return (
-        value.includes("refund") ||
-        value.includes("estorn") ||
-        value.includes("chargeback")
-      )
+      return value.includes("refund") || value.includes("estorn") || value.includes("chargeback")
     })
     .reduce((sum: number, transaction: any) => {
-      return sum + money(
-        transaction?.amount ?? transaction?.value ?? transaction?.total
-      )
+      return sum + money(transaction?.amount ?? transaction?.value ?? transaction?.total)
     }, 0)
 
   const historyTotal = financialHistory(order).reduce((sum: number, item: any) => {
-    const difference = money(
-      item?.total_paid_diff ?? item?.amount_diff ?? item?.value
-    )
-
+    const difference = money(item?.total_paid_diff ?? item?.amount_diff ?? item?.value)
     return difference < 0 ? sum + Math.abs(difference) : sum
   }, 0)
 
@@ -261,7 +250,6 @@ function refundValue(order: any) {
   if (explicit > 0) return explicit
 
   const status = normalize(`${order.payment_status} ${order.status}`)
-
   if (
     status.includes("refunded") ||
     status.includes("reembols") ||
@@ -274,12 +262,10 @@ function refundValue(order: any) {
 }
 
 function refundDate(order: any) {
-  const refundRows = [
+  const refundDates = [
     ...arrayValue(order.refunds),
     ...arrayValue(order.payment_details?.refunds)
   ]
-
-  const refundDates = refundRows
     .map((row: any) => row?.created_at || row?.refunded_at || row?.date)
     .filter(Boolean)
 
@@ -303,9 +289,7 @@ function refundDate(order: any) {
 
 function customerName(order: any) {
   const customer = objectValue(order.customer)
-  const fullName = [customer.first_name, customer.last_name]
-    .filter(Boolean)
-    .join(" ")
+  const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(" ")
 
   return (
     customer.name ||
@@ -325,7 +309,6 @@ function groupStores(stores: Store[]) {
 
   for (const store of stores) {
     if (!store.user_id || !store.access_token) continue
-
     const key = String(store.user_id)
     const list = grouped.get(key) || []
     list.push(store)
@@ -339,7 +322,13 @@ function groupStores(stores: Store[]) {
   return grouped
 }
 
-function isTransientNuvemshopStatus(status: number) {
+function errorStatus(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  const match = message.match(/NUVEMSHOP_(\d+)/)
+  return match ? Number(match[1]) : 0
+}
+
+function isTransientStatus(status: number) {
   return [408, 425, 429, 500, 502, 503, 504].includes(status)
 }
 
@@ -347,17 +336,21 @@ async function fetchNuvemshopPage(
   store: Store,
   range: ReportRange,
   page: number,
+  mode: FetchMode,
   attempt = 1
 ): Promise<any[]> {
   const params = new URLSearchParams({
-    updated_at_min: isoStart(range.from),
-    updated_at_max: isoEnd(range.to),
     page: String(page),
-    per_page: String(ORDER_PAGE_SIZE)
+    per_page: String(PAGE_SIZE)
   })
 
+  if (mode === "filtered") {
+    params.set("updated_at_min", isoStart(range.from))
+    params.set("updated_at_max", isoEnd(range.to))
+  }
+
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 12000)
+  const timeout = setTimeout(() => controller.abort(), 14000)
 
   try {
     const response = await fetch(
@@ -377,22 +370,20 @@ async function fetchNuvemshopPage(
     if (!response.ok) {
       const body = await response.text()
 
-      if (attempt < 2 && isTransientNuvemshopStatus(response.status)) {
-        await new Promise((resolve) => setTimeout(resolve, 450))
-        return fetchNuvemshopPage(store, range, page, attempt + 1)
+      if (attempt < 2 && isTransientStatus(response.status)) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        return fetchNuvemshopPage(store, range, page, mode, attempt + 1)
       }
 
-      throw new Error(
-        `NUVEMSHOP_${response.status}:${body.slice(0, 160)}`
-      )
+      throw new Error(`NUVEMSHOP_${response.status}:${body.slice(0, 180)}`)
     }
 
     const payload = await response.json()
     return Array.isArray(payload) ? payload : []
   } catch (error) {
     if (attempt < 2 && error instanceof Error && error.name === "AbortError") {
-      await new Promise((resolve) => setTimeout(resolve, 450))
-      return fetchNuvemshopPage(store, range, page, attempt + 1)
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      return fetchNuvemshopPage(store, range, page, mode, attempt + 1)
     }
 
     throw error
@@ -401,60 +392,96 @@ async function fetchNuvemshopPage(
   }
 }
 
-async function fetchNuvemshopOrders(store: Store, range: ReportRange) {
+async function fetchPages(store: Store, range: ReportRange, mode: FetchMode) {
   const orders: any[] = []
+  const maxPages = mode === "filtered" ? MAX_FILTERED_PAGES : MAX_SIMPLE_PAGES
 
-  for (let page = 1; page <= MAX_ORDER_PAGES; page++) {
-    const batch = await fetchNuvemshopPage(store, range, page)
+  for (let page = 1; page <= maxPages; page++) {
+    const batch = await fetchNuvemshopPage(store, range, page, mode)
     orders.push(...batch)
 
-    if (batch.length < ORDER_PAGE_SIZE) break
+    if (batch.length < PAGE_SIZE) break
+
+    if (mode === "simple") {
+      const oldest = batch
+        .map((order: any) => safeDateKey(order?.created_at))
+        .filter((value): value is string => Boolean(value))
+        .sort()[0]
+
+      if (oldest && oldest < addDays(range.from, -7)) break
+    }
   }
 
   return orders
 }
 
+async function fetchNuvemshopOrders(store: Store, range: ReportRange) {
+  try {
+    return await fetchPages(store, range, "filtered")
+  } catch (error) {
+    const status = errorStatus(error)
+
+    if ([400, 404, 405, 422].includes(status)) {
+      console.warn(
+        `Financeiro: filtro por atualização rejeitado para loja ${store.user_id}; usando consulta simples.`
+      )
+      return fetchPages(store, range, "simple")
+    }
+
+    throw error
+  }
+}
+
 function normalizeLocalOrder(row: any) {
-  const raw = objectValue(row.raw)
+  const raw = objectValue(row?.raw)
   const rawCustomer = objectValue(raw.customer)
-  const items = arrayValue(raw.products).length
-    ? arrayValue(raw.products)
-    : arrayValue(row.items)
+  const rawProducts = arrayValue(raw.products)
+  const items = rawProducts.length
+    ? rawProducts
+    : arrayValue(row?.items || row?.raw_products)
 
   return {
+    ...row,
     ...raw,
-    id: raw.id || row.external_id || row.id,
-    number: raw.number || row.order_number || row.external_id || row.id,
+    id: raw.id || row?.external_id || row?.id,
+    number: raw.number || row?.order_number || row?.external_id || row?.id,
     customer: Object.keys(rawCustomer).length
       ? rawCustomer
-      : { name: row.customer_name || "Cliente" },
-    customer_name: row.customer_name,
-    payment_status: row.payment_status || raw.payment_status,
-    payment_method: row.payment_method || raw.payment_method,
-    gateway_name: raw.gateway_name || row.payment_method,
-    shipping_method: row.shipping_method || raw.shipping_method,
-    total: row.total ?? raw.total,
+      : { name: row?.customer_name || "Cliente" },
+    customer_name: row?.customer_name || raw.customer_name,
+    payment_status: row?.payment_status || raw.payment_status,
+    payment_method: row?.payment_method || raw.payment_method,
+    gateway_name: raw.gateway_name || row?.payment_method,
+    shipping_method: row?.shipping_method || raw.shipping_method || raw.shipping_option,
+    subtotal: row?.subtotal ?? raw.subtotal,
+    total: row?.total ?? raw.total,
     products: items,
-    created_at: raw.created_at || row.created_at,
-    paid_at: raw.paid_at,
-    _financial_history: raw._financial_history
+    created_at: raw.created_at || row?.created_at,
+    updated_at: raw.updated_at || row?.updated_at,
+    paid_at: raw.paid_at || row?.paid_at,
+    _financial_history: raw._financial_history || row?._financial_history
   }
 }
 
 async function fetchLocalOrders(supabase: SupabaseClient) {
-  const { data, error } = await supabase
-    .from("orders")
-    .select(
-      "id,external_id,order_number,customer_name,payment_status,payment_method,shipping_method,total,items,raw,created_at"
-    )
-    .order("created_at", { ascending: false })
-    .limit(10000)
+  const rows: any[] = []
+  const chunkSize = 1000
 
-  if (error) {
-    throw new Error(`LOCAL_ORDERS:${error.message}`)
+  for (let start = 0; start < 10000; start += chunkSize) {
+    const { data, error } = await supabase
+      .from("orders")
+      .select("*")
+      .range(start, start + chunkSize - 1)
+
+    if (error) {
+      throw new Error(`LOCAL_ORDERS:${error.message}`)
+    }
+
+    rows.push(...(data || []))
+    if (!data || data.length < chunkSize) break
   }
 
-  return (data || []).map(normalizeLocalOrder)
+  return rows.map(normalizeLocalOrder)
 }
 
 function emptyMethods() {
@@ -479,11 +506,12 @@ function safeErrorMessage(error: unknown) {
   if (message.includes("NUVEMSHOP_401")) {
     return "A conexão da Nuvemshop precisa ser renovada."
   }
-
+  if (message.includes("NUVEMSHOP_403")) {
+    return "A Nuvemshop recusou o acesso aos pedidos."
+  }
   if (message.includes("NUVEMSHOP_429")) {
     return "A Nuvemshop limitou temporariamente as consultas."
   }
-
   if (message.includes("AbortError") || message.includes("aborted")) {
     return "A Nuvemshop demorou para responder."
   }
@@ -494,7 +522,7 @@ function safeErrorMessage(error: unknown) {
 function buildReport(
   orders: any[],
   range: ReportRange,
-  source: "nuvemshop" | "database",
+  source: OrderSource,
   warning?: string
 ) {
   const allMovements: any[] = []
@@ -608,9 +636,7 @@ function buildReport(
       const key = safeDateKey(movement.date)
       return Boolean(key && key >= range.from && key <= range.to)
     })
-    .sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime()
-    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 
   const metrics: any = {
     orders: 0,
@@ -654,7 +680,6 @@ function buildReport(
       metrics.busFees += movement.busFee
       metrics.totalReceived += movement.totalReceived
       metrics.paymentFees += movement.paymentFee
-
       if (movement.feeEstimated) metrics.estimatedFeeOrders += 1
 
       method.orders += 1
@@ -674,11 +699,7 @@ function buildReport(
     } else {
       metrics.refunds += movement.refund
       method.refunds += movement.refund
-
-      if (movement.shippingGroup === "bus") {
-        methods.bus.net -= movement.refund
-      }
-
+      if (movement.shippingGroup === "bus") methods.bus.net -= movement.refund
       day.refunds += movement.refund
     }
 
@@ -788,11 +809,7 @@ export async function GET(request: Request) {
 
     if (successfulStores > 0) {
       return Response.json(
-        buildReport(
-          Array.from(orderMap.values()),
-          range,
-          "nuvemshop"
-        )
+        buildReport(Array.from(orderMap.values()), range, "nuvemshop")
       )
     }
 
@@ -810,21 +827,22 @@ export async function GET(request: Request) {
     } catch (fallbackError) {
       console.error("Financeiro: fallback local também falhou", fallbackError)
 
+      const fallbackMessage = fallbackError instanceof Error
+        ? fallbackError.message
+        : String(fallbackError)
+
       return Response.json(
         {
           error:
-            failures[0] ||
-            "Não foi possível consultar os pedidos da Nuvemshop nem o histórico sincronizado."
+            fallbackMessage.startsWith("LOCAL_ORDERS:")
+              ? "Não foi possível acessar o histórico de pedidos salvo no sistema."
+              : failures[0] || "Não foi possível carregar os pedidos."
         },
         { status: 502 }
       )
     }
   } catch (error) {
     console.error("Erro relatório financeiro:", error)
-
-    return Response.json(
-      { error: "Não foi possível carregar o financeiro." },
-      { status: 500 }
-    )
+    return Response.json({ error: "Não foi possível carregar o financeiro." }, { status: 500 })
   }
 }
