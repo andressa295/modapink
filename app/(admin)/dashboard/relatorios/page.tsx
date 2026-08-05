@@ -81,7 +81,7 @@ type ResponseData = {
   feeConfig: {
     pixPercent: number
     cardPercent: number
-    cardRates: Record<string, number>
+    cardFixedFee: number
     otherPercent: number
     estimatedFeeOrders: number
   }
@@ -247,11 +247,6 @@ export default function Relatorios() {
   }
 
   const maxChart = Math.max(1, ...(data?.chart || []).flatMap((item) => [item.sales, item.refunds]))
-  const cardRatesText = data
-    ? Object.entries(data.feeConfig.cardRates)
-        .map(([installments, rate]) => `${installments}x ${rate.toFixed(2).replace(".", ",")}%`)
-        .join(" • ")
-    : ""
 
   return (
     <main className={styles.page}>
@@ -310,7 +305,7 @@ export default function Relatorios() {
           <section className={styles.cards}>
             <Card title="Venda sem frete" value={money.format(data.metrics.salesWithoutFreight)} detail={`${number.format(data.metrics.orders)} pedidos pagos`} tone="pink" />
             <Card title="Frete cobrado" value={money.format(data.metrics.freight)} detail={`Ônibus: ${money.format(data.metrics.busFees)}`} tone="orange" />
-            <Card title="Taxas de pagamento" value={money.format(data.metrics.paymentFees)} detail="Pix e cartão por parcela" />
+            <Card title="Taxas de pagamento" value={money.format(data.metrics.paymentFees)} detail="Pix e cartão de crédito" />
             <Card title="Estornos e reembolsos" value={money.format(data.metrics.refunds)} detail="Somente valores realmente devolvidos" tone="red" />
             <Card title="Total recebido" value={money.format(data.metrics.totalReceived)} detail="Produtos mais frete" />
             <Card title="Líquido real" value={money.format(data.metrics.net)} detail="Recebido menos taxas e estornos" tone="green" />
@@ -323,7 +318,7 @@ export default function Relatorios() {
               <Percent size={18} />
               <span>
                 <b>{data.metrics.estimatedFeeOrders} pedidos com taxa calculada.</b>{" "}
-                Pix {data.feeConfig.pixPercent.toFixed(2).replace(".", ",")}% • {cardRatesText}.
+                Pix {data.feeConfig.pixPercent.toFixed(2).replace(".", ",")}% • Cartão de crédito {data.feeConfig.cardPercent.toFixed(2).replace(".", ",")}% + {money.format(data.feeConfig.cardFixedFee)} por pedido.
               </span>
             </div>
           )}
@@ -356,7 +351,7 @@ export default function Relatorios() {
 
           <section className={styles.methods}>
             <MethodCard title="Pix" icon={<WalletCards size={20} />} data={data.methods.pix} />
-            <MethodCard title="Cartão" icon={<CreditCard size={20} />} data={data.methods.card} />
+            <MethodCard title="Cartão de crédito" icon={<CreditCard size={20} />} data={data.methods.card} />
             <MethodCard title="Outros" icon={<WalletCards size={20} />} data={data.methods.other} />
             <div className={styles.methodCard}>
               <div className={styles.methodTitle}>
