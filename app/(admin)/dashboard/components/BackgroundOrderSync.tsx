@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 
-const SYNC_KEY = "modapink-orders-last-background-sync"
+const SYNC_KEY = "modapink-orders-last-background-sync-v2"
 const SYNC_INTERVAL_MS = 2 * 60 * 1000
 const PRELOAD_RANGES = ["today", "7d", "month"] as const
 
