@@ -2,8 +2,9 @@
 
 import { useEffect } from "react"
 
-const SYNC_KEY = "modapink-orders-last-background-sync-v2"
-const FINANCIAL_RELOAD_KEY = "modapink-financial-reloaded-after-sync-v2"
+const SYNC_KEY = "modapink-orders-last-background-sync-v3"
+const FINANCIAL_RELOAD_KEY = "modapink-financial-reloaded-after-sync-v3"
+const SYNC_ERROR_KEY = "modapink-financial-sync-error-v3"
 const SYNC_INTERVAL_MS = 2 * 60 * 1000
 const PRELOAD_RANGES = ["today", "7d", "month"] as const
 
@@ -38,8 +39,10 @@ export default function BackgroundOrderSync() {
 
     const run = async () => {
       try {
+        window.sessionStorage.removeItem(SYNC_ERROR_KEY)
+
         const response = await fetch(
-          "/api/orders?page=1&pages=5&sync_only=1",
+          "/api/orders/financial-sync?pages=5",
           {
             cache: "no-store",
             signal: controller.signal
@@ -48,10 +51,19 @@ export default function BackgroundOrderSync() {
 
         const payload = await response.json().catch(() => null)
 
-        if (!response.ok) {
+        if (!response.ok || !payload?.ok) {
+          const details = payload?.details
+            ? ` ${payload.details}`
+            : ""
+
           throw new Error(
-            payload?.error ||
-            "Não foi possível sincronizar os pedidos."
+            `${payload?.error || "Não foi possível sincronizar os pedidos."}${details}`
+          )
+        }
+
+        if (!Number(payload.synced)) {
+          throw new Error(
+            "A sincronização terminou, mas nenhum pedido foi salvo."
           )
         }
 
@@ -83,6 +95,15 @@ export default function BackgroundOrderSync() {
         ) {
           return
         }
+
+        const message = error instanceof Error
+          ? error.message
+          : String(error)
+
+        window.sessionStorage.setItem(
+          SYNC_ERROR_KEY,
+          message
+        )
 
         console.warn(
           "Sincronização silenciosa dos pedidos não foi concluída.",
