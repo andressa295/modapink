@@ -2,15 +2,18 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const maxDuration = 30
+export const maxDuration = 60
 
 const TZ = "America/Sao_Paulo"
 const PIX_RATE = 0.99
 const CARD_RATE = 4.09
 const CARD_FIXED_FEE = 0.35
-const LOCAL_CACHE_MS = 30_000
+const PAGE_SIZE = 100
+const MAX_FILTERED_PAGES = 12
+const MAX_SIMPLE_PAGES = 20
 const LOCAL_PAGE_SIZE = 1000
 const LOCAL_MAX_ROWS = 20_000
+const REPORT_CACHE_MS = 60_000
 
 type ReportRange = {
   key: string
@@ -20,14 +23,31 @@ type ReportRange = {
 
 type PaymentGroup = "pix" | "card" | "cash" | "other"
 type ShippingGroup = "bus" | "postal" | "motoboy" | "pickup" | "unknown"
+type OrderSource = "nuvemshop" | "database"
+type FetchMode = "filtered" | "simple"
 
-type CachedOrders = {
-  expiresAt: number
-  orders: any[]
+type StoreRow = {
+  id?: string | number | null
+  store_id?: string | number | null
+  user_id?: string | number | null
+  access_token?: string | null
+  created_at?: string | null
+  updated_at?: string | null
 }
 
-let localOrdersCache: CachedOrders | null = null
-let localOrdersPromise: Promise<any[]> | null = null
+type Credential = {
+  storeId: string
+  accessToken: string
+  timestamp: number
+}
+
+type CachedReport = {
+  expiresAt: number
+  value: ReturnType<typeof buildReport>
+}
+
+const reportCache = new Map<string, CachedReport>()
+const pendingReports = new Map<string, Promise<ReturnType<typeof buildReport>>>()
 
 function money(value: unknown) {
   const parsed = Number(value ?? 0)
@@ -134,6 +154,18 @@ function getRange(url: URL): ReportRange {
   if (from > to) [from, to] = [to, from]
 
   return { key, from, to }
+}
+
+function reportCacheKey(range: ReportRange) {
+  return `${range.key}:${range.from}:${range.to}`
+}
+
+function isoStart(value: string) {
+  return `${value}T00:00:00-03:00`
+}
+
+function isoEnd(value: string) {
+  return `${value}T23:59:59-03:00`
 }
 
 function paymentGroup(order: any): PaymentGroup {
@@ -441,38 +473,300 @@ async function fetchLocalOrders(supabase: SupabaseClient) {
   return rows.map(normalizeLocalOrder)
 }
 
-async function getLocalOrders(
-  supabase: SupabaseClient,
-  forceRefresh = false
-) {
-  const now = Date.now()
+function credentialTimestamp(row: StoreRow) {
+  return new Date(row.updated_at || row.created_at || 0).getTime()
+}
 
-  if (
-    !forceRefresh &&
-    localOrdersCache &&
-    localOrdersCache.expiresAt > now
-  ) {
-    return localOrdersCache.orders
+function collectCredentials(rows: StoreRow[]) {
+  const grouped = new Map<string, Credential[]>()
+
+  for (const row of rows) {
+    const accessToken = String(row.access_token || "").trim()
+    if (!accessToken) continue
+
+    const ids = Array.from(
+      new Set(
+        [row.store_id, row.user_id]
+          .filter((value) => value !== null && value !== undefined && value !== "")
+          .map(String)
+      )
+    )
+
+    for (const storeId of ids) {
+      const credentials = grouped.get(storeId) || []
+
+      credentials.push({
+        storeId,
+        accessToken,
+        timestamp: credentialTimestamp(row)
+      })
+
+      grouped.set(storeId, credentials)
+    }
   }
 
-  if (!forceRefresh && localOrdersPromise) {
-    return localOrdersPromise
+  for (const credentials of grouped.values()) {
+    credentials.sort((a, b) => b.timestamp - a.timestamp)
   }
 
-  localOrdersPromise = fetchLocalOrders(supabase)
-    .then((orders) => {
-      localOrdersCache = {
-        orders,
-        expiresAt: Date.now() + LOCAL_CACHE_MS
+  return grouped
+}
+
+function errorStatus(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  const match = message.match(/NUVEMSHOP_(\d+)/)
+  return match ? Number(match[1]) : 0
+}
+
+function isTransientStatus(status: number) {
+  return [408, 425, 429, 500, 502, 503, 504].includes(status)
+}
+
+async function fetchNuvemshopPage(
+  credential: Credential,
+  range: ReportRange,
+  page: number,
+  mode: FetchMode,
+  attempt = 1
+): Promise<any[]> {
+  const params = new URLSearchParams({
+    page: String(page),
+    per_page: String(PAGE_SIZE)
+  })
+
+  if (mode === "filtered") {
+    params.set("updated_at_min", isoStart(range.from))
+    params.set("updated_at_max", isoEnd(range.to))
+  }
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 14_000)
+
+  try {
+    const response = await fetch(
+      `https://api.nuvemshop.com.br/v1/${credential.storeId}/orders?${params.toString()}`,
+      {
+        method: "GET",
+        headers: {
+          Authentication: `bearer ${credential.accessToken}`,
+          "Content-Type": "application/json",
+          "User-Agent": "Phandshop (contato@phand.com.br)"
+        },
+        cache: "no-store",
+        signal: controller.signal
+      }
+    )
+
+    if (!response.ok) {
+      const body = await response.text()
+
+      if (attempt < 2 && isTransientStatus(response.status)) {
+        await new Promise((resolve) => setTimeout(resolve, 450))
+
+        return fetchNuvemshopPage(
+          credential,
+          range,
+          page,
+          mode,
+          attempt + 1
+        )
       }
 
-      return orders
-    })
-    .finally(() => {
-      localOrdersPromise = null
-    })
+      throw new Error(
+        `NUVEMSHOP_${response.status}:${body.slice(0, 180)}`
+      )
+    }
 
-  return localOrdersPromise
+    const payload = await response.json()
+
+    if (!Array.isArray(payload)) {
+      throw new Error("NUVEMSHOP_FORMAT:lista inválida")
+    }
+
+    return payload
+  } catch (error) {
+    if (
+      attempt < 2 &&
+      error instanceof Error &&
+      error.name === "AbortError"
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 450))
+
+      return fetchNuvemshopPage(
+        credential,
+        range,
+        page,
+        mode,
+        attempt + 1
+      )
+    }
+
+    throw error
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function fetchPages(
+  credential: Credential,
+  range: ReportRange,
+  mode: FetchMode
+) {
+  const orders: any[] = []
+  const maxPages =
+    mode === "filtered"
+      ? MAX_FILTERED_PAGES
+      : MAX_SIMPLE_PAGES
+
+  for (let page = 1; page <= maxPages; page += 1) {
+    const batch = await fetchNuvemshopPage(
+      credential,
+      range,
+      page,
+      mode
+    )
+
+    orders.push(...batch)
+
+    if (batch.length < PAGE_SIZE) break
+
+    if (mode === "simple") {
+      const oldest = batch
+        .map((order: any) => safeDateKey(
+          order?.paid_at ||
+          order?.created_at ||
+          order?.updated_at
+        ))
+        .filter((value): value is string => Boolean(value))
+        .sort()[0]
+
+      if (oldest && oldest < addDays(range.from, -7)) break
+    }
+  }
+
+  return orders
+}
+
+async function fetchNuvemshopOrders(
+  credential: Credential,
+  range: ReportRange
+) {
+  try {
+    const filtered = await fetchPages(
+      credential,
+      range,
+      "filtered"
+    )
+
+    if (filtered.length > 0) return filtered
+
+    return fetchPages(credential, range, "simple")
+  } catch (error) {
+    const status = errorStatus(error)
+
+    if ([400, 404, 405, 422].includes(status)) {
+      return fetchPages(credential, range, "simple")
+    }
+
+    throw error
+  }
+}
+
+function safeErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+
+  if (message.includes("NUVEMSHOP_401")) {
+    return "A conexão da Nuvemshop precisa ser renovada."
+  }
+
+  if (message.includes("NUVEMSHOP_403")) {
+    return "A Nuvemshop recusou o acesso aos pedidos."
+  }
+
+  if (message.includes("NUVEMSHOP_429")) {
+    return "A Nuvemshop limitou temporariamente as consultas."
+  }
+
+  if (
+    message.includes("AbortError") ||
+    message.includes("aborted")
+  ) {
+    return "A Nuvemshop demorou para responder."
+  }
+
+  return "Não foi possível consultar os pedidos da Nuvemshop."
+}
+
+async function fetchDirectOrders(
+  supabase: SupabaseClient,
+  range: ReportRange
+) {
+  const { data: storeRows, error: storesError } = await supabase
+    .from("stores")
+    .select("*")
+
+  if (storesError) {
+    throw new Error(`STORES:${storesError.message}`)
+  }
+
+  const groupedCredentials = collectCredentials(
+    (storeRows || []) as StoreRow[]
+  )
+
+  if (groupedCredentials.size === 0) {
+    throw new Error("STORES:Nenhuma credencial conectada foi encontrada.")
+  }
+
+  const orderMap = new Map<string, any>()
+  const failures: string[] = []
+  let successfulStores = 0
+
+  for (const [storeId, credentials] of groupedCredentials) {
+    let storeSucceeded = false
+
+    for (const credential of credentials) {
+      try {
+        const orders = await fetchNuvemshopOrders(
+          credential,
+          range
+        )
+
+        for (const order of orders) {
+          orderMap.set(`${storeId}:${order.id}`, order)
+        }
+
+        storeSucceeded = true
+        successfulStores += 1
+        break
+      } catch (error) {
+        console.error(
+          `Financeiro: falha ao consultar a loja ${storeId}`,
+          error
+        )
+
+        failures.push(safeErrorMessage(error))
+      }
+    }
+
+    if (!storeSucceeded) {
+      console.warn(
+        `Financeiro: nenhuma credencial válida para a loja ${storeId}.`
+      )
+    }
+  }
+
+  if (successfulStores === 0) {
+    throw new Error(
+      failures[0] ||
+      "Não foi possível consultar nenhuma loja conectada."
+    )
+  }
+
+  return {
+    orders: Array.from(orderMap.values()),
+    successfulStores,
+    failures
+  }
 }
 
 function emptyMethod() {
@@ -543,13 +837,26 @@ function addShippingDetail(
 function detailArray<T extends { orders: number }>(
   value: Record<string, T>
 ) {
-  return Object.values(value).sort((a, b) => b.orders - a.orders)
+  return Object.values(value)
+    .sort((a, b) => b.orders - a.orders)
 }
 
-function buildReport(orders: any[], range: ReportRange) {
+function buildReport(
+  orders: any[],
+  range: ReportRange,
+  source: OrderSource,
+  warning?: string
+) {
   const allMovements: any[] = []
+  const statusSummary: Record<string, number> = {}
 
   for (const order of orders) {
+    const statusKey =
+      String(order.payment_status || "não informado")
+
+    statusSummary[statusKey] =
+      (statusSummary[statusKey] || 0) + 1
+
     const total = money(order.total)
 
     const knownFreight = money(
@@ -570,23 +877,31 @@ function buildReport(orders: any[], range: ReportRange) {
       Math.max(0, subtotal + knownFreight - total)
     )
 
-    const productNet = money(Math.max(0, subtotal - discount))
+    const productNet = money(
+      Math.max(0, subtotal - discount)
+    )
 
     const freight = knownFreight > 0
       ? knownFreight
       : money(Math.max(0, total - productNet))
 
     const payment = paymentGroup(order)
-    const shippingMethod = shippingGroup(order)
+    const shipping = shippingGroup(order)
     const currentPaymentLabel = paymentLabel(order, payment)
-    const currentShippingLabel = shippingLabel(order, shippingMethod)
+    const currentShippingLabel = shippingLabel(order, shipping)
     const paymentFee = paymentFeeFor(payment, total)
-    const feeEstimated = payment === "pix" || payment === "card"
+    const feeEstimated =
+      payment === "pix" ||
+      payment === "card"
 
     const products = arrayValue(order.products)
-    const itemCount = products.reduce((sum: number, item: any) => {
-      return sum + Number(item?.quantity || 0)
-    }, 0)
+
+    const itemCount = products.reduce(
+      (sum: number, item: any) => {
+        return sum + Number(item?.quantity || 0)
+      },
+      0
+    )
 
     const refund = refundValue(order)
 
@@ -599,7 +914,7 @@ function buildReport(orders: any[], range: ReportRange) {
         type: "sale",
         paymentGroup: payment,
         paymentLabel: currentPaymentLabel,
-        shippingGroup: shippingMethod,
+        shippingGroup: shipping,
         shippingLabel: currentShippingLabel,
         itemCount,
         productGross: subtotal,
@@ -624,7 +939,7 @@ function buildReport(orders: any[], range: ReportRange) {
         type: "refund",
         paymentGroup: payment,
         paymentLabel: currentPaymentLabel,
-        shippingGroup: shippingMethod,
+        shippingGroup: shipping,
         shippingLabel: currentShippingLabel,
         itemCount: 0,
         productGross: 0,
@@ -644,10 +959,18 @@ function buildReport(orders: any[], range: ReportRange) {
   const movements = allMovements
     .filter((movement) => {
       const key = safeDateKey(movement.date)
-      return Boolean(key && key >= range.from && key <= range.to)
+
+      return Boolean(
+        key &&
+        key >= range.from &&
+        key <= range.to
+      )
     })
     .sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime()
+      return (
+        new Date(b.date).getTime() -
+        new Date(a.date).getTime()
+      )
     })
 
   const metrics: any = {
@@ -694,8 +1017,13 @@ function buildReport(orders: any[], range: ReportRange) {
       net: 0
     }
 
-    const method = methods[movement.paymentGroup as PaymentGroup] || methods.other
-    const shipment = shipping[movement.shippingGroup as ShippingGroup] || shipping.unknown
+    const method =
+      methods[movement.paymentGroup as PaymentGroup] ||
+      methods.other
+
+    const shipment =
+      shipping[movement.shippingGroup as ShippingGroup] ||
+      shipping.unknown
 
     if (movement.type === "sale") {
       metrics.orders += 1
@@ -714,6 +1042,7 @@ function buildReport(orders: any[], range: ReportRange) {
       method.orders += 1
       method.received += movement.totalReceived
       method.fees += movement.paymentFee
+
       addPaymentDetail(
         method,
         movement.paymentLabel,
@@ -725,6 +1054,7 @@ function buildReport(orders: any[], range: ReportRange) {
       shipment.charged += movement.freight
       shipment.paymentFees += movement.paymentFee
       shipment.net += movement.net
+
       addShippingDetail(
         shipment,
         movement.shippingLabel,
@@ -769,7 +1099,9 @@ function buildReport(orders: any[], range: ReportRange) {
   }
 
   for (const shipment of Object.values(shipping)) {
-    shipment.salesWithoutFreight = money(shipment.salesWithoutFreight)
+    shipment.salesWithoutFreight =
+      money(shipment.salesWithoutFreight)
+
     shipment.charged = money(shipment.charged)
     shipment.paymentFees = money(shipment.paymentFees)
     shipment.refunds = money(shipment.refunds)
@@ -782,7 +1114,8 @@ function buildReport(orders: any[], range: ReportRange) {
 
   return {
     generatedAt: new Date().toISOString(),
-    source: "database",
+    source,
+    warning: warning || null,
     range: {
       key: range.key,
       label: `${range.from} a ${range.to}`,
@@ -791,17 +1124,44 @@ function buildReport(orders: any[], range: ReportRange) {
     },
     metrics,
     methods: {
-      pix: { ...methods.pix, details: detailArray(methods.pix.details) },
-      card: { ...methods.card, details: detailArray(methods.card.details) },
-      cash: { ...methods.cash, details: detailArray(methods.cash.details) },
-      other: { ...methods.other, details: detailArray(methods.other.details) }
+      pix: {
+        ...methods.pix,
+        details: detailArray(methods.pix.details)
+      },
+      card: {
+        ...methods.card,
+        details: detailArray(methods.card.details)
+      },
+      cash: {
+        ...methods.cash,
+        details: detailArray(methods.cash.details)
+      },
+      other: {
+        ...methods.other,
+        details: detailArray(methods.other.details)
+      }
     },
     shipping: {
-      bus: { ...shipping.bus, details: detailArray(shipping.bus.details) },
-      postal: { ...shipping.postal, details: detailArray(shipping.postal.details) },
-      motoboy: { ...shipping.motoboy, details: detailArray(shipping.motoboy.details) },
-      pickup: { ...shipping.pickup, details: detailArray(shipping.pickup.details) },
-      unknown: { ...shipping.unknown, details: detailArray(shipping.unknown.details) }
+      bus: {
+        ...shipping.bus,
+        details: detailArray(shipping.bus.details)
+      },
+      postal: {
+        ...shipping.postal,
+        details: detailArray(shipping.postal.details)
+      },
+      motoboy: {
+        ...shipping.motoboy,
+        details: detailArray(shipping.motoboy.details)
+      },
+      pickup: {
+        ...shipping.pickup,
+        details: detailArray(shipping.pickup.details)
+      },
+      unknown: {
+        ...shipping.unknown,
+        details: detailArray(shipping.unknown.details)
+      }
     },
     chart: Array.from(chartMap.values())
       .sort((a, b) => a.date.localeCompare(b.date))
@@ -819,51 +1179,202 @@ function buildReport(orders: any[], range: ReportRange) {
       cardFixedFee: CARD_FIXED_FEE,
       otherPercent: 0,
       estimatedFeeOrders: metrics.estimatedFeeOrders
+    },
+    diagnostics: {
+      ordersLoaded: orders.length,
+      movementsLoaded: movements.length,
+      paymentStatuses: statusSummary
     }
+  }
+}
+
+async function generateReport(
+  supabase: SupabaseClient,
+  range: ReportRange
+) {
+  let directError: unknown = null
+
+  try {
+    const direct = await fetchDirectOrders(supabase, range)
+    const directReport = buildReport(
+      direct.orders,
+      range,
+      "nuvemshop"
+    )
+
+    if (
+      directReport.metrics.orders > 0 ||
+      directReport.metrics.refunds > 0
+    ) {
+      return directReport
+    }
+
+    try {
+      const localOrders = await fetchLocalOrders(supabase)
+      const localReport = buildReport(
+        localOrders,
+        range,
+        "database",
+        "A Nuvemshop respondeu sem movimentações pagas neste período. O sistema conferiu também o histórico sincronizado."
+      )
+
+      if (
+        localReport.metrics.orders > 0 ||
+        localReport.metrics.refunds > 0
+      ) {
+        return localReport
+      }
+    } catch (localError) {
+      console.error(
+        "Financeiro: conferência local falhou",
+        localError
+      )
+    }
+
+    return directReport
+  } catch (error) {
+    directError = error
+
+    console.error(
+      "Financeiro: consulta direta falhou; usando histórico local",
+      error
+    )
+  }
+
+  try {
+    const localOrders = await fetchLocalOrders(supabase)
+    const localReport = buildReport(
+      localOrders,
+      range,
+      "database",
+      "A Nuvemshop não respondeu. Os valores vieram dos pedidos já sincronizados no sistema."
+    )
+
+    if (
+      localReport.metrics.orders === 0 &&
+      localReport.metrics.refunds === 0 &&
+      localOrders.length === 0
+    ) {
+      throw new Error(
+        "O histórico local também está vazio."
+      )
+    }
+
+    return localReport
+  } catch (localError) {
+    console.error(
+      "Financeiro: histórico local também falhou",
+      localError
+    )
+
+    const directMessage =
+      directError instanceof Error
+        ? directError.message
+        : String(directError || "")
+
+    if (directMessage.startsWith("STORES:")) {
+      throw new Error(
+        "Não foi encontrada uma conexão válida com a Nuvemshop."
+      )
+    }
+
+    throw new Error(
+      safeErrorMessage(directError)
+    )
   }
 }
 
 export async function GET(request: Request) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseUrl =
+      process.env.NEXT_PUBLIC_SUPABASE_URL
+
+    const serviceKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY
 
     if (!supabaseUrl || !serviceKey) {
       return Response.json(
-        { error: "A configuração do financeiro está incompleta." },
+        {
+          error:
+            "A configuração do financeiro está incompleta."
+        },
         { status: 500 }
       )
     }
 
     const url = new URL(request.url)
     const range = getRange(url)
-    const forceRefresh = url.searchParams.get("refresh") === "1"
+    const forceRefresh =
+      url.searchParams.get("refresh") === "1"
 
-    const supabase = createClient(supabaseUrl, serviceKey)
-    const orders = await getLocalOrders(supabase, forceRefresh)
-    const report = buildReport(orders, range)
+    const key = reportCacheKey(range)
+    const cached = reportCache.get(key)
+
+    if (
+      !forceRefresh &&
+      cached &&
+      cached.expiresAt > Date.now()
+    ) {
+      return Response.json(cached.value, {
+        headers: {
+          "Cache-Control":
+            "private, max-age=20, stale-while-revalidate=60"
+        }
+      })
+    }
+
+    if (!forceRefresh) {
+      const pending = pendingReports.get(key)
+
+      if (pending) {
+        const report = await pending
+        return Response.json(report)
+      }
+    }
+
+    const supabase = createClient(
+      supabaseUrl,
+      serviceKey
+    )
+
+    const task = generateReport(supabase, range)
+      .then((report) => {
+        reportCache.set(key, {
+          value: report,
+          expiresAt: Date.now() + REPORT_CACHE_MS
+        })
+
+        return report
+      })
+      .finally(() => {
+        pendingReports.delete(key)
+      })
+
+    pendingReports.set(key, task)
+
+    const report = await task
 
     return Response.json(report, {
       headers: {
         "Cache-Control": forceRefresh
           ? "private, no-store"
-          : "private, max-age=30, stale-while-revalidate=120"
+          : "private, max-age=20, stale-while-revalidate=60"
       }
     })
   } catch (error) {
-    console.error("Erro relatório financeiro:", error)
-
-    const message = error instanceof Error
-      ? error.message
-      : String(error)
+    console.error(
+      "Erro relatório financeiro:",
+      error
+    )
 
     return Response.json(
       {
-        error: message.startsWith("LOCAL_ORDERS:")
-          ? "Não foi possível acessar os pedidos já sincronizados no sistema."
-          : "Não foi possível carregar o financeiro."
+        error:
+          error instanceof Error
+            ? error.message
+            : "Não foi possível carregar o financeiro."
       },
-      { status: 500 }
+      { status: 502 }
     )
   }
 }
