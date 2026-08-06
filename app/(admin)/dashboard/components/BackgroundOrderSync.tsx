@@ -19,22 +19,15 @@ export default function BackgroundOrderSync() {
       return
     }
 
-    window.sessionStorage.setItem(
-      SYNC_KEY,
-      String(Date.now())
-    )
-
     const controller = new AbortController()
 
-    const preloadReports = (force = false) => {
+    const preloadReports = () => {
       return Promise.allSettled(
         PRELOAD_RANGES.map((range) => {
-          const refresh = force ? "&refresh=1" : ""
-
           return fetch(
-            `/api/reports/financial?range=${range}${refresh}`,
+            `/api/reports/financial?range=${range}&refresh=1`,
             {
-              cache: force ? "no-store" : "default",
+              cache: "no-store",
               signal: controller.signal
             }
           )
@@ -44,16 +37,29 @@ export default function BackgroundOrderSync() {
 
     const run = async () => {
       try {
-        const initialPreload = preloadReports()
+        const response = await fetch(
+          "/api/orders?page=1&pages=5&sync_only=1",
+          {
+            cache: "no-store",
+            signal: controller.signal
+          }
+        )
 
-        const orderSync = fetch("/api/orders?page=1", {
-          cache: "no-store",
-          signal: controller.signal
-        })
+        const payload = await response.json().catch(() => null)
 
-        await initialPreload
-        await orderSync
-        await preloadReports(true)
+        if (!response.ok) {
+          throw new Error(
+            payload?.error ||
+            "Não foi possível sincronizar os pedidos."
+          )
+        }
+
+        window.sessionStorage.setItem(
+          SYNC_KEY,
+          String(Date.now())
+        )
+
+        await preloadReports()
       } catch (error) {
         if (
           error instanceof DOMException &&
