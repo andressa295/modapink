@@ -26,21 +26,34 @@ export default function BackgroundOrderSync() {
 
     const controller = new AbortController()
 
+    const preloadReports = (force = false) => {
+      return Promise.allSettled(
+        PRELOAD_RANGES.map((range) => {
+          const refresh = force ? "&refresh=1" : ""
+
+          return fetch(
+            `/api/reports/financial?range=${range}${refresh}`,
+            {
+              cache: force ? "no-store" : "default",
+              signal: controller.signal
+            }
+          )
+        })
+      )
+    }
+
     const run = async () => {
       try {
-        await fetch("/api/orders?page=1", {
+        const initialPreload = preloadReports()
+
+        const orderSync = fetch("/api/orders?page=1", {
           cache: "no-store",
           signal: controller.signal
         })
 
-        await Promise.allSettled(
-          PRELOAD_RANGES.map((range) => {
-            return fetch(
-              `/api/reports/financial?range=${range}`,
-              { signal: controller.signal }
-            )
-          })
-        )
+        await initialPreload
+        await orderSync
+        await preloadReports(true)
       } catch (error) {
         if (
           error instanceof DOMException &&
@@ -60,7 +73,7 @@ export default function BackgroundOrderSync() {
       if ("requestIdleCallback" in window) {
         const idleId = window.requestIdleCallback(
           () => void run(),
-          { timeout: 1500 }
+          { timeout: 1200 }
         )
 
         return () => window.cancelIdleCallback(idleId)
@@ -68,7 +81,7 @@ export default function BackgroundOrderSync() {
 
       const timer = window.setTimeout(
         () => void run(),
-        500
+        350
       )
 
       return () => window.clearTimeout(timer)
