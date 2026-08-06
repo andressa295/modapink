@@ -69,28 +69,13 @@ export default function BackgroundOrderSync() {
       }
     }
 
-    const schedule = () => {
-      if ("requestIdleCallback" in window) {
-        const idleId = window.requestIdleCallback(
-          () => void run(),
-          { timeout: 1200 }
-        )
-
-        return () => window.cancelIdleCallback(idleId)
-      }
-
-      const timer = window.setTimeout(
-        () => void run(),
-        350
-      )
-
-      return () => window.clearTimeout(timer)
-    }
-
-    const cancelSchedule = schedule()
+    const timer = window.setTimeout(
+      () => void run(),
+      350
+    )
 
     return () => {
-      cancelSchedule()
+      window.clearTimeout(timer)
       controller.abort()
     }
   }, [])
