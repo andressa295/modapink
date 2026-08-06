@@ -2,23 +2,15 @@ import { createClient, SupabaseClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const maxDuration = 60
+export const maxDuration = 30
 
 const TZ = "America/Sao_Paulo"
 const PIX_RATE = 0.99
 const CARD_RATE = 4.09
 const CARD_FIXED_FEE = 0.35
-const PAGE_SIZE = 100
-const MAX_FILTERED_PAGES = 20
-const MAX_SIMPLE_PAGES = 30
-
-type Store = {
-  id: string
-  user_id: string | number
-  access_token: string
-  created_at?: string | null
-  updated_at?: string | null
-}
+const LOCAL_CACHE_MS = 30_000
+const LOCAL_PAGE_SIZE = 1000
+const LOCAL_MAX_ROWS = 20_000
 
 type ReportRange = {
   key: string
@@ -27,9 +19,15 @@ type ReportRange = {
 }
 
 type PaymentGroup = "pix" | "card" | "cash" | "other"
-type ShippingGroup = "bus" | "pickup" | "postal" | "other"
-type OrderSource = "nuvemshop" | "database"
-type FetchMode = "filtered" | "simple"
+type ShippingGroup = "bus" | "postal" | "motoboy" | "pickup" | "unknown"
+
+type CachedOrders = {
+  expiresAt: number
+  orders: any[]
+}
+
+let localOrdersCache: CachedOrders | null = null
+let localOrdersPromise: Promise<any[]> | null = null
 
 function money(value: unknown) {
   const parsed = Number(value ?? 0)
@@ -88,6 +86,7 @@ function dateKey(value: Date) {
   const year = parts.find((part) => part.type === "year")?.value ?? "0000"
   const month = parts.find((part) => part.type === "month")?.value ?? "00"
   const day = parts.find((part) => part.type === "day")?.value ?? "00"
+
   return `${year}-${month}-${day}`
 }
 
@@ -105,6 +104,7 @@ function addDays(base: string, days: number) {
 function getRange(url: URL): ReportRange {
   const today = dateKey(new Date())
   const key = url.searchParams.get("range") || "today"
+
   let from = today
   let to = today
 
@@ -132,15 +132,8 @@ function getRange(url: URL): ReportRange {
   }
 
   if (from > to) [from, to] = [to, from]
+
   return { key, from, to }
-}
-
-function isoStart(value: string) {
-  return `${value}T00:00:00-03:00`
-}
-
-function isoEnd(value: string) {
-  return `${value}T23:59:59-03:00`
 }
 
 function paymentGroup(order: any): PaymentGroup {
@@ -154,13 +147,18 @@ function paymentGroup(order: any): PaymentGroup {
   ].join(" "))
 
   if (value.includes("pix")) return "pix"
+
   if (
     value.includes("card") ||
     value.includes("cart") ||
     value.includes("credito") ||
     value.includes("credit")
-  ) return "card"
+  ) {
+    return "card"
+  }
+
   if (value.includes("dinheiro") || value.includes("cash")) return "cash"
+
   return "other"
 }
 
@@ -172,27 +170,89 @@ function shippingGroup(order: any): ShippingGroup {
   ].join(" "))
 
   if (value.includes("onibus") || value.includes("excurs")) return "bus"
+
+  if (
+    value.includes("motoboy") ||
+    value.includes("moto boy") ||
+    value.includes("moto-boy") ||
+    value.includes("motofrete") ||
+    value.includes("entrega local") ||
+    value.includes("delivery")
+  ) {
+    return "motoboy"
+  }
+
   if (value.includes("retirada") || value.includes("pickup")) return "pickup"
-  if (value.includes("pac") || value.includes("sedex") || value.includes("correio")) return "postal"
-  return "other"
+
+  if (
+    value.includes("pac") ||
+    value.includes("sedex") ||
+    value.includes("correio")
+  ) {
+    return "postal"
+  }
+
+  return "unknown"
+}
+
+function rawShippingLabel(order: any) {
+  return String(
+    order.shipping_option ||
+    order.shipping_option_reference ||
+    order.shipping_method ||
+    "Não informado"
+  ).trim()
+}
+
+function shippingLabel(order: any, group: ShippingGroup) {
+  const raw = rawShippingLabel(order)
+
+  if (group === "bus") return "Ônibus / excursão"
+  if (group === "motoboy") return raw === "Não informado" ? "Motoboy" : raw
+  if (group === "postal") return raw === "Não informado" ? "Correios" : raw
+  if (group === "pickup") return raw === "Não informado" ? "Retirada" : raw
+
+  return raw
+}
+
+function paymentLabel(order: any, group: PaymentGroup) {
+  if (group === "pix") return "Pix"
+  if (group === "card") return "Cartão de crédito"
+  if (group === "cash") return "Dinheiro"
+
+  return String(
+    order.gateway_name ||
+    order.payment_details?.method ||
+    order.payment_method ||
+    "Não identificado"
+  ).trim()
 }
 
 function isPaid(order: any) {
   const status = normalize(order.payment_status)
-  return status === "paid" || status.includes("pago") || Boolean(order.paid_at)
+
+  return (
+    status === "paid" ||
+    status === "pago" ||
+    status.includes("pago") ||
+    Boolean(order.paid_at)
+  )
 }
 
 function paymentFeeFor(payment: PaymentGroup, total: number) {
   if (total <= 0) return 0
   if (payment === "pix") return money(total * PIX_RATE / 100)
   if (payment === "card") return money(total * CARD_RATE / 100 + CARD_FIXED_FEE)
+
   return 0
 }
 
 function itemSubtotal(order: any) {
-  return money(arrayValue(order.products).reduce((sum: number, item: any) => {
-    return sum + money(item?.price) * Number(item?.quantity || 0)
-  }, 0))
+  return money(
+    arrayValue(order.products).reduce((sum: number, item: any) => {
+      return sum + money(item?.price) * Number(item?.quantity || 0)
+    }, 0)
+  )
 }
 
 function financialHistory(order: any) {
@@ -213,6 +273,7 @@ function explicitRefundAmount(order: any) {
   ]
 
   let scalar = 0
+
   for (const candidate of scalarCandidates) {
     scalar = Math.max(scalar, money(candidate))
   }
@@ -231,14 +292,28 @@ function explicitRefundAmount(order: any) {
       const value = normalize(
         `${transaction?.type} ${transaction?.status} ${transaction?.kind}`
       )
-      return value.includes("refund") || value.includes("estorn") || value.includes("chargeback")
+
+      return (
+        value.includes("refund") ||
+        value.includes("estorn") ||
+        value.includes("chargeback")
+      )
     })
     .reduce((sum: number, transaction: any) => {
-      return sum + money(transaction?.amount ?? transaction?.value ?? transaction?.total)
+      return sum + money(
+        transaction?.amount ??
+        transaction?.value ??
+        transaction?.total
+      )
     }, 0)
 
   const historyTotal = financialHistory(order).reduce((sum: number, item: any) => {
-    const difference = money(item?.total_paid_diff ?? item?.amount_diff ?? item?.value)
+    const difference = money(
+      item?.total_paid_diff ??
+      item?.amount_diff ??
+      item?.value
+    )
+
     return difference < 0 ? sum + Math.abs(difference) : sum
   }, 0)
 
@@ -250,13 +325,16 @@ function refundValue(order: any) {
   if (explicit > 0) return explicit
 
   const status = normalize(`${order.payment_status} ${order.status}`)
+
   if (
     status.includes("refunded") ||
     status.includes("reembols") ||
     status.includes("estorn") ||
     status.includes("chargeback") ||
     status === "voided"
-  ) return money(order.total)
+  ) {
+    return money(order.total)
+  }
 
   return 0
 }
@@ -276,11 +354,9 @@ function refundDate(order: any) {
     .map((item: any) => item?.created_at || item?.date || item?.updated_at)
     .filter(Boolean)
 
-  const dates = [...refundDates, ...historyDates].sort()
-
   return (
     order.refunded_at ||
-    dates.at(-1) ||
+    [...refundDates, ...historyDates].sort().at(-1) ||
     order.updated_at ||
     order.modified_at ||
     order.created_at
@@ -289,7 +365,9 @@ function refundDate(order: any) {
 
 function customerName(order: any) {
   const customer = objectValue(order.customer)
-  const fullName = [customer.first_name, customer.last_name].filter(Boolean).join(" ")
+  const fullName = [customer.first_name, customer.last_name]
+    .filter(Boolean)
+    .join(" ")
 
   return (
     customer.name ||
@@ -300,142 +378,11 @@ function customerName(order: any) {
   )
 }
 
-function storeTimestamp(store: Store) {
-  return new Date(store.updated_at || store.created_at || 0).getTime()
-}
-
-function groupStores(stores: Store[]) {
-  const grouped = new Map<string, Store[]>()
-
-  for (const store of stores) {
-    if (!store.user_id || !store.access_token) continue
-    const key = String(store.user_id)
-    const list = grouped.get(key) || []
-    list.push(store)
-    grouped.set(key, list)
-  }
-
-  for (const list of grouped.values()) {
-    list.sort((a, b) => storeTimestamp(b) - storeTimestamp(a))
-  }
-
-  return grouped
-}
-
-function errorStatus(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
-  const match = message.match(/NUVEMSHOP_(\d+)/)
-  return match ? Number(match[1]) : 0
-}
-
-function isTransientStatus(status: number) {
-  return [408, 425, 429, 500, 502, 503, 504].includes(status)
-}
-
-async function fetchNuvemshopPage(
-  store: Store,
-  range: ReportRange,
-  page: number,
-  mode: FetchMode,
-  attempt = 1
-): Promise<any[]> {
-  const params = new URLSearchParams({
-    page: String(page),
-    per_page: String(PAGE_SIZE)
-  })
-
-  if (mode === "filtered") {
-    params.set("updated_at_min", isoStart(range.from))
-    params.set("updated_at_max", isoEnd(range.to))
-  }
-
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 14000)
-
-  try {
-    const response = await fetch(
-      `https://api.nuvemshop.com.br/v1/${store.user_id}/orders?${params.toString()}`,
-      {
-        method: "GET",
-        headers: {
-          Authentication: `bearer ${store.access_token}`,
-          "Content-Type": "application/json",
-          "User-Agent": "Phandshop (contato@phand.com.br)"
-        },
-        cache: "no-store",
-        signal: controller.signal
-      }
-    )
-
-    if (!response.ok) {
-      const body = await response.text()
-
-      if (attempt < 2 && isTransientStatus(response.status)) {
-        await new Promise((resolve) => setTimeout(resolve, 500))
-        return fetchNuvemshopPage(store, range, page, mode, attempt + 1)
-      }
-
-      throw new Error(`NUVEMSHOP_${response.status}:${body.slice(0, 180)}`)
-    }
-
-    const payload = await response.json()
-    return Array.isArray(payload) ? payload : []
-  } catch (error) {
-    if (attempt < 2 && error instanceof Error && error.name === "AbortError") {
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      return fetchNuvemshopPage(store, range, page, mode, attempt + 1)
-    }
-
-    throw error
-  } finally {
-    clearTimeout(timeout)
-  }
-}
-
-async function fetchPages(store: Store, range: ReportRange, mode: FetchMode) {
-  const orders: any[] = []
-  const maxPages = mode === "filtered" ? MAX_FILTERED_PAGES : MAX_SIMPLE_PAGES
-
-  for (let page = 1; page <= maxPages; page++) {
-    const batch = await fetchNuvemshopPage(store, range, page, mode)
-    orders.push(...batch)
-
-    if (batch.length < PAGE_SIZE) break
-
-    if (mode === "simple") {
-      const oldest = batch
-        .map((order: any) => safeDateKey(order?.created_at))
-        .filter((value): value is string => Boolean(value))
-        .sort()[0]
-
-      if (oldest && oldest < addDays(range.from, -7)) break
-    }
-  }
-
-  return orders
-}
-
-async function fetchNuvemshopOrders(store: Store, range: ReportRange) {
-  try {
-    return await fetchPages(store, range, "filtered")
-  } catch (error) {
-    const status = errorStatus(error)
-
-    if ([400, 404, 405, 422].includes(status)) {
-      console.warn(
-        `Financeiro: filtro por atualização rejeitado para loja ${store.user_id}; usando consulta simples.`
-      )
-      return fetchPages(store, range, "simple")
-    }
-
-    throw error
-  }
-}
-
 function normalizeLocalOrder(row: any) {
   const raw = objectValue(row?.raw)
   const rawCustomer = objectValue(raw.customer)
   const rawProducts = arrayValue(raw.products)
+
   const items = rawProducts.length
     ? rawProducts
     : arrayValue(row?.items || row?.raw_products)
@@ -452,130 +399,195 @@ function normalizeLocalOrder(row: any) {
     payment_status: row?.payment_status || raw.payment_status,
     payment_method: row?.payment_method || raw.payment_method,
     gateway_name: raw.gateway_name || row?.payment_method,
-    shipping_method: row?.shipping_method || raw.shipping_method || raw.shipping_option,
+    shipping_method:
+      row?.shipping_method ||
+      raw.shipping_method ||
+      raw.shipping_option,
     subtotal: row?.subtotal ?? raw.subtotal,
     total: row?.total ?? raw.total,
     products: items,
     created_at: raw.created_at || row?.created_at,
     updated_at: raw.updated_at || row?.updated_at,
     paid_at: raw.paid_at || row?.paid_at,
-    _financial_history: raw._financial_history || row?._financial_history
+    _financial_history:
+      raw._financial_history ||
+      row?._financial_history
   }
 }
 
 async function fetchLocalOrders(supabase: SupabaseClient) {
   const rows: any[] = []
-  const chunkSize = 1000
 
-  for (let start = 0; start < 10000; start += chunkSize) {
+  for (
+    let start = 0;
+    start < LOCAL_MAX_ROWS;
+    start += LOCAL_PAGE_SIZE
+  ) {
     const { data, error } = await supabase
       .from("orders")
       .select("*")
-      .range(start, start + chunkSize - 1)
+      .order("created_at", { ascending: false })
+      .range(start, start + LOCAL_PAGE_SIZE - 1)
 
     if (error) {
       throw new Error(`LOCAL_ORDERS:${error.message}`)
     }
 
     rows.push(...(data || []))
-    if (!data || data.length < chunkSize) break
+
+    if (!data || data.length < LOCAL_PAGE_SIZE) break
   }
 
   return rows.map(normalizeLocalOrder)
 }
 
-function emptyMethods() {
-  return {
-    pix: { orders: 0, received: 0, fees: 0, refunds: 0, net: 0 },
-    card: { orders: 0, received: 0, fees: 0, refunds: 0, net: 0 },
-    cash: { orders: 0, received: 0, fees: 0, refunds: 0, net: 0 },
-    other: { orders: 0, received: 0, fees: 0, refunds: 0, net: 0 },
-    bus: {
-      orders: 0,
-      salesWithoutFreight: 0,
-      charged: 0,
-      paymentFees: 0,
-      net: 0
-    }
-  } as any
-}
-
-function safeErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
-
-  if (message.includes("NUVEMSHOP_401")) {
-    return "A conexão da Nuvemshop precisa ser renovada."
-  }
-  if (message.includes("NUVEMSHOP_403")) {
-    return "A Nuvemshop recusou o acesso aos pedidos."
-  }
-  if (message.includes("NUVEMSHOP_429")) {
-    return "A Nuvemshop limitou temporariamente as consultas."
-  }
-  if (message.includes("AbortError") || message.includes("aborted")) {
-    return "A Nuvemshop demorou para responder."
-  }
-
-  return "Não foi possível consultar os pedidos da Nuvemshop."
-}
-
-function buildReport(
-  orders: any[],
-  range: ReportRange,
-  source: OrderSource,
-  warning?: string
+async function getLocalOrders(
+  supabase: SupabaseClient,
+  forceRefresh = false
 ) {
+  const now = Date.now()
+
+  if (
+    !forceRefresh &&
+    localOrdersCache &&
+    localOrdersCache.expiresAt > now
+  ) {
+    return localOrdersCache.orders
+  }
+
+  if (!forceRefresh && localOrdersPromise) {
+    return localOrdersPromise
+  }
+
+  localOrdersPromise = fetchLocalOrders(supabase)
+    .then((orders) => {
+      localOrdersCache = {
+        orders,
+        expiresAt: Date.now() + LOCAL_CACHE_MS
+      }
+
+      return orders
+    })
+    .finally(() => {
+      localOrdersPromise = null
+    })
+
+  return localOrdersPromise
+}
+
+function emptyMethod() {
+  return {
+    orders: 0,
+    received: 0,
+    fees: 0,
+    refunds: 0,
+    net: 0,
+    details: {} as Record<string, {
+      label: string
+      orders: number
+      received: number
+    }>
+  }
+}
+
+function emptyShippingMethod() {
+  return {
+    orders: 0,
+    salesWithoutFreight: 0,
+    charged: 0,
+    paymentFees: 0,
+    refunds: 0,
+    net: 0,
+    details: {} as Record<string, {
+      label: string
+      orders: number
+      charged: number
+    }>
+  }
+}
+
+function addPaymentDetail(
+  method: ReturnType<typeof emptyMethod>,
+  label: string,
+  received: number
+) {
+  const key = normalize(label) || "nao-identificado"
+  const current = method.details[key] || {
+    label: label || "Não identificado",
+    orders: 0,
+    received: 0
+  }
+
+  current.orders += 1
+  current.received += received
+  method.details[key] = current
+}
+
+function addShippingDetail(
+  method: ReturnType<typeof emptyShippingMethod>,
+  label: string,
+  charged: number
+) {
+  const key = normalize(label) || "nao-informado"
+  const current = method.details[key] || {
+    label: label || "Não informado",
+    orders: 0,
+    charged: 0
+  }
+
+  current.orders += 1
+  current.charged += charged
+  method.details[key] = current
+}
+
+function detailArray<T extends { orders: number }>(
+  value: Record<string, T>
+) {
+  return Object.values(value).sort((a, b) => b.orders - a.orders)
+}
+
+function buildReport(orders: any[], range: ReportRange) {
   const allMovements: any[] = []
 
   for (const order of orders) {
     const total = money(order.total)
+
     const knownFreight = money(
       order.shipping_cost_customer ??
       order.shipping_cost_owner ??
       order.shipping_cost
     )
+
     const subtotal = money(
       order.subtotal ||
       itemSubtotal(order) ||
       Math.max(0, total - knownFreight)
     )
+
     const discount = money(
       order.discount ??
       order.discount_coupon ??
       Math.max(0, subtotal + knownFreight - total)
     )
+
     const productNet = money(Math.max(0, subtotal - discount))
+
     const freight = knownFreight > 0
       ? knownFreight
       : money(Math.max(0, total - productNet))
+
     const payment = paymentGroup(order)
-    const shipping = shippingGroup(order)
+    const shippingMethod = shippingGroup(order)
+    const currentPaymentLabel = paymentLabel(order, payment)
+    const currentShippingLabel = shippingLabel(order, shippingMethod)
     const paymentFee = paymentFeeFor(payment, total)
     const feeEstimated = payment === "pix" || payment === "card"
+
     const products = arrayValue(order.products)
     const itemCount = products.reduce((sum: number, item: any) => {
       return sum + Number(item?.quantity || 0)
     }, 0)
-    const paymentLabel = payment === "pix"
-      ? "Pix"
-      : payment === "card"
-        ? "Cartão de crédito"
-        : payment === "cash"
-          ? "Dinheiro"
-          : String(
-              order.gateway_name ||
-              order.payment_details?.method ||
-              order.payment_method ||
-              "Outro"
-            )
-    const shippingLabel = shipping === "bus"
-      ? "Ônibus / excursão"
-      : String(
-          order.shipping_option ||
-          order.shipping_option_reference ||
-          order.shipping_method ||
-          "Não informado"
-        )
+
     const refund = refundValue(order)
 
     if (isPaid(order)) {
@@ -586,15 +598,14 @@ function buildReport(
         customer: customerName(order),
         type: "sale",
         paymentGroup: payment,
-        paymentLabel,
-        shippingGroup: shipping,
-        shippingLabel,
+        paymentLabel: currentPaymentLabel,
+        shippingGroup: shippingMethod,
+        shippingLabel: currentShippingLabel,
         itemCount,
         productGross: subtotal,
         discount,
         productNet,
         freight,
-        busFee: shipping === "bus" ? freight : 0,
         totalReceived: total,
         paymentFee,
         refund: 0,
@@ -612,15 +623,14 @@ function buildReport(
         customer: customerName(order),
         type: "refund",
         paymentGroup: payment,
-        paymentLabel,
-        shippingGroup: shipping,
-        shippingLabel,
+        paymentLabel: currentPaymentLabel,
+        shippingGroup: shippingMethod,
+        shippingLabel: currentShippingLabel,
         itemCount: 0,
         productGross: 0,
         discount: 0,
         productNet: 0,
         freight: 0,
-        busFee: 0,
         totalReceived: 0,
         paymentFee: 0,
         refund,
@@ -636,7 +646,9 @@ function buildReport(
       const key = safeDateKey(movement.date)
       return Boolean(key && key >= range.from && key <= range.to)
     })
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .sort((a, b) => {
+      return new Date(b.date).getTime() - new Date(a.date).getTime()
+    })
 
   const metrics: any = {
     orders: 0,
@@ -645,7 +657,6 @@ function buildReport(
     discounts: 0,
     salesWithoutFreight: 0,
     freight: 0,
-    busFees: 0,
     totalReceived: 0,
     paymentFees: 0,
     refunds: 0,
@@ -654,7 +665,21 @@ function buildReport(
     estimatedFeeOrders: 0
   }
 
-  const methods = emptyMethods()
+  const methods = {
+    pix: emptyMethod(),
+    card: emptyMethod(),
+    cash: emptyMethod(),
+    other: emptyMethod()
+  }
+
+  const shipping = {
+    bus: emptyShippingMethod(),
+    postal: emptyShippingMethod(),
+    motoboy: emptyShippingMethod(),
+    pickup: emptyShippingMethod(),
+    unknown: emptyShippingMethod()
+  }
+
   const chartMap = new Map<string, any>()
 
   for (const movement of movements) {
@@ -668,7 +693,9 @@ function buildReport(
       refunds: 0,
       net: 0
     }
-    const method = methods[movement.paymentGroup] || methods.other
+
+    const method = methods[movement.paymentGroup as PaymentGroup] || methods.other
+    const shipment = shipping[movement.shippingGroup as ShippingGroup] || shipping.unknown
 
     if (movement.type === "sale") {
       metrics.orders += 1
@@ -677,29 +704,40 @@ function buildReport(
       metrics.discounts += movement.discount
       metrics.salesWithoutFreight += movement.productNet
       metrics.freight += movement.freight
-      metrics.busFees += movement.busFee
       metrics.totalReceived += movement.totalReceived
       metrics.paymentFees += movement.paymentFee
-      if (movement.feeEstimated) metrics.estimatedFeeOrders += 1
+
+      if (movement.feeEstimated) {
+        metrics.estimatedFeeOrders += 1
+      }
 
       method.orders += 1
       method.received += movement.totalReceived
       method.fees += movement.paymentFee
+      addPaymentDetail(
+        method,
+        movement.paymentLabel,
+        movement.totalReceived
+      )
 
-      if (movement.shippingGroup === "bus") {
-        methods.bus.orders += 1
-        methods.bus.salesWithoutFreight += movement.productNet
-        methods.bus.charged += movement.busFee
-        methods.bus.paymentFees += movement.paymentFee
-        methods.bus.net += movement.net
-      }
+      shipment.orders += 1
+      shipment.salesWithoutFreight += movement.productNet
+      shipment.charged += movement.freight
+      shipment.paymentFees += movement.paymentFee
+      shipment.net += movement.net
+      addShippingDetail(
+        shipment,
+        movement.shippingLabel,
+        movement.freight
+      )
 
       day.sales += movement.totalReceived
       day.fees += movement.paymentFee
     } else {
       metrics.refunds += movement.refund
       method.refunds += movement.refund
-      if (movement.shippingGroup === "bus") methods.bus.net -= movement.refund
+      shipment.refunds += movement.refund
+      shipment.net -= movement.refund
       day.refunds += movement.refund
     }
 
@@ -714,24 +752,37 @@ function buildReport(
     : 0
 
   for (const key of Object.keys(metrics)) {
-    if (typeof metrics[key] === "number") metrics[key] = money(metrics[key])
+    if (typeof metrics[key] === "number") {
+      metrics[key] = money(metrics[key])
+    }
   }
 
-  for (const key of ["pix", "card", "cash", "other"]) {
-    methods[key].received = money(methods[key].received)
-    methods[key].fees = money(methods[key].fees)
-    methods[key].refunds = money(methods[key].refunds)
-    methods[key].net = money(methods[key].net)
+  for (const method of Object.values(methods)) {
+    method.received = money(method.received)
+    method.fees = money(method.fees)
+    method.refunds = money(method.refunds)
+    method.net = money(method.net)
+
+    for (const detail of Object.values(method.details)) {
+      detail.received = money(detail.received)
+    }
   }
 
-  for (const key of ["salesWithoutFreight", "charged", "paymentFees", "net"]) {
-    methods.bus[key] = money(methods.bus[key])
+  for (const shipment of Object.values(shipping)) {
+    shipment.salesWithoutFreight = money(shipment.salesWithoutFreight)
+    shipment.charged = money(shipment.charged)
+    shipment.paymentFees = money(shipment.paymentFees)
+    shipment.refunds = money(shipment.refunds)
+    shipment.net = money(shipment.net)
+
+    for (const detail of Object.values(shipment.details)) {
+      detail.charged = money(detail.charged)
+    }
   }
 
   return {
     generatedAt: new Date().toISOString(),
-    source,
-    warning: warning || null,
+    source: "database",
     range: {
       key: range.key,
       label: `${range.from} a ${range.to}`,
@@ -739,7 +790,19 @@ function buildReport(
       to: range.to
     },
     metrics,
-    methods,
+    methods: {
+      pix: { ...methods.pix, details: detailArray(methods.pix.details) },
+      card: { ...methods.card, details: detailArray(methods.card.details) },
+      cash: { ...methods.cash, details: detailArray(methods.cash.details) },
+      other: { ...methods.other, details: detailArray(methods.other.details) }
+    },
+    shipping: {
+      bus: { ...shipping.bus, details: detailArray(shipping.bus.details) },
+      postal: { ...shipping.postal, details: detailArray(shipping.postal.details) },
+      motoboy: { ...shipping.motoboy, details: detailArray(shipping.motoboy.details) },
+      pickup: { ...shipping.pickup, details: detailArray(shipping.pickup.details) },
+      unknown: { ...shipping.unknown, details: detailArray(shipping.unknown.details) }
+    },
     chart: Array.from(chartMap.values())
       .sort((a, b) => a.date.localeCompare(b.date))
       .map((item) => ({
@@ -772,77 +835,35 @@ export async function GET(request: Request) {
       )
     }
 
+    const url = new URL(request.url)
+    const range = getRange(url)
+    const forceRefresh = url.searchParams.get("refresh") === "1"
+
     const supabase = createClient(supabaseUrl, serviceKey)
-    const range = getRange(new URL(request.url))
-    const { data: storeRows, error: storesError } = await supabase
-      .from("stores")
-      .select("*")
+    const orders = await getLocalOrders(supabase, forceRefresh)
+    const report = buildReport(orders, range)
 
-    const failures: string[] = []
-    const orderMap = new Map<string, any>()
-    let successfulStores = 0
-
-    if (!storesError) {
-      const groupedStores = groupStores((storeRows || []) as Store[])
-
-      for (const [storeId, credentials] of groupedStores) {
-        for (const store of credentials) {
-          try {
-            const orders = await fetchNuvemshopOrders(store, range)
-
-            for (const order of orders) {
-              orderMap.set(`${storeId}:${order.id}`, order)
-            }
-
-            successfulStores += 1
-            break
-          } catch (error) {
-            console.error(`Financeiro: falha na Nuvemshop para loja ${storeId}`, error)
-            failures.push(safeErrorMessage(error))
-          }
-        }
+    return Response.json(report, {
+      headers: {
+        "Cache-Control": forceRefresh
+          ? "private, no-store"
+          : "private, max-age=30, stale-while-revalidate=120"
       }
-    } else {
-      console.error("Financeiro: erro ao buscar lojas", storesError)
-      failures.push("Não foi possível acessar o cadastro da loja.")
-    }
-
-    if (successfulStores > 0) {
-      return Response.json(
-        buildReport(Array.from(orderMap.values()), range, "nuvemshop")
-      )
-    }
-
-    try {
-      const localOrders = await fetchLocalOrders(supabase)
-
-      return Response.json(
-        buildReport(
-          localOrders,
-          range,
-          "database",
-          "A Nuvemshop não respondeu. Os valores exibidos vieram dos pedidos já sincronizados no sistema."
-        )
-      )
-    } catch (fallbackError) {
-      console.error("Financeiro: fallback local também falhou", fallbackError)
-
-      const fallbackMessage = fallbackError instanceof Error
-        ? fallbackError.message
-        : String(fallbackError)
-
-      return Response.json(
-        {
-          error:
-            fallbackMessage.startsWith("LOCAL_ORDERS:")
-              ? "Não foi possível acessar o histórico de pedidos salvo no sistema."
-              : failures[0] || "Não foi possível carregar os pedidos."
-        },
-        { status: 502 }
-      )
-    }
+    })
   } catch (error) {
     console.error("Erro relatório financeiro:", error)
-    return Response.json({ error: "Não foi possível carregar o financeiro." }, { status: 500 })
+
+    const message = error instanceof Error
+      ? error.message
+      : String(error)
+
+    return Response.json(
+      {
+        error: message.startsWith("LOCAL_ORDERS:")
+          ? "Não foi possível acessar os pedidos já sincronizados no sistema."
+          : "Não foi possível carregar o financeiro."
+      },
+      { status: 500 }
+    )
   }
 }
