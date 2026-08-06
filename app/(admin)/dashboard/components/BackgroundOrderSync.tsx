@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 
 const SYNC_KEY = "modapink-orders-last-background-sync-v2"
+const FINANCIAL_RELOAD_KEY = "modapink-financial-reloaded-after-sync-v2"
 const SYNC_INTERVAL_MS = 2 * 60 * 1000
 const PRELOAD_RANGES = ["today", "7d", "month"] as const
 
@@ -60,6 +61,21 @@ export default function BackgroundOrderSync() {
         )
 
         await preloadReports()
+
+        const isFinancialPage = window.location.pathname.includes(
+          "/dashboard/relatorios"
+        )
+        const alreadyReloaded = window.sessionStorage.getItem(
+          FINANCIAL_RELOAD_KEY
+        ) === "1"
+
+        if (isFinancialPage && !alreadyReloaded) {
+          window.sessionStorage.setItem(
+            FINANCIAL_RELOAD_KEY,
+            "1"
+          )
+          window.location.reload()
+        }
       } catch (error) {
         if (
           error instanceof DOMException &&
