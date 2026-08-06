@@ -2,7 +2,8 @@
 
 import { useEffect } from "react"
 
-const SYNC_KEY = "modapink-orders-last-background-sync"
+const SYNC_KEY = "modapink-orders-last-background-sync-v2"
+const FINANCIAL_RELOAD_KEY = "modapink-financial-reloaded-after-sync-v2"
 const SYNC_INTERVAL_MS = 2 * 60 * 1000
 const PRELOAD_RANGES = ["today", "7d", "month"] as const
 
@@ -19,22 +20,15 @@ export default function BackgroundOrderSync() {
       return
     }
 
-    window.sessionStorage.setItem(
-      SYNC_KEY,
-      String(Date.now())
-    )
-
     const controller = new AbortController()
 
-    const preloadReports = (force = false) => {
+    const preloadReports = () => {
       return Promise.allSettled(
         PRELOAD_RANGES.map((range) => {
-          const refresh = force ? "&refresh=1" : ""
-
           return fetch(
-            `/api/reports/financial?range=${range}${refresh}`,
+            `/api/reports/financial?range=${range}&refresh=1`,
             {
-              cache: force ? "no-store" : "default",
+              cache: "no-store",
               signal: controller.signal
             }
           )
@@ -44,16 +38,44 @@ export default function BackgroundOrderSync() {
 
     const run = async () => {
       try {
-        const initialPreload = preloadReports()
+        const response = await fetch(
+          "/api/orders?page=1&pages=5&sync_only=1",
+          {
+            cache: "no-store",
+            signal: controller.signal
+          }
+        )
 
-        const orderSync = fetch("/api/orders?page=1", {
-          cache: "no-store",
-          signal: controller.signal
-        })
+        const payload = await response.json().catch(() => null)
 
-        await initialPreload
-        await orderSync
-        await preloadReports(true)
+        if (!response.ok) {
+          throw new Error(
+            payload?.error ||
+            "Não foi possível sincronizar os pedidos."
+          )
+        }
+
+        window.sessionStorage.setItem(
+          SYNC_KEY,
+          String(Date.now())
+        )
+
+        await preloadReports()
+
+        const isFinancialPage = window.location.pathname.includes(
+          "/dashboard/relatorios"
+        )
+        const alreadyReloaded = window.sessionStorage.getItem(
+          FINANCIAL_RELOAD_KEY
+        ) === "1"
+
+        if (isFinancialPage && !alreadyReloaded) {
+          window.sessionStorage.setItem(
+            FINANCIAL_RELOAD_KEY,
+            "1"
+          )
+          window.location.reload()
+        }
       } catch (error) {
         if (
           error instanceof DOMException &&
