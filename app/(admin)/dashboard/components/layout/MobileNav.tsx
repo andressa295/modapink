@@ -29,7 +29,7 @@ const menuItems = [
   },
   {
     label: "WhatsApp",
-    href: "/dashboard/whatsapp",
+    href: "/dashboard/conversas",
     icon: MessageCircle,
     highlight: true
   },

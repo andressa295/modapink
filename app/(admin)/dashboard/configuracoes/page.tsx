@@ -25,31 +25,10 @@ export default function ConfiguracoesPage() {
       tag: "Operação",
     },
     {
-      title: "Automações",
-      description:
-        "Ative e ajuste carrinho abandonado, pedido aprovado, avaliações e mensagens automáticas.",
-      link: "/dashboard/configuracoes/automacoes",
-      tag: "Automação",
-    },
-    {
-      title: "Integrações",
-      description:
-        "Gerencie WhatsApp, Nuvemshop, IA e serviços externos conectados ao sistema.",
-      link: "/dashboard/configuracoes/integracoes",
-      tag: "API",
-    },
-    {
-      title: "Aparência",
-      description:
-        "Personalize logo, nome da loja, cores do painel e identidade visual do sistema.",
-      link: "/dashboard/configuracoes/aparencia",
-      tag: "Visual",
-    },
-    {
       title: "Usuários",
       description:
         "Gerencie acessos da equipe, permissões, atendentes e administradores.",
-      link: "/dashboard/configuracoes/usuarios",
+      link: "/dashboard/usuarios",
       tag: "Equipe",
     },
   ];
@@ -66,8 +45,8 @@ export default function ConfiguracoesPage() {
         </h1>
 
         <p className={styles.headerDescription}>
-          Personalize os dados da loja, textos do bot, horários,
-          automações, integrações e aparência do painel.
+          Personalize os dados da loja, textos do bot, horários de
+          atendimento e acessos da equipe.
         </p>
       </div>
 
