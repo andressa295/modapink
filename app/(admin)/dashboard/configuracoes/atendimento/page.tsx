@@ -9,26 +9,34 @@ import {
 import Link from "next/link"
 
 import {
-  createBrowserClient
-} from "@supabase/ssr"
+  DEFAULT_STORE_SETTINGS,
+  type StoreSettings
+} from "@/lib/store-settings"
+
+import {
+  loadStoreSettings,
+  patchStoreSettings
+} from "@/lib/store-settings-client"
 
 import styles from "./atendimento.module.css"
-
-const supabase =
-  createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
 type AtendimentoSettings = {
   has_physical_store: boolean
   physical_store_message: string
   pickup_enabled: boolean
+  pickup_location: string
   pickup_address: string
   pickup_hours: string
   sac_hours: string
   business_hours_message: string
   human_support_message: string
+  ships_nationwide: boolean
+  separation_business_days: number
+  motoboy_enabled: boolean
+  motoboy_same_day_cutoff: string
+  excursion_enabled: boolean
+  excursion_phone: string
+  excursion_fee: number
 }
 
 const defaultSettings: AtendimentoSettings = {
@@ -38,6 +46,9 @@ const defaultSettings: AtendimentoSettings = {
     "No momento não temos loja física aberta ao público 💗\n\nAs compras podem ser feitas pelo site:\n{{site_url}}\n\nTambém conseguimos ajudar por aqui no WhatsApp.",
 
   pickup_enabled: true,
+
+  pickup_location:
+    DEFAULT_STORE_SETTINGS.pickup_location,
 
   pickup_address:
     "Estrada Sebastião Walter Fusco 423, Cidade SOIMCO, Guarulhos, São Paulo (CEP 07183000)",
@@ -52,7 +63,15 @@ const defaultSettings: AtendimentoSettings = {
     "O site funciona 24 horas, amiga 💗\n\nNão temos mais loja física.\n\nHorário de retirada na sede e atendimento do SAC:\n• Segunda a quinta: das 7h às 14h30\n• Sexta e sábado: das 7h às 12h30\n\nAs compras podem ser feitas pelo site a qualquer horário.",
 
   human_support_message:
-    "Claro, amiga 💗\n\nVou pausar o atendimento automático e deixar uma pessoa da equipe continuar por aqui.\n\nPode aguardar um pouquinho, tá?"
+    "Claro, amiga 💗\n\nVou pausar o atendimento automático e deixar uma pessoa da equipe continuar por aqui.\n\nPode aguardar um pouquinho, tá?",
+
+  ships_nationwide: DEFAULT_STORE_SETTINGS.ships_nationwide,
+  separation_business_days: DEFAULT_STORE_SETTINGS.separation_business_days,
+  motoboy_enabled: DEFAULT_STORE_SETTINGS.motoboy_enabled,
+  motoboy_same_day_cutoff: DEFAULT_STORE_SETTINGS.motoboy_same_day_cutoff,
+  excursion_enabled: DEFAULT_STORE_SETTINGS.excursion_enabled,
+  excursion_phone: DEFAULT_STORE_SETTINGS.excursion_phone,
+  excursion_fee: DEFAULT_STORE_SETTINGS.excursion_fee
 }
 
 function normalizeSettings(value: any): AtendimentoSettings {
@@ -69,6 +88,10 @@ function normalizeSettings(value: any): AtendimentoSettings {
     pickup_enabled:
       value?.pickup_enabled ??
       defaultSettings.pickup_enabled,
+
+    pickup_location:
+      value?.pickup_location ??
+      defaultSettings.pickup_location,
 
     pickup_address:
       value?.pickup_address ??
@@ -94,7 +117,35 @@ function normalizeSettings(value: any): AtendimentoSettings {
     human_support_message:
       botTexts?.human_support_message ??
       value?.human_support_message ??
-      defaultSettings.human_support_message
+      defaultSettings.human_support_message,
+
+    ships_nationwide:
+      value?.ships_nationwide ??
+      defaultSettings.ships_nationwide,
+
+    separation_business_days:
+      Number(value?.separation_business_days ??
+      defaultSettings.separation_business_days),
+
+    motoboy_enabled:
+      value?.motoboy_enabled ??
+      defaultSettings.motoboy_enabled,
+
+    motoboy_same_day_cutoff:
+      value?.motoboy_same_day_cutoff ??
+      defaultSettings.motoboy_same_day_cutoff,
+
+    excursion_enabled:
+      value?.excursion_enabled ??
+      defaultSettings.excursion_enabled,
+
+    excursion_phone:
+      value?.excursion_phone ??
+      defaultSettings.excursion_phone,
+
+    excursion_fee:
+      Number(value?.excursion_fee ??
+      defaultSettings.excursion_fee)
   }
 }
 
@@ -107,7 +158,7 @@ export default function AtendimentoPage() {
   const [
     fullSettings,
     setFullSettings
-  ] = useState<any>({})
+  ] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS)
 
   const [
     loading,
@@ -214,21 +265,8 @@ export default function AtendimentoPage() {
     setError("")
 
     try {
-      const {
-        data,
-        error
-      } = await supabase
-        .from("store_settings")
-        .select("*")
-        .eq("store_key", "default")
-        .maybeSingle()
-
-      if (error) {
-        throw error
-      }
-
       const currentSettings =
-        data?.settings || {}
+        await loadStoreSettings()
 
       setFullSettings(currentSettings)
 
@@ -236,14 +274,14 @@ export default function AtendimentoPage() {
         normalizeSettings(currentSettings)
       )
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(
         "❌ erro carregar atendimento:",
         err
       )
 
       setError(
-        err?.message ||
+        (err instanceof Error ? err.message : "") ||
         "Não consegui carregar as configurações de atendimento."
       )
 
@@ -259,68 +297,33 @@ export default function AtendimentoPage() {
 
     try {
       const currentBotTexts =
-        fullSettings?.bot_texts || {}
+        fullSettings.bot_texts
 
-      const nextSettings = {
-        ...(fullSettings || {}),
-
-        has_physical_store:
-          settings.has_physical_store,
-
-        pickup_enabled:
-          settings.pickup_enabled,
-
-        pickup_address:
-          settings.pickup_address,
-
-        pickup_hours:
-          settings.pickup_hours,
-
-        sac_hours:
-          settings.sac_hours,
-
-        business_hours_message:
-          settings.business_hours_message,
-
-        bot_texts: {
-          ...currentBotTexts,
-
-          physical_store_message:
-            settings.physical_store_message,
-
-          human_support_message:
-            settings.human_support_message
-        },
-
-        updated_from:
+      const nextSettings =
+        await patchStoreSettings(
           "dashboard_atendimento",
-
-        updated_at:
-          new Date().toISOString()
-      }
-
-      const {
-        error
-      } = await supabase
-        .from("store_settings")
-        .upsert(
           {
-            store_key:
-              "default",
-            settings:
-              nextSettings,
-            updated_at:
-              new Date().toISOString()
-          },
-          {
-            onConflict:
-              "store_key"
+            has_physical_store: settings.has_physical_store,
+            pickup_enabled: settings.pickup_enabled,
+            pickup_location: settings.pickup_location,
+            pickup_address: settings.pickup_address,
+            pickup_hours: settings.pickup_hours,
+            sac_hours: settings.sac_hours,
+            ships_nationwide: settings.ships_nationwide,
+            separation_business_days: settings.separation_business_days,
+            motoboy_enabled: settings.motoboy_enabled,
+            motoboy_same_day_cutoff: settings.motoboy_same_day_cutoff,
+            excursion_enabled: settings.excursion_enabled,
+            excursion_phone: settings.excursion_phone,
+            excursion_fee: settings.excursion_fee,
+            business_hours_message: settings.business_hours_message,
+            bot_texts: {
+              ...currentBotTexts,
+              physical_store_message: settings.physical_store_message,
+              human_support_message: settings.human_support_message
+            }
           }
         )
-
-      if (error) {
-        throw error
-      }
 
       setFullSettings(nextSettings)
 
@@ -334,14 +337,14 @@ export default function AtendimentoPage() {
         setSaved(false)
       }, 2800)
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(
         "❌ erro salvar atendimento:",
         err
       )
 
       setError(
-        err?.message ||
+        (err instanceof Error ? err.message : "") ||
         "Não consegui salvar as configurações de atendimento."
       )
 
@@ -475,6 +478,168 @@ export default function AtendimentoPage() {
           <section className={styles.card}>
             <div className={styles.cardHeader}>
               <span>
+                Entregas
+              </span>
+
+              <h2>
+                Separação, motoboy e excursão
+              </h2>
+
+              <p>
+                Essas regras passam a ser usadas pelo WhatsApp sem precisar alterar o código.
+              </p>
+            </div>
+
+            <div className={styles.switchGrid}>
+              <label className={styles.switchRow}>
+                <input
+                  type="checkbox"
+                  checked={settings.ships_nationwide}
+                  onChange={(event) =>
+                    updateField(
+                      "ships_nationwide",
+                      event.target.checked
+                    )
+                  }
+                />
+
+                <div>
+                  <strong>
+                    Envia para todo o Brasil
+                  </strong>
+
+                  <span>
+                    Controla a resposta nacional de frete.
+                  </span>
+                </div>
+              </label>
+
+              <label className={styles.switchRow}>
+                <input
+                  type="checkbox"
+                  checked={settings.motoboy_enabled}
+                  onChange={(event) =>
+                    updateField(
+                      "motoboy_enabled",
+                      event.target.checked
+                    )
+                  }
+                />
+
+                <div>
+                  <strong>
+                    Entrega por motoboy
+                  </strong>
+
+                  <span>
+                    Ative enquanto essa modalidade estiver disponível.
+                  </span>
+                </div>
+              </label>
+
+              <label className={styles.switchRow}>
+                <input
+                  type="checkbox"
+                  checked={settings.excursion_enabled}
+                  onChange={(event) =>
+                    updateField(
+                      "excursion_enabled",
+                      event.target.checked
+                    )
+                  }
+                />
+
+                <div>
+                  <strong>
+                    Entrega em excursão
+                  </strong>
+
+                  <span>
+                    Ative enquanto a entrega em ônibus estiver disponível.
+                  </span>
+                </div>
+              </label>
+            </div>
+
+            <div className={styles.gridTwo}>
+              <label className={styles.field}>
+                <span>
+                  Dias úteis para separação
+                </span>
+
+                <input
+                  type="number"
+                  min="0"
+                  value={settings.separation_business_days}
+                  onChange={(event) =>
+                    updateField(
+                      "separation_business_days",
+                      Number(event.target.value)
+                    )
+                  }
+                />
+              </label>
+
+              <label className={styles.field}>
+                <span>
+                  Horário limite do motoboy
+                </span>
+
+                <input
+                  type="time"
+                  value={settings.motoboy_same_day_cutoff}
+                  onChange={(event) =>
+                    updateField(
+                      "motoboy_same_day_cutoff",
+                      event.target.value
+                    )
+                  }
+                />
+              </label>
+            </div>
+
+            <div className={styles.gridTwo}>
+              <label className={styles.field}>
+                <span>
+                  WhatsApp da excursão
+                </span>
+
+                <input
+                  value={settings.excursion_phone}
+                  onChange={(event) =>
+                    updateField(
+                      "excursion_phone",
+                      event.target.value
+                    )
+                  }
+                  placeholder="5511978286117"
+                />
+              </label>
+
+              <label className={styles.field}>
+                <span>
+                  Taxa da excursão
+                </span>
+
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={settings.excursion_fee}
+                  onChange={(event) =>
+                    updateField(
+                      "excursion_fee",
+                      Number(event.target.value)
+                    )
+                  }
+                />
+              </label>
+            </div>
+          </section>
+
+          <section className={styles.card}>
+            <div className={styles.cardHeader}>
+              <span>
                 Horários
               </span>
 
@@ -518,6 +683,23 @@ export default function AtendimentoPage() {
                   )
                 }
                 rows={4}
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span>
+                Cidade/região da retirada
+              </span>
+
+              <input
+                value={settings.pickup_location}
+                onChange={(event) =>
+                  updateField(
+                    "pickup_location",
+                    event.target.value
+                  )
+                }
+                placeholder="Ex: Guarulhos/SP"
               />
             </label>
 
