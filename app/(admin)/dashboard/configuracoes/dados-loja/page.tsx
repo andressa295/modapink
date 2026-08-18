@@ -4,73 +4,23 @@ import { useEffect, useMemo, useState } from "react"
 
 import Link from "next/link"
 
-import { createBrowserClient } from "@supabase/ssr"
+import {
+  DEFAULT_STORE_SETTINGS,
+  type StoreSettings
+} from "@/lib/store-settings"
+
+import {
+  loadStoreSettings,
+  patchStoreSettings
+} from "@/lib/store-settings-client"
 
 import styles from "./dados-loja.module.css"
-
-const supabase =
-  createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
-
-type StoreSettings = {
-  store_name: string
-  site_url: string
-  minimum_order: number | string
-  sac_url: string
-  instagram_url: string
-  group_url: string
-  telegram_url: string
-  sac_hours: string
-  pickup_enabled: boolean
-  pickup_address: string
-  pickup_hours: string
-  has_physical_store: boolean
-  business_hours_message: string
-}
-
-const defaultSettings: StoreSettings = {
-  store_name: "Moda Pink",
-  site_url: "https://atacadomodapink.com.br",
-  minimum_order: 200,
-  sac_url: "",
-  instagram_url: "",
-  group_url: "",
-  telegram_url: "",
-  sac_hours:
-    "Segunda a quinta das 07:00 às 14:30. Sexta e sábado das 07:00 às 12:30",
-  pickup_enabled: true,
-  pickup_address:
-    "Estrada Sebastião Walter Fusco 423, Cidade SOIMCO, Guarulhos, São Paulo (CEP 07183000)",
-  pickup_hours:
-    "Segunda a quinta das 07:00 às 14:30. Sexta e sábado das 07:00 às 12:30",
-  has_physical_store: false,
-  business_hours_message:
-    "O site funciona 24 horas, amiga 💗\n\nNão temos mais loja física.\n\nHorário de retirada na sede e atendimento do SAC:\n• Segunda a quinta: das 7h às 14h30\n• Sexta e sábado: das 7h às 12h30\n\nAs compras podem ser feitas pelo site a qualquer horário."
-}
-
-function normalizeSettings(value: any): StoreSettings {
-  return {
-    ...defaultSettings,
-    ...(value || {}),
-    minimum_order:
-      value?.minimum_order ??
-      defaultSettings.minimum_order,
-    pickup_enabled:
-      value?.pickup_enabled ??
-      defaultSettings.pickup_enabled,
-    has_physical_store:
-      value?.has_physical_store ??
-      defaultSettings.has_physical_store
-  }
-}
 
 export default function DadosLojaPage() {
   const [
     settings,
     setSettings
-  ] = useState<StoreSettings>(defaultSettings)
+  ] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS)
 
   const [
     loading,
@@ -125,35 +75,16 @@ export default function DadosLojaPage() {
     setError("")
 
     try {
-      const {
-        data,
-        error
-      } = await supabase
-        .from("store_settings")
-        .select("*")
-        .eq("store_key", "default")
-        .maybeSingle()
+      setSettings(await loadStoreSettings())
 
-      if (error) {
-        throw error
-      }
-
-      if (data?.settings) {
-        setSettings(
-          normalizeSettings(data.settings)
-        )
-      } else {
-        setSettings(defaultSettings)
-      }
-
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(
         "❌ erro carregar dados da loja:",
         err
       )
 
       setError(
-        err?.message ||
+        (err instanceof Error ? err.message : "") ||
         "Não consegui carregar os dados da loja."
       )
 
@@ -168,42 +99,31 @@ export default function DadosLojaPage() {
     setError("")
 
     try {
-      const cleanSettings = {
-        ...settings,
-        minimum_order:
-          Number(settings.minimum_order || 0),
-        updated_from:
-          "dashboard",
-        updated_at:
-          new Date().toISOString()
-      }
-
-      const {
-        error
-      } = await supabase
-        .from("store_settings")
-        .upsert(
-          {
-            store_key:
-              "default",
-            settings:
-              cleanSettings,
-            updated_at:
-              new Date().toISOString()
-          },
-          {
-            onConflict:
-              "store_key"
-          }
-        )
-
-      if (error) {
-        throw error
-      }
-
-      setSettings(
-        normalizeSettings(cleanSettings)
+      const savedSettings = await patchStoreSettings(
+        "dashboard_dados_loja",
+        {
+          store_name: settings.store_name,
+          company_cnpj: settings.company_cnpj,
+          site_url: settings.site_url,
+          catalog_url: settings.catalog_url,
+          minimum_order: settings.minimum_order,
+          polyester_price: settings.polyester_price,
+          pix_discount_percent: settings.pix_discount_percent,
+          sac_url: settings.sac_url,
+          instagram_url: settings.instagram_url,
+          group_url: settings.group_url,
+          telegram_url: settings.telegram_url,
+          sac_hours: settings.sac_hours,
+          pickup_enabled: settings.pickup_enabled,
+          pickup_location: settings.pickup_location,
+          pickup_address: settings.pickup_address,
+          pickup_hours: settings.pickup_hours,
+          has_physical_store: settings.has_physical_store,
+          business_hours_message: settings.business_hours_message
+        }
       )
+
+      setSettings(savedSettings)
 
       setSaved(true)
 
@@ -211,14 +131,14 @@ export default function DadosLojaPage() {
         setSaved(false)
       }, 2800)
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(
         "❌ erro salvar dados da loja:",
         err
       )
 
       setError(
-        err?.message ||
+        (err instanceof Error ? err.message : "") ||
         "Não consegui salvar os dados da loja."
       )
 
@@ -310,7 +230,7 @@ export default function DadosLojaPage() {
                   onChange={(event) =>
                     updateField(
                       "store_name",
-                      event.target.value
+                      Number(event.target.value)
                     )
                   }
                   placeholder="Ex: Moda Pink"
@@ -329,13 +249,73 @@ export default function DadosLojaPage() {
                   onChange={(event) =>
                     updateField(
                       "minimum_order",
-                      event.target.value
+                      Number(event.target.value)
                     )
                   }
-                  placeholder="Ex: 200"
+                  placeholder="Ex: 250"
                 />
               </label>
             </div>
+
+            <div className={styles.gridTwo}>
+              <label className={styles.field}>
+                <span>
+                  CNPJ da empresa
+                </span>
+
+                <input
+                  value={settings.company_cnpj}
+                  onChange={(event) =>
+                    updateField(
+                      "company_cnpj",
+                      event.target.value
+                    )
+                  }
+                  placeholder="00.000.000/0000-00"
+                />
+              </label>
+
+              <label className={styles.field}>
+                <span>
+                  Preço da linha poliéster
+                </span>
+
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={settings.polyester_price}
+                  onChange={(event) =>
+                    updateField(
+                      "polyester_price",
+                      Number(event.target.value)
+                    )
+                  }
+                  placeholder="Ex: 12,00"
+                />
+              </label>
+            </div>
+
+            <label className={styles.field}>
+              <span>
+                Desconto no Pix (%)
+              </span>
+
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value={settings.pix_discount_percent}
+                onChange={(event) =>
+                  updateField(
+                    "pix_discount_percent",
+                    Number(event.target.value)
+                  )
+                }
+                placeholder="Ex: 10"
+              />
+            </label>
 
             <label className={styles.field}>
               <span>
@@ -351,6 +331,23 @@ export default function DadosLojaPage() {
                   )
                 }
                 placeholder="https://site-da-loja.com.br"
+              />
+            </label>
+
+            <label className={styles.field}>
+              <span>
+                Catálogo do WhatsApp
+              </span>
+
+              <input
+                value={settings.catalog_url}
+                onChange={(event) =>
+                  updateField(
+                    "catalog_url",
+                    event.target.value
+                  )
+                }
+                placeholder="https://modapink.phand.com.br"
               />
             </label>
           </section>

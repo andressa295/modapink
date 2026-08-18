@@ -15,6 +15,10 @@ import {
   resolveVariantPricing
 } from "./pricing"
 
+import {
+  DEFAULT_STORE_SETTINGS
+} from "../store-settings"
+
 const NUVEMSHOP_API = "https://api.nuvemshop.com.br/v1"
 const USER_AGENT = "Phandshop/1.0 (contato@phand.com.br)"
 const DEFAULT_SITE = "https://atacadomodapink.com.br"
@@ -109,22 +113,23 @@ function buildSettings(raw: any, defaultPhone = ""): CatalogSettings {
     toNumber(
       raw?.catalog_pix_discount_percent ??
       process.env.CATALOG_PIX_DISCOUNT_PERCENT ??
-      10,
-      10
+      DEFAULT_STORE_SETTINGS.pix_discount_percent,
+      DEFAULT_STORE_SETTINGS.pix_discount_percent
     )
   const pixDiscountPercent = Math.min(
     100,
-    Math.max(
-      0,
-      configuredPixDiscount > 0
-        ? configuredPixDiscount
-        : 10
-    )
+    Math.max(0, configuredPixDiscount)
   )
 
   return {
     storeName: String(raw?.store_name || "Moda Pink"),
-    minimumOrder: Math.max(0, toNumber(raw?.minimum_order, 200)),
+    minimumOrder: Math.max(
+      0,
+      toNumber(
+        raw?.minimum_order,
+        DEFAULT_STORE_SETTINGS.minimum_order
+      )
+    ),
     siteUrl,
     helpUrl: String(
       raw?.sac_url ||

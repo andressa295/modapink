@@ -9,16 +9,16 @@ import {
 import Link from "next/link"
 
 import {
-  createBrowserClient
-} from "@supabase/ssr"
+  DEFAULT_STORE_SETTINGS,
+  type StoreSettings
+} from "@/lib/store-settings"
+
+import {
+  loadStoreSettings,
+  patchStoreSettings
+} from "@/lib/store-settings-client"
 
 import styles from "./textos-bot.module.css"
-
-const supabase =
-  createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  )
 
 type BotTexts = {
   catalog_message: string
@@ -219,7 +219,7 @@ export default function TextosBotPage() {
   const [
     fullSettings,
     setFullSettings
-  ] = useState<any>({})
+  ] = useState<StoreSettings>(DEFAULT_STORE_SETTINGS)
 
   const [
     activeKey,
@@ -270,7 +270,29 @@ export default function TextosBotPage() {
         )
         .replaceAll(
           "{{minimum_order}}",
-          String(fullSettings?.minimum_order || "200")
+          String(fullSettings.minimum_order)
+        )
+        .replaceAll(
+          "{{minimum_order_formatted}}",
+          fullSettings.minimum_order.toLocaleString(
+            "pt-BR",
+            {
+              style: "currency",
+              currency: "BRL"
+            }
+          )
+        )
+        .replaceAll(
+          "{{catalog_url}}",
+          fullSettings.catalog_url
+        )
+        .replaceAll(
+          "{{pix_discount_percent}}",
+          String(fullSettings.pix_discount_percent)
+        )
+        .replaceAll(
+          "{{separation_business_days}}",
+          String(fullSettings.separation_business_days)
         )
         .replaceAll(
           "{{sac_url}}",
@@ -328,38 +350,25 @@ export default function TextosBotPage() {
     setError("")
 
     try {
-      const {
-        data,
-        error
-      } = await supabase
-        .from("store_settings")
-        .select("*")
-        .eq("store_key", "default")
-        .maybeSingle()
-
-      if (error) {
-        throw error
-      }
-
       const currentSettings =
-        data?.settings || {}
+        await loadStoreSettings()
 
       setFullSettings(currentSettings)
 
       setBotTexts(
         normalizeBotTexts(
-          currentSettings?.bot_texts
+          currentSettings.bot_texts
         )
       )
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(
         "❌ erro carregar textos do bot:",
         err
       )
 
       setError(
-        err?.message ||
+        (err instanceof Error ? err.message : "") ||
         "Não consegui carregar os textos do bot."
       )
 
@@ -374,38 +383,13 @@ export default function TextosBotPage() {
     setError("")
 
     try {
-      const nextSettings = {
-        ...(fullSettings || {}),
-        bot_texts:
-          botTexts,
-        updated_from:
+      const nextSettings =
+        await patchStoreSettings(
           "dashboard_textos_bot",
-        updated_at:
-          new Date().toISOString()
-      }
-
-      const {
-        error
-      } = await supabase
-        .from("store_settings")
-        .upsert(
           {
-            store_key:
-              "default",
-            settings:
-              nextSettings,
-            updated_at:
-              new Date().toISOString()
-          },
-          {
-            onConflict:
-              "store_key"
+            bot_texts: botTexts
           }
         )
-
-      if (error) {
-        throw error
-      }
 
       setFullSettings(nextSettings)
 
@@ -415,14 +399,14 @@ export default function TextosBotPage() {
         setSaved(false)
       }, 2800)
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(
         "❌ erro salvar textos do bot:",
         err
       )
 
       setError(
-        err?.message ||
+        (err instanceof Error ? err.message : "") ||
         "Não consegui salvar os textos do bot."
       )
 
@@ -566,6 +550,22 @@ export default function TextosBotPage() {
 
                 <code>
                   {"{{minimum_order}}"}
+                </code>
+
+                <code>
+                  {"{{minimum_order_formatted}}"}
+                </code>
+
+                <code>
+                  {"{{catalog_url}}"}
+                </code>
+
+                <code>
+                  {"{{pix_discount_percent}}"}
+                </code>
+
+                <code>
+                  {"{{separation_business_days}}"}
                 </code>
 
                 <code>

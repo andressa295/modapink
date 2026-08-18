@@ -272,6 +272,14 @@
   gap: 14px;
 }
 
+.gridTwo {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: 14px;
+}
+
 .switchRow {
   display: flex;
   align-items: flex-start;
@@ -357,12 +365,9 @@
   font-weight: 900;
 }
 
+.field input,
 .field textarea {
   width: 100%;
-
-  resize: vertical;
-
-  min-height: 94px;
 
   padding: 14px;
 
@@ -385,6 +390,17 @@
     background 0.16s ease;
 }
 
+.field input {
+  min-height: 48px;
+}
+
+.field textarea {
+  min-height: 94px;
+
+  resize: vertical;
+}
+
+.field input:focus,
 .field textarea:focus {
   border-color: #f9a8d4;
 
@@ -481,6 +497,10 @@
     grid-template-columns: 1fr;
   }
 
+  .gridTwo {
+    grid-template-columns: 1fr;
+  }
+
   .card,
   .previewCard,
   .helpCard,
@@ -490,6 +510,7 @@
     padding: 18px;
   }
 
+  .field input,
   .field textarea {
     font-size: 13px;
   }
