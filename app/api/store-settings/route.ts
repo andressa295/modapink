@@ -45,7 +45,7 @@ async function authorize() {
     return { error: "Você não tem permissão para alterar as configurações.", status: 403 } as const
   }
 
-  return { admin, user } as const
+  return { admin } as const
 }
 
 async function currentSettings(admin: ReturnType<typeof adminClient>) {
@@ -109,8 +109,7 @@ export async function PATCH(request: Request) {
         {
           store_key: "default",
           settings: next,
-          updated_at: now,
-          updated_by: auth.user.id
+          updated_at: now
         },
         { onConflict: "store_key" }
       )
