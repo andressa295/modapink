@@ -16,6 +16,9 @@ alter table public.store_settings
 
 alter table public.store_settings enable row level security;
 
+create unique index if not exists store_settings_store_key_unique
+  on public.store_settings (store_key);
+
 revoke all on table public.store_settings from anon, authenticated;
 
 insert into public.store_settings (store_key, settings)
