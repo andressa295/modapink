@@ -230,7 +230,7 @@ export default function DadosLojaPage() {
                   onChange={(event) =>
                     updateField(
                       "store_name",
-                      Number(event.target.value)
+                      event.target.value
                     )
                   }
                   placeholder="Ex: Moda Pink"
