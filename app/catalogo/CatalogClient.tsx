@@ -22,6 +22,10 @@ import type {
   CatalogResponse
 } from "@/lib/catalog/types"
 
+import {
+  DEFAULT_STORE_SETTINGS
+} from "@/lib/store-settings"
+
 import styles from "./catalog.module.css"
 
 type CartLine = {
@@ -223,7 +227,9 @@ export default function CatalogClient({
     (sum, item) => sum + item.price * item.quantity,
     0
   )
-  const minimum = catalog?.settings.minimumOrder || 200
+  const minimum =
+    catalog?.settings.minimumOrder ??
+    DEFAULT_STORE_SETTINGS.minimum_order
   const amountMissing = Math.max(0, minimum - cartTotal)
   const progress = minimum > 0
     ? Math.min(100, (cartTotal / minimum) * 100)
