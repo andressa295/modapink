@@ -30,10 +30,7 @@ export default function Topbar() {
       return "Dashboard"
     }
 
-    if (
-      pathname?.startsWith("/dashboard/whatsapp") ||
-      pathname?.startsWith("/dashboard/conversas")
-    ) {
+    if (pathname?.startsWith("/dashboard/conversas")) {
       return "WhatsApp"
     }
 
