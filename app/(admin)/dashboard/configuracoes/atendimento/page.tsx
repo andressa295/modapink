@@ -227,7 +227,10 @@ export default function AtendimentoPage() {
       )
       .replaceAll(
         "{{minimum_order}}",
-        String(data?.minimum_order || "200")
+        String(
+          data?.minimum_order ??
+          DEFAULT_STORE_SETTINGS.minimum_order
+        )
       )
       .replaceAll(
         "{{sac_url}}",
