@@ -1,0 +1,364 @@
+.page {
+  min-height: 100%;
+  padding: 34px;
+  color: #321a28;
+  background:
+    radial-gradient(circle at top right, rgba(255, 111, 163, 0.12), transparent 34%),
+    #fff9fb;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 22px;
+}
+
+.header h1 {
+  margin: 8px 0 6px;
+  font-size: clamp(28px, 4vw, 42px);
+  letter-spacing: -0.04em;
+}
+
+.header p,
+.cardHeading p {
+  margin: 0;
+  color: #78636e;
+  line-height: 1.55;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #d42c70;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.contactCounter {
+  min-width: 180px;
+  padding: 18px 22px;
+  border: 1px solid #f5c4d7;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgba(120, 36, 73, 0.08);
+}
+
+.contactCounter strong,
+.contactCounter span {
+  display: block;
+}
+
+.contactCounter strong {
+  font-size: 30px;
+  color: #d42c70;
+}
+
+.contactCounter span {
+  color: #78636e;
+  font-size: 13px;
+}
+
+.safetyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.safetyGrid > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid #f1dde5;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #6d5662;
+  font-size: 13px;
+}
+
+.safetyGrid svg {
+  flex: none;
+  color: #d42c70;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(300px, 0.85fr) minmax(420px, 1.15fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.card {
+  padding: 24px;
+  border: 1px solid #f1dde5;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 16px 44px rgba(83, 33, 56, 0.07);
+}
+
+.cardHeading {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.cardHeading h2 {
+  margin: 0 0 4px;
+  font-size: 21px;
+}
+
+.card label {
+  display: block;
+  margin-top: 16px;
+  color: #4d3440;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.card input,
+.card select,
+.card textarea {
+  width: 100%;
+  margin-top: 7px;
+  padding: 12px 13px;
+  border: 1px solid #dfccd5;
+  border-radius: 12px;
+  outline: none;
+  background: #fffdfd;
+  color: #321a28;
+  font: inherit;
+}
+
+.card textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.card input:focus,
+.card select:focus,
+.card textarea:focus {
+  border-color: #e7548e;
+  box-shadow: 0 0 0 3px rgba(231, 84, 142, 0.12);
+}
+
+.card small {
+  display: block;
+  margin-top: 7px;
+  color: #927d87;
+  font-weight: 500;
+}
+
+.card code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: #fff0f6;
+  color: #b51f5a;
+}
+
+.preview {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: 14px 14px 4px 14px;
+  background: #fff0f6;
+}
+
+.preview span {
+  color: #b51f5a;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.preview p {
+  margin: 7px 0 0;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.primaryButton,
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 0;
+  border-radius: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.primaryButton {
+  width: 100%;
+  margin-top: 18px;
+  padding: 13px 18px;
+  background: #d42c70;
+  color: #fff;
+}
+
+.primaryButton:disabled,
+.actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.error,
+.notice {
+  margin-bottom: 14px;
+  padding: 11px 13px;
+  border-radius: 11px;
+  font-size: 13px;
+}
+
+.error {
+  color: #9d1d35;
+  background: #fff0f2;
+}
+
+.notice {
+  color: #176640;
+  background: #ebfff4;
+}
+
+.campaignList {
+  display: grid;
+  gap: 13px;
+  max-height: 720px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.campaign {
+  padding: 16px;
+  border: 1px solid #efdee6;
+  border-radius: 16px;
+  background: #fffdfd;
+}
+
+.campaignTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.campaignTop h3 {
+  margin: 0 0 3px;
+  font-size: 16px;
+}
+
+.campaignTop > div > span {
+  color: #927d87;
+  font-size: 12px;
+}
+
+.status {
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.draft { color: #76620b; background: #fff8cf; }
+.running { color: #075b75; background: #dff7ff; }
+.paused { color: #8a4b09; background: #fff0dc; }
+.completed { color: #176640; background: #e5faef; }
+.cancelled { color: #8c3444; background: #ffe9ed; }
+
+.campaignMessage {
+  margin: 13px 0;
+  color: #604b55;
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.progressTrack {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 99px;
+  background: #f0e5ea;
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #d42c70, #ff79ad);
+  transition: width 0.3s ease;
+}
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 9px;
+  color: #8b7580;
+  font-size: 11px;
+}
+
+.metrics strong {
+  margin-left: auto;
+  color: #4d3440;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 14px;
+}
+
+.actions button {
+  padding: 9px 12px;
+  background: #321a28;
+  color: #fff;
+}
+
+.actions .cancelButton {
+  background: #fff0f3;
+  color: #a42e4d;
+}
+
+.done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #176640;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.empty {
+  padding: 38px 10px;
+  color: #927d87;
+  text-align: center;
+}
+
+.disclaimer {
+  max-width: 920px;
+  margin: 18px auto 0;
+  color: #8a747f;
+  font-size: 12px;
+  line-height: 1.55;
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .columns,
+  .safetyGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page { padding: 20px 14px; }
+  .header { flex-direction: column; }
+  .contactCounter { width: 100%; }
+  .card { padding: 18px; }
+  .campaignTop { flex-direction: column; gap: 8px; }
+}
