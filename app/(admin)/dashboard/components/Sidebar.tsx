@@ -21,6 +21,7 @@ import {
   BarChart3,
   Settings,
   ChevronLeft,
+  Megaphone,
   LogOut
 } from "lucide-react"
 
@@ -286,6 +287,18 @@ export default function Sidebar() {
 
           <span className={styles["sidebar-text"]}>
             WhatsApp
+          </span>
+        </a>
+
+        {/* DISPAROS */}
+        <a
+          href="/dashboard/disparos"
+          className={getItemClass("/dashboard/disparos")}
+        >
+          <Megaphone />
+
+          <span className={styles["sidebar-text"]}>
+            Disparos
           </span>
         </a>
 
