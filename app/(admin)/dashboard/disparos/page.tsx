@@ -19,6 +19,7 @@ import {
 } from "lucide-react"
 
 import styles from "../styles/disparos.module.css"
+import { createClient } from "@/lib/supabase/client"
 
 const API = process.env.NEXT_PUBLIC_API_URL!
 
@@ -54,12 +55,25 @@ async function apiRequest(
   path: string,
   options?: RequestInit
 ) {
+  const supabase = createClient()
+  const {
+    data: { session }
+  } = await supabase.auth.getSession()
+
+  if (!session?.access_token) {
+    throw new Error(
+      "Sua sessão expirou. Faça login novamente."
+    )
+  }
+
   const response = await fetch(
     `${API}/broadcasts${path}`,
     {
       ...options,
       headers: {
         "Content-Type": "application/json",
+        Authorization:
+          `Bearer ${session.access_token}`,
         ...(options?.headers || {})
       }
     }
@@ -147,8 +161,7 @@ export default function DisparosPage() {
         body: JSON.stringify({
           name,
           message,
-          session_key: sessionKey,
-          created_by: "rafa"
+          session_key: sessionKey
         })
       })
 
