@@ -328,6 +328,9 @@ export default function Numeros() {
   const [loading, setLoading] =
     useState(false)
 
+  const [authenticating, setAuthenticating] =
+    useState(false)
+
   const [sessionsLoading, setSessionsLoading] =
     useState(true)
 
@@ -493,6 +496,7 @@ export default function Numeros() {
     clearAllIntervals()
 
     setLoading(true)
+    setAuthenticating(false)
 
     setQr(null)
     setErrorMessage("")
@@ -540,6 +544,7 @@ export default function Numeros() {
           )
 
           setLoading(false)
+          setAuthenticating(false)
           setErrorMessage(
             err instanceof Error
               ? err.message
@@ -586,6 +591,14 @@ export default function Numeros() {
               setErrorMessage("")
               setLoading(false)
               return true
+            }
+
+            if (
+              data.status === "authenticated"
+            ) {
+              setQr(null)
+              setLoading(false)
+              setAuthenticating(true)
             }
 
             // Nunca mantém na tela um código que a API já marcou
@@ -659,10 +672,21 @@ export default function Numeros() {
               )
 
               setLoading(false)
+              setAuthenticating(false)
 
               await loadSessions()
 
               return true
+            }
+
+            if (
+              currentStatus === "authenticated"
+            ) {
+              setQr(null)
+              setLoading(false)
+              setAuthenticating(true)
+
+              return false
             }
 
             if (
@@ -672,6 +696,7 @@ export default function Numeros() {
               clearAllIntervals()
               setQr(null)
               setLoading(false)
+              setAuthenticating(false)
 
               setErrorMessage(
                 currentStatus === "auth_failure"
@@ -709,6 +734,7 @@ export default function Numeros() {
         setTimeout(() => {
           clearAllIntervals()
           setLoading(false)
+          setAuthenticating(false)
 
           setErrorMessage(
             "A conexão não foi concluída. Gere um QR novo e tente novamente."
@@ -729,6 +755,7 @@ export default function Numeros() {
       )
 
       setLoading(false)
+      setAuthenticating(false)
     }
   }
 
@@ -866,6 +893,7 @@ export default function Numeros() {
             )
 
             setQr(null)
+            setAuthenticating(false)
             setErrorMessage("")
 
             setShowModal(true)
@@ -1130,12 +1158,17 @@ export default function Numeros() {
                   createSession
                 }
 
-                disabled={loading}
+                disabled={
+                  loading ||
+                  authenticating
+                }
               >
                 <QrCode size={16} />
-                {loading
-                  ? "Preparando conexão..."
-                  : "Gerar QR Code"}
+                {authenticating
+                  ? "Finalizando conexão..."
+                  : loading
+                    ? "Preparando conexão..."
+                    : "Gerar QR Code"}
 
               </button>
             )}
@@ -1186,6 +1219,7 @@ export default function Numeros() {
                 setQr(null)
 
                 setLoading(false)
+                setAuthenticating(false)
 
                 setSessionId(
                   "principal"
