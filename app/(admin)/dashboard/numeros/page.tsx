@@ -520,14 +520,10 @@ export default function Numeros() {
       }
 
       // =========================
-      // DELAY
-      // =========================
-      await new Promise(
-        r => setTimeout(r, 2000)
-      )
-
-      // =========================
       // QR POLLING
+      // A API responde antes de o Chromium terminar de abrir,
+      // então começamos a consultar imediatamente.
+      // =========================
       // =========================
       const loadQr =
         async () => {
@@ -536,7 +532,10 @@ export default function Numeros() {
 
             const res =
               await fetch(
-                `${API}/sessions/qr/${selectedSessionId}`
+                `${API}/sessions/qr/${selectedSessionId}?t=${Date.now()}`,
+                {
+                  cache: "no-store"
+                }
               )
 
             if (!res.ok) {
@@ -553,10 +552,28 @@ export default function Numeros() {
                   : data.qr
               )
 
+              setErrorMessage("")
               setLoading(false)
+              return true
             }
 
-          } catch {}
+            // Nunca mantém na tela um código que a API já marcou
+            // como vencido. Assim a Rafa não tenta ler QR antigo.
+            if (
+              data.status === "qr" ||
+              data.status === "connecting"
+            ) {
+              setQr(null)
+            }
+
+          } catch (err) {
+            console.error(
+              "❌ erro loadQr:",
+              err
+            )
+          }
+
+          return false
         }
 
       await loadQr()
@@ -564,7 +581,7 @@ export default function Numeros() {
       qrIntervalRef.current =
         setInterval(
           loadQr,
-          5000
+          1500
         )
 
       // =========================
@@ -577,7 +594,10 @@ export default function Numeros() {
 
             const res =
               await fetch(
-                `${API}/sessions/status/${selectedSessionId}`
+                `${API}/sessions/status/${selectedSessionId}?t=${Date.now()}`,
+                {
+                  cache: "no-store"
+                }
               )
 
             if (!res.ok) {
@@ -614,7 +634,29 @@ export default function Numeros() {
               return true
             }
 
-          } catch {}
+            if (
+              currentStatus === "auth_failure" ||
+              currentStatus === "error"
+            ) {
+              clearAllIntervals()
+              setQr(null)
+              setLoading(false)
+
+              setErrorMessage(
+                currentStatus === "auth_failure"
+                  ? "O WhatsApp recusou a autenticação. Gere um QR novo e tente novamente."
+                  : "A conexão travou antes de gerar o QR. Clique em Gerar QR Code para reiniciar."
+              )
+
+              return true
+            }
+
+          } catch (err) {
+            console.error(
+              "❌ erro loadStatus:",
+              err
+            )
+          }
 
           return false
         }
@@ -629,7 +671,7 @@ export default function Numeros() {
       statusIntervalRef.current =
         setInterval(
           loadStatus,
-          3000
+          2000
         )
 
       qrTimeoutRef.current =
@@ -638,9 +680,9 @@ export default function Numeros() {
           setLoading(false)
 
           setErrorMessage(
-            "O QR Code expirou. Gere um novo código para continuar a conexão."
+            "A conexão não foi concluída. Gere um QR novo e tente novamente."
           )
-        }, 120000)
+        }, 180000)
 
     } catch (err) {
 
