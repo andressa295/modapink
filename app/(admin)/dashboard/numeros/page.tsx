@@ -210,7 +210,7 @@ function getStatusText(
     status === "qr" ||
     status === "connecting"
   ) {
-    return "🟡 Aguardando QR Code"
+    return "🟡 Conexão em andamento"
   }
 
   if (
@@ -398,8 +398,15 @@ export default function Numeros() {
         )
       }
 
+      // A grade mostra somente números realmente conectados.
+      // QR e inicialização pertencem ao modal aberto pela ação
+      // explícita de "Conectar número".
       setSessions(
         normalizeSessions(data)
+          .filter(session =>
+            session.status === "ready" ||
+            session.status === "connected"
+          )
       )
 
       setLastSyncAt(
