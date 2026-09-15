@@ -495,35 +495,59 @@ export default function Numeros() {
       // =========================
       // CREATE
       // =========================
-      const createResponse =
-        await fetch(
-          `${API}/sessions/create`,
-          {
-            method: "POST",
+      // A versão antiga da API pode manter esta requisição aberta
+      // até o aparelho ser vinculado. Não bloqueamos o polling por ela.
+      void fetch(
+        `${API}/sessions/create`,
+        {
+          method: "POST",
 
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
 
-            body: JSON.stringify({
-              sessionId:
-                selectedSessionId
-            })
+          body: JSON.stringify({
+            sessionId:
+              selectedSessionId
+          })
+        }
+      )
+        .then(async response => {
+          if (!response.ok) {
+            const data =
+              await response
+                .json()
+                .catch(() => null)
+
+            throw new Error(
+              data?.error ||
+              `Não foi possível iniciar a sessão: ${response.status}`
+            )
           }
-        )
+        })
+        .catch(err => {
+          console.error(
+            "❌ erro ao iniciar sessão:",
+            err
+          )
 
-      if (!createResponse.ok) {
-        throw new Error(
-          `Não foi possível iniciar a sessão: ${createResponse.status}`
-        )
-      }
+          setLoading(false)
+          setErrorMessage(
+            err instanceof Error
+              ? err.message
+              : "Não foi possível iniciar a conexão."
+          )
+        })
+
+      // Dá tempo apenas para o processo registrar a sessão em memória.
+      await new Promise(
+        resolve =>
+          window.setTimeout(resolve, 250)
+      )
 
       // =========================
       // QR POLLING
-      // A API responde antes de o Chromium terminar de abrir,
-      // então começamos a consultar imediatamente.
-      // =========================
       // =========================
       const loadQr =
         async () => {
