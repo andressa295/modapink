@@ -4,6 +4,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from "react"
 
@@ -11,11 +12,14 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  ImagePlus,
   Megaphone,
   Pause,
   Play,
   RotateCcw,
-  Square
+  Square,
+  Trash2,
+  Video
 } from "lucide-react"
 
 import styles from "../styles/disparos.module.css"
@@ -41,7 +45,51 @@ type Campaign = {
   failed_count: number
   skipped_count: number
   created_at: string
+  media_url?: string | null
+  media_type?: "image" | "video" | null
+  media_filename?: string | null
 }
+
+type BroadcastSession = {
+  key: string
+  label: string
+  status: string
+  phone?: string | null
+  ready: boolean
+}
+
+const FALLBACK_SESSIONS: BroadcastSession[] = [
+  {
+    key: "principal",
+    label: "Atendimento automático 1",
+    status: "unknown",
+    ready: false
+  },
+  {
+    key: "vendedora_1",
+    label: "Atendimento automático 2",
+    status: "unknown",
+    ready: false
+  },
+  {
+    key: "vendedora_2",
+    label: "Vendedora",
+    status: "unknown",
+    ready: false
+  },
+  {
+    key: "sac",
+    label: "SAC",
+    status: "unknown",
+    ready: false
+  },
+  {
+    key: "automacoes",
+    label: "Automações",
+    status: "unknown",
+    ready: false
+  }
+]
 
 const STATUS_LABEL: Record<CampaignStatus, string> = {
   draft: "Rascunho",
@@ -97,10 +145,18 @@ export default function DisparosPage() {
     useState<Campaign[]>([])
   const [contactsCount, setContactsCount] =
     useState<number | null>(null)
+  const [availableSessions, setAvailableSessions] =
+    useState<BroadcastSession[]>(FALLBACK_SESSIONS)
   const [name, setName] = useState("")
   const [message, setMessage] = useState("")
   const [sessionKey, setSessionKey] =
     useState("principal")
+  const [mediaFile, setMediaFile] =
+    useState<File | null>(null)
+  const [mediaPreview, setMediaPreview] =
+    useState("")
+  const fileInputRef =
+    useRef<HTMLInputElement | null>(null)
   const [loading, setLoading] = useState(false)
   const [loadingList, setLoadingList] =
     useState(true)
@@ -109,14 +165,25 @@ export default function DisparosPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [campaignData, countData] =
+      const [
+        campaignData,
+        countData,
+        sessionData
+      ] =
         await Promise.all([
           apiRequest("/"),
-          apiRequest("/contacts/count")
+          apiRequest("/contacts/count"),
+          apiRequest("/sessions")
         ])
 
       setCampaigns(campaignData.campaigns || [])
       setContactsCount(countData.count || 0)
+      setAvailableSessions(
+        Array.isArray(sessionData.sessions) &&
+        sessionData.sessions.length
+          ? sessionData.sessions
+          : FALLBACK_SESSIONS
+      )
       setError("")
     } catch (err) {
       setError(
@@ -145,9 +212,86 @@ export default function DisparosPage() {
     [message]
   )
 
+  useEffect(() => {
+    return () => {
+      if (mediaPreview) {
+        URL.revokeObjectURL(mediaPreview)
+      }
+    }
+  }, [mediaPreview])
+
+  function selectMedia(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file =
+      event.target.files?.[0] || null
+
+    setError("")
+
+    if (!file) {
+      setMediaFile(null)
+      setMediaPreview("")
+      return
+    }
+
+    const allowed =
+      file.type.startsWith("image/") ||
+      [
+        "video/mp4",
+        "video/webm"
+      ].includes(file.type)
+
+    if (!allowed) {
+      event.target.value = ""
+      setError(
+        "Use uma imagem JPG, PNG ou WEBP, ou um vídeo MP4/WEBM."
+      )
+      return
+    }
+
+    if (file.size > 16 * 1024 * 1024) {
+      event.target.value = ""
+      setError(
+        "O arquivo pode ter no máximo 16 MB."
+      )
+      return
+    }
+
+    setMediaFile(file)
+    setMediaPreview(
+      URL.createObjectURL(file)
+    )
+  }
+
+  function removeMedia() {
+    setMediaFile(null)
+    setMediaPreview("")
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
+  }
+
+  function getSessionLabel(key: string) {
+    return (
+      availableSessions.find(
+        item => item.key === key
+      )?.label ||
+      FALLBACK_SESSIONS.find(
+        item => item.key === key
+      )?.label ||
+      key
+    )
+  }
+
   async function createDraft() {
-    if (!name.trim() || !message.trim()) {
-      setError("Preencha o nome e a mensagem da campanha.")
+    if (
+      !name.trim() ||
+      (!message.trim() && !mediaFile)
+    ) {
+      setError(
+        "Preencha o nome e adicione uma mensagem, imagem ou vídeo."
+      )
       return
     }
 
@@ -156,17 +300,98 @@ export default function DisparosPage() {
       setError("")
       setNotice("")
 
-      await apiRequest("/", {
-        method: "POST",
-        body: JSON.stringify({
-          name,
-          message,
-          session_key: sessionKey
+      let uploadedPath = ""
+      let mediaUrl: string | null = null
+      let mediaType: "image" | "video" | null = null
+
+      if (mediaFile) {
+        const supabase = createClient()
+        const {
+          data: { session }
+        } = await supabase.auth.getSession()
+
+        if (!session?.user?.id) {
+          throw new Error(
+            "Sua sessão expirou. Faça login novamente."
+          )
+        }
+
+        const safeName =
+          mediaFile.name
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^a-zA-Z0-9._-]/g, "-")
+            .slice(-120)
+
+        uploadedPath =
+          `${session.user.id}/${Date.now()}-${safeName}`
+
+        const { error: uploadError } =
+          await supabase.storage
+            .from("broadcast-media")
+            .upload(
+              uploadedPath,
+              mediaFile,
+              {
+                cacheControl: "3600",
+                contentType:
+                  mediaFile.type,
+                upsert: false
+              }
+            )
+
+        if (uploadError) {
+          throw new Error(
+            `Não foi possível enviar a mídia: ${uploadError.message}`
+          )
+        }
+
+        const { data: publicData } =
+          supabase.storage
+            .from("broadcast-media")
+            .getPublicUrl(uploadedPath)
+
+        mediaUrl =
+          publicData.publicUrl
+
+        mediaType =
+          mediaFile.type.startsWith("video/")
+            ? "video"
+            : "image"
+      }
+
+      try {
+        await apiRequest("/", {
+          method: "POST",
+          body: JSON.stringify({
+            name,
+            message,
+            session_key:
+              sessionKey,
+            media_url:
+              mediaUrl,
+            media_type:
+              mediaType,
+            media_filename:
+              mediaFile?.name || null
+          })
         })
-      })
+      } catch (err) {
+        if (uploadedPath) {
+          const supabase = createClient()
+
+          await supabase.storage
+            .from("broadcast-media")
+            .remove([uploadedPath])
+            .catch(() => undefined)
+        }
+
+        throw err
+      }
 
       setName("")
       setMessage("")
+      removeMedia()
       setNotice(
         "Rascunho criado. Confira a mensagem e clique em Iniciar quando estiver pronta."
       )
@@ -296,9 +521,23 @@ export default function DisparosPage() {
               value={sessionKey}
               onChange={event => setSessionKey(event.target.value)}
             >
-              <option value="principal">Principal</option>
-              <option value="vendedora_1">Vendedora 1</option>
+              {availableSessions.map(session => (
+                <option
+                  value={session.key}
+                  key={session.key}
+                >
+                  {session.label}
+                  {session.ready
+                    ? " — conectado"
+                    : session.status === "unknown"
+                      ? ""
+                      : " — desconectado"}
+                </option>
+              ))}
             </select>
+            <small>
+              O envio sai exatamente pelo número escolhido. Campanhas só iniciam quando ele estiver conectado.
+            </small>
           </label>
 
           <label>
@@ -316,10 +555,64 @@ export default function DisparosPage() {
             </small>
           </label>
 
-          {preview && (
+          <label>
+            Imagem ou vídeo
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
+              onChange={selectMedia}
+            />
+            <small>
+              JPG, PNG, WEBP, MP4 ou WEBM. Máximo de 16 MB.
+            </small>
+          </label>
+
+          {mediaPreview && mediaFile && (
+            <div className={styles.mediaPreview}>
+              <div className={styles.mediaPreviewTop}>
+                <span>
+                  {mediaFile.type.startsWith("video/")
+                    ? <Video size={15} />
+                    : <ImagePlus size={15} />}
+                  {mediaFile.name}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={removeMedia}
+                  aria-label="Remover mídia"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+
+              {mediaFile.type.startsWith("video/") ? (
+                <video
+                  src={mediaPreview}
+                  controls
+                  playsInline
+                />
+              ) : (
+                <img
+                  src={mediaPreview}
+                  alt="Prévia da campanha"
+                />
+              )}
+            </div>
+          )}
+
+          {(preview || mediaPreview) && (
             <div className={styles.preview}>
-              <span>Prévia</span>
-              <p>{`${preview}\n\nSe não quiser receber novidades, responda SAIR.`}</p>
+              <span>Prévia da mensagem</span>
+              {preview && (
+                <p>{`${preview}\n\nSe não quiser receber novidades, responda SAIR.`}</p>
+              )}
+              {!preview && (
+                <p>
+                  A mídia será enviada com o aviso para responder SAIR.
+                </p>
+              )}
             </div>
           )}
 
@@ -362,14 +655,41 @@ export default function DisparosPage() {
                     <div className={styles.campaignTop}>
                       <div>
                         <h3>{campaign.name}</h3>
-                        <span>{campaign.session_key}</span>
+                        <span>{getSessionLabel(campaign.session_key)}</span>
                       </div>
                       <span className={`${styles.status} ${styles[campaign.status]}`}>
                         {STATUS_LABEL[campaign.status]}
                       </span>
                     </div>
 
-                    <p className={styles.campaignMessage}>{campaign.message}</p>
+                    {campaign.media_url && (
+                      <div className={styles.campaignMedia}>
+                        {campaign.media_type === "video" ? (
+                          <video
+                            src={campaign.media_url}
+                            controls
+                            playsInline
+                          />
+                        ) : (
+                          <img
+                            src={campaign.media_url}
+                            alt={campaign.media_filename || campaign.name}
+                          />
+                        )}
+                        <span>
+                          {campaign.media_type === "video"
+                            ? "Vídeo"
+                            : "Imagem"}
+                          {campaign.media_filename
+                            ? ` · ${campaign.media_filename}`
+                            : ""}
+                        </span>
+                      </div>
+                    )}
+
+                    {campaign.message && (
+                      <p className={styles.campaignMessage}>{campaign.message}</p>
+                    )}
 
                     <div className={styles.progressTrack}>
                       <span style={{ width: `${progress}%` }} />
