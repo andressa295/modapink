@@ -523,7 +523,7 @@ export default function Numeros() {
       // DELAY
       // =========================
       await new Promise(
-        r => setTimeout(r, 1000)
+        r => setTimeout(r, 300)
       )
 
       // =========================
@@ -567,7 +567,7 @@ export default function Numeros() {
       qrIntervalRef.current =
         setInterval(
           loadQr,
-          2000
+          700
         )
 
       // =========================
@@ -638,7 +638,7 @@ export default function Numeros() {
       statusIntervalRef.current =
         setInterval(
           loadStatus,
-          2000
+          1000
         )
 
       qrTimeoutRef.current =
