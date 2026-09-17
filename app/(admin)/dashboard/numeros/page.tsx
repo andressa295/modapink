@@ -577,7 +577,10 @@ export default function Numeros() {
 
             const res =
               await fetch(
-                `${API}/sessions/status/${selectedSessionId}`
+                `${API}/sessions/status/${selectedSessionId}?t=${Date.now()}`,
+                {
+                  cache: "no-store"
+                }
               )
 
             if (!res.ok) {
@@ -593,14 +596,17 @@ export default function Numeros() {
               )
 
             if (
+              currentStatus === "authenticated" ||
               currentStatus === "ready" ||
               currentStatus === "connected"
             ) {
 
+              // A leitura do QR já terminou. O modal não deve continuar
+              // aberto enquanto o WhatsApp finaliza a sessão em segundo plano.
               clearAllIntervals()
 
               setQr(null)
-
+              setErrorMessage("")
               setShowModal(false)
 
               setSessionId(
@@ -633,14 +639,27 @@ export default function Numeros() {
         )
 
       qrTimeoutRef.current =
-        setTimeout(() => {
-          clearAllIntervals()
-          setLoading(false)
+        setTimeout(
+          async () => {
+            // Evita mostrar "QR expirou" quando a autenticação terminou
+            // no mesmo instante do temporizador.
+            const connected =
+              await loadStatus()
 
-          setErrorMessage(
-            "O QR Code expirou. Gere um novo código para continuar a conexão."
-          )
-        }, 120000)
+            if (connected) {
+              return
+            }
+
+            clearAllIntervals()
+            setQr(null)
+            setLoading(false)
+
+            setErrorMessage(
+              "O QR Code expirou. Gere um novo código para continuar a conexão."
+            )
+          },
+          120000
+        )
 
     } catch (err) {
 
