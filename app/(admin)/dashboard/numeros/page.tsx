@@ -210,7 +210,7 @@ function getStatusText(
     status === "qr" ||
     status === "connecting"
   ) {
-    return "🟡 Conexão em andamento"
+    return "🟡 Aguardando QR Code"
   }
 
   if (
@@ -328,9 +328,6 @@ export default function Numeros() {
   const [loading, setLoading] =
     useState(false)
 
-  const [authenticating, setAuthenticating] =
-    useState(false)
-
   const [sessionsLoading, setSessionsLoading] =
     useState(true)
 
@@ -401,15 +398,8 @@ export default function Numeros() {
         )
       }
 
-      // A grade mostra somente números realmente conectados.
-      // QR e inicialização pertencem ao modal aberto pela ação
-      // explícita de "Conectar número".
       setSessions(
         normalizeSessions(data)
-          .filter(session =>
-            session.status === "ready" ||
-            session.status === "connected"
-          )
       )
 
       setLastSyncAt(
@@ -496,7 +486,6 @@ export default function Numeros() {
     clearAllIntervals()
 
     setLoading(true)
-    setAuthenticating(false)
 
     setQr(null)
     setErrorMessage("")
@@ -506,56 +495,35 @@ export default function Numeros() {
       // =========================
       // CREATE
       // =========================
-      // A versão antiga da API pode manter esta requisição aberta
-      // até o aparelho ser vinculado. Não bloqueamos o polling por ela.
-      void fetch(
-        `${API}/sessions/create`,
-        {
-          method: "POST",
+      const createResponse =
+        await fetch(
+          `${API}/sessions/create`,
+          {
+            method: "POST",
 
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
+            headers: {
+              "Content-Type":
+                "application/json"
+            },
 
-          body: JSON.stringify({
-            sessionId:
-              selectedSessionId
-          })
-        }
-      )
-        .then(async response => {
-          if (!response.ok) {
-            const data =
-              await response
-                .json()
-                .catch(() => null)
-
-            throw new Error(
-              data?.error ||
-              `Não foi possível iniciar a sessão: ${response.status}`
-            )
+            body: JSON.stringify({
+              sessionId:
+                selectedSessionId
+            })
           }
-        })
-        .catch(err => {
-          console.error(
-            "❌ erro ao iniciar sessão:",
-            err
-          )
+        )
 
-          setLoading(false)
-          setAuthenticating(false)
-          setErrorMessage(
-            err instanceof Error
-              ? err.message
-              : "Não foi possível iniciar a conexão."
-          )
-        })
+      if (!createResponse.ok) {
+        throw new Error(
+          `Não foi possível iniciar a sessão: ${createResponse.status}`
+        )
+      }
 
-      // Dá tempo apenas para o processo registrar a sessão em memória.
+      // =========================
+      // DELAY
+      // =========================
       await new Promise(
-        resolve =>
-          window.setTimeout(resolve, 250)
+        r => setTimeout(r, 2000)
       )
 
       // =========================
@@ -568,10 +536,7 @@ export default function Numeros() {
 
             const res =
               await fetch(
-                `${API}/sessions/qr/${selectedSessionId}?t=${Date.now()}`,
-                {
-                  cache: "no-store"
-                }
+                `${API}/sessions/qr/${selectedSessionId}`
               )
 
             if (!res.ok) {
@@ -588,36 +553,10 @@ export default function Numeros() {
                   : data.qr
               )
 
-              setErrorMessage("")
               setLoading(false)
-              return true
             }
 
-            if (
-              data.status === "authenticated"
-            ) {
-              setQr(null)
-              setLoading(false)
-              setAuthenticating(true)
-            }
-
-            // Nunca mantém na tela um código que a API já marcou
-            // como vencido. Assim a Rafa não tenta ler QR antigo.
-            if (
-              data.status === "qr" ||
-              data.status === "connecting"
-            ) {
-              setQr(null)
-            }
-
-          } catch (err) {
-            console.error(
-              "❌ erro loadQr:",
-              err
-            )
-          }
-
-          return false
+          } catch {}
         }
 
       await loadQr()
@@ -625,7 +564,7 @@ export default function Numeros() {
       qrIntervalRef.current =
         setInterval(
           loadQr,
-          1500
+          5000
         )
 
       // =========================
@@ -638,10 +577,7 @@ export default function Numeros() {
 
             const res =
               await fetch(
-                `${API}/sessions/status/${selectedSessionId}?t=${Date.now()}`,
-                {
-                  cache: "no-store"
-                }
+                `${API}/sessions/status/${selectedSessionId}`
               )
 
             if (!res.ok) {
@@ -672,47 +608,13 @@ export default function Numeros() {
               )
 
               setLoading(false)
-              setAuthenticating(false)
 
               await loadSessions()
 
               return true
             }
 
-            if (
-              currentStatus === "authenticated"
-            ) {
-              setQr(null)
-              setLoading(false)
-              setAuthenticating(true)
-
-              return false
-            }
-
-            if (
-              currentStatus === "auth_failure" ||
-              currentStatus === "error"
-            ) {
-              clearAllIntervals()
-              setQr(null)
-              setLoading(false)
-              setAuthenticating(false)
-
-              setErrorMessage(
-                currentStatus === "auth_failure"
-                  ? "O WhatsApp recusou a autenticação. Gere um QR novo e tente novamente."
-                  : "A conexão travou antes de gerar o QR. Clique em Gerar QR Code para reiniciar."
-              )
-
-              return true
-            }
-
-          } catch (err) {
-            console.error(
-              "❌ erro loadStatus:",
-              err
-            )
-          }
+          } catch {}
 
           return false
         }
@@ -727,19 +629,18 @@ export default function Numeros() {
       statusIntervalRef.current =
         setInterval(
           loadStatus,
-          2000
+          3000
         )
 
       qrTimeoutRef.current =
         setTimeout(() => {
           clearAllIntervals()
           setLoading(false)
-          setAuthenticating(false)
 
           setErrorMessage(
-            "A conexão não foi concluída. Gere um QR novo e tente novamente."
+            "O QR Code expirou. Gere um novo código para continuar a conexão."
           )
-        }, 180000)
+        }, 120000)
 
     } catch (err) {
 
@@ -755,7 +656,6 @@ export default function Numeros() {
       )
 
       setLoading(false)
-      setAuthenticating(false)
     }
   }
 
@@ -893,7 +793,6 @@ export default function Numeros() {
             )
 
             setQr(null)
-            setAuthenticating(false)
             setErrorMessage("")
 
             setShowModal(true)
@@ -1158,17 +1057,12 @@ export default function Numeros() {
                   createSession
                 }
 
-                disabled={
-                  loading ||
-                  authenticating
-                }
+                disabled={loading}
               >
                 <QrCode size={16} />
-                {authenticating
-                  ? "Finalizando conexão..."
-                  : loading
-                    ? "Preparando conexão..."
-                    : "Gerar QR Code"}
+                {loading
+                  ? "Preparando conexão..."
+                  : "Gerar QR Code"}
 
               </button>
             )}
@@ -1219,7 +1113,6 @@ export default function Numeros() {
                 setQr(null)
 
                 setLoading(false)
-                setAuthenticating(false)
 
                 setSessionId(
                   "principal"
