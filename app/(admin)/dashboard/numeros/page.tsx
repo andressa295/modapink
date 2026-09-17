@@ -523,7 +523,7 @@ export default function Numeros() {
       // DELAY
       // =========================
       await new Promise(
-        r => setTimeout(r, 2000)
+        r => setTimeout(r, 1000)
       )
 
       // =========================
@@ -536,7 +536,10 @@ export default function Numeros() {
 
             const res =
               await fetch(
-                `${API}/sessions/qr/${selectedSessionId}`
+                `${API}/sessions/qr/${selectedSessionId}?t=${Date.now()}`,
+                {
+                  cache: "no-store"
+                }
               )
 
             if (!res.ok) {
@@ -564,7 +567,7 @@ export default function Numeros() {
       qrIntervalRef.current =
         setInterval(
           loadQr,
-          5000
+          2000
         )
 
       // =========================
@@ -635,7 +638,7 @@ export default function Numeros() {
       statusIntervalRef.current =
         setInterval(
           loadStatus,
-          3000
+          2000
         )
 
       qrTimeoutRef.current =
@@ -655,8 +658,13 @@ export default function Numeros() {
             setLoading(false)
 
             setErrorMessage(
-              "O QR Code expirou. Gere um novo código para continuar a conexão."
+              "O QR Code expirou. Gerando um novo código..."
             )
+
+            // O endpoint também renova a sessão quando o código venceu.
+            // Reinicia o ciclo automaticamente para o usuário não ficar
+            // preso no estado "Aguardando QR Code".
+            void createSession()
           },
           120000
         )
