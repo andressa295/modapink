@@ -1233,6 +1233,46 @@ async function generateReport(
 ) {
   let directError: unknown = null
 
+  const rangeDays =
+    Math.floor(
+      (
+        new Date(`${range.to}T12:00:00-03:00`).getTime() -
+        new Date(`${range.from}T12:00:00-03:00`).getTime()
+      ) / 86_400_000
+    ) + 1
+
+  if (rangeDays > 8) {
+    try {
+      const localOrders = await fetchLocalOrders(supabase)
+      const oldestLocalDate = localOrders
+        .map((order: any) =>
+          safeDateKey(
+            order?.paid_at ||
+            order?.created_at ||
+            order?.updated_at
+          )
+        )
+        .filter((value): value is string => Boolean(value))
+        .sort()[0]
+
+      if (
+        oldestLocalDate &&
+        oldestLocalDate <= range.from
+      ) {
+        return buildReport(
+          localOrders,
+          range,
+          "database"
+        )
+      }
+    } catch (localError) {
+      console.error(
+        "Financeiro: histórico local incompleto; consultando Nuvemshop",
+        localError
+      )
+    }
+  }
+
   try {
     const direct = await fetchDirectOrders(supabase, range)
     const directReport = buildReport(
