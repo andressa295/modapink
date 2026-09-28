@@ -11,6 +11,7 @@ const CARD_FIXED_FEE = 0.35
 const PAGE_SIZE = 100
 const MAX_FILTERED_PAGES = 12
 const MAX_SIMPLE_PAGES = 20
+const REPORT_PAGE_CONCURRENCY = 4
 const LOCAL_PAGE_SIZE = 1000
 const LOCAL_MAX_ROWS = 20_000
 const REPORT_CACHE_MS = 60_000
@@ -618,20 +619,58 @@ async function fetchPages(
       ? MAX_FILTERED_PAGES
       : MAX_SIMPLE_PAGES
 
-  for (let page = 1; page <= maxPages; page += 1) {
-    const batch = await fetchNuvemshopPage(
-      credential,
-      range,
-      page,
-      mode
+  const firstBatch = await fetchNuvemshopPage(
+    credential,
+    range,
+    1,
+    mode
+  )
+
+  orders.push(...firstBatch)
+
+  if (firstBatch.length < PAGE_SIZE) {
+    return orders
+  }
+
+  for (
+    let firstPage = 2;
+    firstPage <= maxPages;
+    firstPage += REPORT_PAGE_CONCURRENCY
+  ) {
+    const pageNumbers = Array.from(
+      {
+        length: Math.min(
+          REPORT_PAGE_CONCURRENCY,
+          maxPages - firstPage + 1
+        )
+      },
+      (_value, index) => firstPage + index
     )
 
-    orders.push(...batch)
+    const batches = await Promise.all(
+      pageNumbers.map((page) =>
+        fetchNuvemshopPage(
+          credential,
+          range,
+          page,
+          mode
+        )
+      )
+    )
 
-    if (batch.length < PAGE_SIZE) break
+    for (const batch of batches) {
+      orders.push(...batch)
+    }
+
+    if (
+      batches.some((batch) => batch.length < PAGE_SIZE)
+    ) {
+      break
+    }
 
     if (mode === "simple") {
-      const oldest = batch
+      const oldest = batches
+        .flat()
         .map((order: any) => safeDateKey(
           order?.paid_at ||
           order?.created_at ||
