@@ -142,8 +142,7 @@ function orderItems(order: any) {
     image:
       product.image?.src ||
       product.images?.[0]?.src ||
-      null,
-    raw: product
+      null
   }))
 }
 
