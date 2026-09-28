@@ -7,7 +7,7 @@ export const maxDuration = 60
 
 const PAGE_SIZE = 100
 const MAX_PAGES = 8
-const UPSERT_BATCH = 100
+const UPSERT_BATCH = 20
 const QUERY_BATCH = 100
 
 type StoreRow = {
@@ -313,7 +313,6 @@ export async function GET(req: Request) {
         address: orderAddress(order),
         items,
         raw: order,
-        raw_products: order.products || [],
         whatsapp_number: session?.phone || null,
         created_at: order.created_at || new Date().toISOString(),
         updated_at:
