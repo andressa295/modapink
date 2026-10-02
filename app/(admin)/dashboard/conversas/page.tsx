@@ -373,6 +373,16 @@ function isSacAttendanceClosed(
       conversation.memory
     )
 
+  const sacStage =
+    String(
+      memory?.sac_stage ||
+      ""
+    ).toLowerCase()
+
+  if (sacStage) {
+    return sacStage === "closed"
+  }
+
   const interventionStatus =
     String(
       memory?.human_intervention?.status ||
@@ -381,7 +391,6 @@ function isSacAttendanceClosed(
 
   return Boolean(
     memory?.human_resolved === true ||
-    memory?.sac_stage === "closed" ||
     memory?.sac_attendance_closed_at ||
     interventionStatus === "closed" ||
     interventionStatus === "resolved"
@@ -3473,6 +3482,22 @@ export default function Conversas() {
                   styles["chat-header-actions"]
                 }
               >
+                {isSacConversation(selected) && !isSacAttendanceClosed(selected) && (
+                  <button
+                    type="button"
+                    className={
+                      styles["sac-finalize-button"]
+                    }
+                    onClick={resolveHumanIntervention}
+                    disabled={resolvingHuman}
+                    title="Finalizar este atendimento do SAC"
+                  >
+                    {resolvingHuman
+                      ? "Finalizando..."
+                      : "Finalizar atendimento"}
+                  </button>
+                )}
+
                 {isSacAttendanceClosed(selected) && (
                   <button
                     type="button"
@@ -3503,7 +3528,7 @@ export default function Conversas() {
                   </button>
                 )}
 
-                {!isHumanInterventionConversation(selected) && (
+                {!isSacConversation(selected) && !isHumanInterventionConversation(selected) && (
                   <button
                     type="button"
                     className={
@@ -3521,7 +3546,7 @@ export default function Conversas() {
               </div>
             </div>
 
-            {isHumanInterventionConversation(selected) && (
+            {!isSacConversation(selected) && isHumanInterventionConversation(selected) && (
               <div
                 className={
                   styles["human-alert-bar"]
