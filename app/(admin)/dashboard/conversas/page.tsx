@@ -386,6 +386,10 @@ function isSacReviewComplete(
       conversation.memory
     )
 
+  if (memory?.sac_stage === "closed" && memory?.sac_review_sent_for_cycle) {
+    return true
+  }
+
   const cycleId =
     String(
       memory?.sac_attendance_cycle_id ||
