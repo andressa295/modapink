@@ -1295,6 +1295,39 @@
 }
 
 
+.sac-finalize-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 8px 14px;
+  border: 1px solid rgba(219, 39, 119, 0.26);
+  border-radius: 999px;
+  background: #fff7fb;
+  color: #be185d;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 950;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(190, 24, 93, 0.10);
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.14s ease,
+    background 0.14s ease;
+}
+
+.sac-finalize-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #fce7f3;
+  box-shadow: 0 14px 28px rgba(190, 24, 93, 0.16);
+}
+
+.sac-finalize-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+  box-shadow: none;
+}
+
 .sac-review-button {
   flex: 0 0 auto;
   min-height: 34px;
