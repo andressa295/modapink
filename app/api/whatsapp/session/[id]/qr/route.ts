@@ -1,3 +1,5 @@
+import { requireDashboardAdmin } from "@/lib/dashboard-auth"
+
 import { createClient } from "@/lib/supabase/server"
 import { NextRequest, NextResponse } from "next/server"
 
@@ -17,6 +19,9 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
   try {
     const supabase = await createClient()
     const { id } = await context.params
@@ -68,6 +73,9 @@ export async function PATCH(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
   try {
     const supabase = await createClient()
     const { id } = await context.params
@@ -105,6 +113,9 @@ export async function DELETE(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
   try {
     const supabase = await createClient()
     const { id } = await context.params
