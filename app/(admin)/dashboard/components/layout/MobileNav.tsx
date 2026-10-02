@@ -1,5 +1,7 @@
 "use client"
 
+import { canAccessDashboard, type DashboardRole } from "@/lib/dashboard-access"
+
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
@@ -65,7 +67,7 @@ const menuItems = [
   }
 ]
 
-export default function MobileNav() {
+export default function MobileNav({ role }: { role: DashboardRole }) {
   const [open, setOpen] = useState(false)
   const pathname = usePathname()
 
@@ -118,7 +120,7 @@ export default function MobileNav() {
         </div>
 
         <nav className={styles["mobile-content"]}>
-          {menuItems.map((item) => {
+          {menuItems.filter(item => canAccessDashboard(role, item.href)).map((item) => {
             const Icon = item.icon
 
             const active =

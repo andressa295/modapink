@@ -5,7 +5,7 @@ import styles from "./login.module.css"
 import Image from "next/image"
 import SoftParticles from "../components/SoftParticles"
 import { createClient } from "@/lib/supabase/client"
-import { useRouter } from "next/navigation"
+import { dashboardHome, parseDashboardRole } from "@/lib/dashboard-access"
 
 export default function AdminLoginPage() {
   const supabase = createClient()
@@ -14,7 +14,6 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
 
-  const router = useRouter()
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -61,7 +60,9 @@ export default function AdminLoginPage() {
         return
       }
 
-      if (!profile || profile.role !== "admin") {
+      const role = parseDashboardRole(profile?.role)
+
+      if (!role) {
         await supabase.auth.signOut()
         alert("Acesso não autorizado")
         setLoading(false)
@@ -69,7 +70,7 @@ export default function AdminLoginPage() {
       }
 
       // 🚀 redirect
-      window.location.href = "/dashboard"
+      window.location.href = dashboardHome(role)
 
     } catch (err) {
       console.error("Erro inesperado:", err)

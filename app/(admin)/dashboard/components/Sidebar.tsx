@@ -11,6 +11,8 @@ import {
   useRouter
 } from "next/navigation"
 
+import { canAccessDashboard, type DashboardRole } from "@/lib/dashboard-access"
+
 import { createClient } from "@/lib/supabase/client"
 
 import {
@@ -100,7 +102,7 @@ function InstagramBrandIcon() {
   )
 }
 
-export default function Sidebar() {
+export default function Sidebar({ role }: { role: DashboardRole }) {
   const [
     collapsed,
     setCollapsed
@@ -267,6 +269,7 @@ export default function Sidebar() {
         className={styles["sidebar-nav"]}
       >
         {/* DASHBOARD */}
+        {canAccessDashboard(role, "/dashboard") && (
         <a
           href="/dashboard"
           className={getItemClass("/dashboard")}
@@ -277,8 +280,10 @@ export default function Sidebar() {
             Dashboard
           </span>
         </a>
+        )}
 
         {/* CONVERSAS / WHATSAPP */}
+        {canAccessDashboard(role, "/dashboard/conversas") && (
         <a
           href="/dashboard/conversas"
           className={getItemClass("/dashboard/conversas")}
@@ -289,8 +294,10 @@ export default function Sidebar() {
             WhatsApp
           </span>
         </a>
+        )}
 
         {/* DISPAROS */}
+        {canAccessDashboard(role, "/dashboard/disparos") && (
         <a
           href="/dashboard/disparos"
           className={getItemClass("/dashboard/disparos")}
@@ -301,8 +308,10 @@ export default function Sidebar() {
             Disparos
           </span>
         </a>
+        )}
 
         {/* INSTAGRAM */}
+        {canAccessDashboard(role, "/dashboard/instagram") && (
         <a
           href="/dashboard/instagram"
           className={getItemClass("/dashboard/instagram")}
@@ -313,8 +322,10 @@ export default function Sidebar() {
             Instagram
           </span>
         </a>
+        )}
 
         {/* NÚMEROS */}
+        {canAccessDashboard(role, "/dashboard/numeros") && (
         <a
           href="/dashboard/numeros"
           className={getItemClass("/dashboard/numeros")}
@@ -325,8 +336,10 @@ export default function Sidebar() {
             Números
           </span>
         </a>
+        )}
 
         {/* USERS */}
+        {canAccessDashboard(role, "/dashboard/usuarios") && (
         <a
           href="/dashboard/usuarios"
           className={getItemClass("/dashboard/usuarios")}
@@ -337,8 +350,10 @@ export default function Sidebar() {
             Usuários
           </span>
         </a>
+        )}
 
         {/* PEDIDOS */}
+        {canAccessDashboard(role, "/dashboard/pedidos") && (
         <a
           href="/dashboard/pedidos"
           className={getItemClass("/dashboard/pedidos")}
@@ -349,8 +364,10 @@ export default function Sidebar() {
             Pedidos
           </span>
         </a>
+        )}
 
         {/* RELATÓRIOS */}
+        {canAccessDashboard(role, "/dashboard/relatorios") && (
         <a
           href="/dashboard/relatorios"
           className={getItemClass("/dashboard/relatorios")}
@@ -361,8 +378,10 @@ export default function Sidebar() {
             Relatórios
           </span>
         </a>
+        )}
 
         {/* CONFIG */}
+        {canAccessDashboard(role, "/dashboard/configuracoes") && (
         <a
           href="/dashboard/configuracoes"
           className={getItemClass("/dashboard/configuracoes")}
@@ -373,6 +392,7 @@ export default function Sidebar() {
             Configurações
           </span>
         </a>
+        )}
       </nav>
 
       {/* USER */}

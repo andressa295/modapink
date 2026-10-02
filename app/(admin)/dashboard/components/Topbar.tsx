@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react"
 
 import styles from "./styles/topbar.module.css"
 
+import type { DashboardRole } from "@/lib/dashboard-access"
+
 import { createClient } from "@/lib/supabase/client"
 
 import { usePathname } from "next/navigation"
@@ -17,7 +19,7 @@ import {
 // MOBILE
 import MobileNav from "./layout/MobileNav"
 
-export default function Topbar() {
+export default function Topbar({ role }: { role: DashboardRole }) {
   const [time, setTime] = useState("")
   const [date, setDate] = useState("")
   const [greeting, setGreeting] = useState("Olá")
@@ -172,7 +174,7 @@ export default function Topbar() {
       <div className={styles["topbar-left"]}>
         {/* MOBILE ONLY */}
         <div className={styles["mobile-only"]}>
-          <MobileNav />
+          <MobileNav role={role} />
         </div>
 
         {/* INFO */}

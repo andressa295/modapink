@@ -1,3 +1,5 @@
+import { requireDashboardAdmin } from "@/lib/dashboard-auth"
+
 import { createClient } from "@supabase/supabase-js"
 
 const supabase = createClient(
@@ -12,6 +14,9 @@ const WEBHOOK_URL =
   "https://api.modapink.phand.com.br/nuvemshop/webhook"
 
 export async function POST() {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
 
   try {
 

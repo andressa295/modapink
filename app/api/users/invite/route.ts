@@ -1,3 +1,5 @@
+import { requireDashboardAdmin } from "@/lib/dashboard-auth"
+
 import { createClient } from "@supabase/supabase-js"
 import { Resend } from "resend"
 
@@ -113,6 +115,9 @@ function buildResetEmail({
 }
 
 export async function POST(req: Request) {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
   try {
     const body = await req.json()
 

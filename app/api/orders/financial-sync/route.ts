@@ -1,3 +1,5 @@
+import { requireDashboardAdmin } from "@/lib/dashboard-auth"
+
 import { createClient } from "@supabase/supabase-js"
 
 export const runtime = "nodejs"
@@ -155,6 +157,9 @@ async function fetchStoreOrders(
 }
 
 export async function GET(request: Request) {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
