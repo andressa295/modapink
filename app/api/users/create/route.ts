@@ -1,3 +1,5 @@
+import { requireDashboardAdmin } from "@/lib/dashboard-auth"
+
 import { createClient } from "@supabase/supabase-js"
 import { Resend } from "resend"
 
@@ -123,6 +125,9 @@ function buildInviteEmail({
 }
 
 export async function POST(req: Request) {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
   let createdUserId: string | null = null
 
   try {
