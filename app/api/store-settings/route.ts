@@ -41,7 +41,7 @@ async function authorize() {
     .eq("id", user.id)
     .maybeSingle()
 
-  if (error || !profile || !["admin", "agent"].includes(profile.role)) {
+  if (error || !profile || profile.role !== "admin") {
     return { error: "Você não tem permissão para alterar as configurações.", status: 403 } as const
   }
 
