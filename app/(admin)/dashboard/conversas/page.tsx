@@ -52,6 +52,10 @@ type Conversation = {
   state?: string | null
   status?: string | null
   memory?: Record<string, any> | null
+  review_status?: string | null
+  review_rating?: number | null
+  review_sent_at?: string | null
+  review_answered_at?: string | null
 }
 
 type Message = {
@@ -338,6 +342,50 @@ function isHumanInterventionConversation(
   }
 
   return Boolean(hasActiveHumanFlag)
+}
+
+function isSacConversation(
+  conversation?: Conversation | null
+) {
+  if (!conversation) {
+    return false
+  }
+
+  return (
+    getConversationSession(
+      conversation
+    ) === "sac"
+  )
+}
+
+function isSacAttendanceClosed(
+  conversation?: Conversation | null
+) {
+  if (
+    !conversation ||
+    !isSacConversation(conversation)
+  ) {
+    return false
+  }
+
+  const memory =
+    parseMemory(
+      conversation.memory
+    )
+
+  const interventionStatus =
+    String(
+      memory?.human_intervention?.status ||
+      ""
+    ).toLowerCase()
+
+  return Boolean(
+    memory?.human_resolved === true ||
+    memory?.sac_stage === "closed" ||
+    memory?.sac_attendance_closed_at ||
+    interventionStatus === "closed" ||
+    interventionStatus === "resolved"
+  )
 }
 
 function isHumanInterventionMessage(
@@ -1094,6 +1142,11 @@ export default function Conversas() {
   const [
     pausingHuman,
     setPausingHuman
+  ] = useState(false)
+
+  const [
+    sendingReview,
+    setSendingReview
   ] = useState(false)
 
   const [
@@ -2208,7 +2261,9 @@ export default function Conversas() {
 
     const ok =
       window.confirm(
-        "Finalizar o atendimento manual e liberar o bot para essa conversa?"
+        isSacConversation(currentSelected)
+          ? "Finalizar este atendimento do SAC? Depois você poderá enviar a avaliação de 1 a 5 pelo botão da conversa."
+          : "Finalizar o atendimento manual e liberar o bot para essa conversa?"
       )
 
     if (!ok) {
@@ -2313,6 +2368,126 @@ export default function Conversas() {
 
     } finally {
       setResolvingHuman(false)
+    }
+  }
+
+  // ======================
+  // SEND SAC REVIEW
+  // ======================
+
+  async function sendSacReview() {
+    const currentSelected =
+      selectedRef.current
+
+    if (
+      !currentSelected ||
+      sendingReview ||
+      !isSacAttendanceClosed(currentSelected)
+    ) {
+      return
+    }
+
+    const status =
+      String(
+        currentSelected.review_status ||
+        ""
+      ).toLowerCase()
+
+    if (
+      status === "sent" ||
+      status === "answered"
+    ) {
+      return
+    }
+
+    const ok =
+      window.confirm(
+        "Enviar agora a avaliação de 1 a 5 pelo WhatsApp do SAC?"
+      )
+
+    if (!ok) {
+      return
+    }
+
+    setSendingReview(true)
+
+    try {
+      const response =
+        await fetch(
+          `${API}/conversations/${currentSelected.id}/send-review`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              "Cache-Control":
+                "no-cache"
+            }
+          }
+        )
+
+      const result =
+        await response.json()
+          .catch(() => null)
+
+      if (
+        !response.ok ||
+        !result?.ok
+      ) {
+        throw new Error(
+          result?.error ||
+          "Falha ao enviar avaliação"
+        )
+      }
+
+      if (result?.conversation?.id) {
+        const updated =
+          normalizeConversation(
+            result.conversation
+          )
+
+        selectedRef.current =
+          updated
+
+        setSelected(updated)
+
+        setConversations(prev =>
+          prev.map(item =>
+            item.id === updated.id
+              ? updated
+              : item
+          )
+        )
+      }
+
+      await loadMessages(
+        currentSelected.id,
+        {
+          silent:
+            true,
+          force:
+            true
+        }
+      )
+
+      window.alert(
+        result?.deduplicated
+          ? "A avaliação já havia sido enviada para esta cliente."
+          : "Avaliação enviada pelo WhatsApp do SAC."
+      )
+    } catch (err) {
+      console.error(
+        "❌ erro enviar avaliação do SAC:",
+        err
+      )
+
+      window.alert(
+        err instanceof Error
+          ? err.message
+          : "Não consegui enviar a avaliação. Tente novamente em alguns segundos."
+      )
+    } finally {
+      setSendingReview(false)
     }
   }
 
@@ -3073,6 +3248,36 @@ export default function Conversas() {
                   styles["chat-header-actions"]
                 }
               >
+                {isSacAttendanceClosed(selected) && (
+                  <button
+                    type="button"
+                    className={`
+                      ${styles["sac-review-button"]}
+                      ${
+                        selected.review_status === "sent" ||
+                        selected.review_status === "answered"
+                          ? styles["sac-review-button-done"]
+                          : ""
+                      }
+                    `}
+                    onClick={sendSacReview}
+                    disabled={
+                      sendingReview ||
+                      selected.review_status === "sent" ||
+                      selected.review_status === "answered"
+                    }
+                    title="Enviar avaliação de atendimento pelo WhatsApp do SAC"
+                  >
+                    {sendingReview
+                      ? "Enviando..."
+                      : selected.review_status === "answered"
+                        ? `Nota ${selected.review_rating || "-"} / 5`
+                        : selected.review_status === "sent"
+                          ? "Avaliação enviada"
+                          : "Enviar avaliação"}
+                  </button>
+                )}
+
                 {!isHumanInterventionConversation(selected) && (
                   <button
                     type="button"
@@ -3115,7 +3320,9 @@ export default function Conversas() {
                       styles["human-alert-text"]
                     }
                   >
-                    O bot está pausado nesta conversa. Responda pelo painel e, ao finalizar, clique em Liberar bot para devolver a automação.
+                    {isSacConversation(selected)
+                      ? "Responda pelo painel e, ao terminar, finalize o atendimento. Em seguida, use o botão Enviar avaliação."
+                      : "O bot está pausado nesta conversa. Responda pelo painel e, ao finalizar, clique em Liberar bot para devolver a automação."}
                   </span>
                 </div>
 
@@ -3128,8 +3335,16 @@ export default function Conversas() {
                   disabled={resolvingHuman}
                 >
                   {resolvingHuman
-                    ? "Liberando..."
-                    : "Liberar bot"}
+                    ? (
+                        isSacConversation(selected)
+                          ? "Finalizando..."
+                          : "Liberando..."
+                      )
+                    : (
+                        isSacConversation(selected)
+                          ? "Finalizar atendimento"
+                          : "Liberar bot"
+                      )}
                 </button>
               </div>
             )}
