@@ -358,7 +358,7 @@ function isSacConversation(
   )
 }
 
-function isSacAttendanceClosed(
+function isSacReviewComplete(
   conversation?: Conversation | null
 ) {
   if (
@@ -368,32 +368,36 @@ function isSacAttendanceClosed(
     return false
   }
 
+  const status =
+    String(
+      conversation.review_status ||
+      ""
+    ).toLowerCase()
+
+  if (
+    status !== "sent" &&
+    status !== "answered"
+  ) {
+    return false
+  }
+
   const memory =
     parseMemory(
       conversation.memory
     )
 
-  const sacStage =
+  const cycleId =
     String(
-      memory?.sac_stage ||
-      ""
-    ).toLowerCase()
+      memory?.sac_attendance_cycle_id ||
+      memory?.sac_menu_sent_at ||
+      memory?.sac_last_option_at ||
+      conversation.last_message_at ||
+      conversation.id
+    )
 
-  if (sacStage) {
-    return sacStage === "closed"
-  }
-
-  const interventionStatus =
-    String(
-      memory?.human_intervention?.status ||
-      ""
-    ).toLowerCase()
-
-  return Boolean(
-    memory?.human_resolved === true ||
-    memory?.sac_attendance_closed_at ||
-    interventionStatus === "closed" ||
-    interventionStatus === "resolved"
+  return (
+    memory?.sac_review_sent_for_cycle ===
+    cycleId
   )
 }
 
@@ -2422,7 +2426,7 @@ export default function Conversas() {
     const ok =
       window.confirm(
         sacConversation
-          ? "Finalizar este atendimento do SAC? Depois você poderá enviar a avaliação de 1 a 5 pelo botão da conversa."
+          ? "Finalizar este atendimento do SAC e enviar uma única mensagem de avaliação?"
           : "Reativar o bot nesta conversa?"
       )
 
@@ -2616,27 +2620,20 @@ export default function Conversas() {
     if (
       !currentSelected ||
       sendingReview ||
-      !isSacAttendanceClosed(currentSelected)
+      !isSacConversation(currentSelected)
     ) {
       return
     }
 
-    const status =
-      String(
-        currentSelected.review_status ||
-        ""
-      ).toLowerCase()
-
     if (
-      status === "sent" ||
-      status === "answered"
+      isSacReviewComplete(currentSelected)
     ) {
       return
     }
 
     const ok =
       window.confirm(
-        "Enviar agora a avaliação de 1 a 5 pelo WhatsApp do SAC?"
+        "Finalizar o atendimento e enviar uma única mensagem com a nota de 1 a 5 e o link do Google pelo SAC?"
       )
 
     if (!ok) {
@@ -2707,7 +2704,7 @@ export default function Conversas() {
       window.alert(
         result?.deduplicated
           ? "A avaliação já havia sido enviada para esta cliente."
-          : "Avaliação enviada pelo WhatsApp do SAC."
+          : "Atendimento finalizado e avaliação enviada pelo WhatsApp do SAC."
       )
     } catch (err) {
       console.error(
@@ -3482,30 +3479,13 @@ export default function Conversas() {
                   styles["chat-header-actions"]
                 }
               >
-                {isSacConversation(selected) && !isSacAttendanceClosed(selected) && (
-                  <button
-                    type="button"
-                    className={
-                      styles["sac-finalize-button"]
-                    }
-                    onClick={resolveHumanIntervention}
-                    disabled={resolvingHuman}
-                    title="Finalizar este atendimento do SAC"
-                  >
-                    {resolvingHuman
-                      ? "Finalizando..."
-                      : "Finalizar atendimento"}
-                  </button>
-                )}
-
-                {isSacAttendanceClosed(selected) && (
+                {isSacConversation(selected) && (
                   <button
                     type="button"
                     className={`
                       ${styles["sac-review-button"]}
                       ${
-                        selected.review_status === "sent" ||
-                        selected.review_status === "answered"
+                        isSacReviewComplete(selected)
                           ? styles["sac-review-button-done"]
                           : ""
                       }
@@ -3513,18 +3493,17 @@ export default function Conversas() {
                     onClick={sendSacReview}
                     disabled={
                       sendingReview ||
-                      selected.review_status === "sent" ||
-                      selected.review_status === "answered"
+                      isSacReviewComplete(selected)
                     }
-                    title="Enviar avaliação de atendimento pelo WhatsApp do SAC"
+                    title="Finalizar o SAC e enviar uma única mensagem de avaliação"
                   >
                     {sendingReview
-                      ? "Enviando..."
-                      : selected.review_status === "answered"
+                      ? "Finalizando e enviando..."
+                      : isSacReviewComplete(selected) && selected.review_status === "answered"
                         ? `Nota ${selected.review_rating || "-"} / 5`
-                        : selected.review_status === "sent"
+                        : isSacReviewComplete(selected) && selected.review_status === "sent"
                           ? "Avaliação enviada"
-                          : "Enviar avaliação"}
+                          : "Finalizar e enviar avaliação"}
                   </button>
                 )}
 
