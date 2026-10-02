@@ -1,3 +1,5 @@
+import { requireDashboardAdmin } from "@/lib/dashboard-auth"
+
 import { createClient } from "@supabase/supabase-js"
 import { normalizePhone } from "../../../utils/phone"
 
@@ -147,6 +149,9 @@ function orderItems(order: any) {
 }
 
 export async function GET(req: Request) {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
