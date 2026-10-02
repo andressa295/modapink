@@ -1,3 +1,5 @@
+import { requireDashboardAdmin } from "@/lib/dashboard-auth"
+
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
 
@@ -5,6 +7,9 @@ import { NextResponse } from "next/server"
 // 🔥 CREATE SESSION (ESTÁVEL)
 // =======================
 export async function POST(req: Request) {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
   try {
     const supabase = await createClient()
     const body = await req.json()
@@ -87,6 +92,9 @@ export async function POST(req: Request) {
 // 🔁 LISTAR SESSÕES
 // =======================
 export async function GET() {
+  const denied = await requireDashboardAdmin()
+  if (denied) return denied
+
   try {
     const supabase = await createClient()
 
