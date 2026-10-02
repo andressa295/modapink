@@ -3,24 +3,32 @@ import Topbar from "./components/Topbar"
 import BackgroundOrderSync from "./components/BackgroundOrderSync"
 import styles from "./styles/admin-layout.module.css"
 
-export default function AdminLayout({
+import { redirect } from "next/navigation"
+import { createClient } from "@/lib/supabase/server"
+import { getDashboardAccess } from "@/lib/dashboard-auth"
+
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const access = await getDashboardAccess(await createClient())
+  if (!access.role) redirect("/login")
+  const role = access.role
+
   return (
     <div className={styles.layout}>
-      <BackgroundOrderSync />
+      {role === "admin" && <BackgroundOrderSync />}
 
       {/* DESKTOP SIDEBAR */}
       <div className={styles["desktop-sidebar"]}>
-        <Sidebar />
+        <Sidebar role={role} />
       </div>
 
       {/* MAIN */}
       <div className={styles.main}>
         {/* TOPBAR */}
-        <Topbar />
+        <Topbar role={role} />
 
         {/* CONTENT */}
         <main className={styles.content}>
