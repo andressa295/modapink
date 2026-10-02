@@ -1294,6 +1294,45 @@
   margin-left: auto;
 }
 
+
+.sac-review-button {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 8px 13px;
+  border: 1px solid rgba(219, 39, 119, 0.24);
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ec4899, #db2777);
+  color: #ffffff;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 900;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(219, 39, 119, 0.18);
+  transition:
+    transform 0.14s ease,
+    box-shadow 0.14s ease,
+    opacity 0.14s ease;
+}
+
+.sac-review-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(219, 39, 119, 0.24);
+}
+
+.sac-review-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+  transform: none;
+}
+
+.sac-review-button-done {
+  border-color: rgba(5, 150, 105, 0.24);
+  background: #ecfdf5;
+  color: #047857;
+  box-shadow: none;
+}
+
 .tab-human {
   background: #fff7ed !important;
   color: #9a3412 !important;
