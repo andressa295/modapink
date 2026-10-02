@@ -347,6 +347,10 @@ function isHumanInterventionConversation(
 function isSacConversation(
   conversation?: Conversation | null
 ) {
+  if (!conversation) {
+    return false
+  }
+
   return (
     getConversationSession(
       conversation
