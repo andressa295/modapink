@@ -6,7 +6,9 @@ import {
   ArrowLeft,
   MessageCircle,
   Search,
-  SendHorizontal
+  SendHorizontal,
+  Paperclip,
+  X
 } from "lucide-react"
 
 import styles from "../styles/chat.module.css"
@@ -1145,6 +1147,14 @@ export default function Conversas() {
     input,
     setInput
   ] = useState("")
+
+  const [imageAttachment, setImageAttachment] = useState<{ dataUrl: string; name: string } | null>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setImageAttachment(null)
+    if (imageInputRef.current) imageInputRef.current.value = ""
+  }, [selected?.id])
 
   const [
     sending,
@@ -2730,14 +2740,41 @@ export default function Conversas() {
   // SEND MESSAGE
   // ======================
 
+  async function attachImage(file?: File) {
+    if (!file || !selected || sending) return
+    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type) || file.size > 8 * 1024 * 1024) {
+      window.alert("Selecione uma imagem JPG, PNG, WebP ou GIF de até 8 MB.")
+      return
+    }
+    const conversationId = selected.id
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(String(reader.result))
+        reader.onerror = () => reject(new Error("Não foi possível ler a imagem."))
+        reader.readAsDataURL(file)
+      })
+      if (selectedRef.current?.id === conversationId) {
+        setImageAttachment({ dataUrl, name: file.name })
+      }
+    } catch (error) {
+      window.alert(error instanceof Error ? error.message : "Não consegui anexar a imagem.")
+    } finally {
+      if (imageInputRef.current) imageInputRef.current.value = ""
+    }
+  }
+
   async function sendMessage() {
     if (
-      !input.trim() ||
+      (!input.trim() && !imageAttachment) ||
       !selected ||
       sending
     ) {
       return
     }
+
+    const attachmentToSend = imageAttachment
+    const conversationToSend = selected
 
     const textToSend =
       input.trim()
@@ -2751,7 +2788,10 @@ export default function Conversas() {
       id:
         `temp-${Date.now()}`,
       text:
-        textToSend,
+        textToSend || "Imagem enviada",
+      media_url: attachmentToSend?.dataUrl,
+      media_type: attachmentToSend ? "image" : undefined,
+      mime_type: attachmentToSend ? attachmentToSend.dataUrl.split(";")[0].slice(5) : undefined,
       sender:
         "agent",
       created_at:
@@ -2764,6 +2804,7 @@ export default function Conversas() {
       true
 
     setInput("")
+    setImageAttachment(null)
     setSending(true)
     setMessages(prev => [
       ...prev,
@@ -2783,7 +2824,8 @@ export default function Conversas() {
             body:
               JSON.stringify({
                 phone:
-                  selected.phone,
+                  conversationToSend.phone,
+                media_data: attachmentToSend?.dataUrl,
 
                 message:
                   textToSend,
@@ -2803,14 +2845,15 @@ export default function Conversas() {
           }
         )
 
-      if (!response.ok) {
+      const result = await response.json().catch(() => null)
+      if (!response.ok || result?.ok === false) {
         throw new Error(
-          "Falha ao enviar"
+          result?.error || "Falha ao enviar"
         )
       }
 
       await loadMessages(
-        selected.id,
+        conversationToSend.id,
         {
           silent:
             true,
@@ -2830,7 +2873,11 @@ export default function Conversas() {
         err
       )
 
-      setInput(textToSend)
+      if (selectedRef.current?.id === conversationToSend.id) {
+        setInput(textToSend)
+        setImageAttachment(attachmentToSend)
+      }
+      window.alert(err instanceof Error ? err.message : "Não consegui enviar. Tente novamente.")
 
       setMessages(prev =>
         prev.filter(
@@ -3652,12 +3699,39 @@ export default function Conversas() {
               })}
             </div>
 
+            {imageAttachment && (
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "#fff0f6" }}>
+                <img src={imageAttachment.dataUrl} alt="Imagem anexada" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8 }} />
+                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{imageAttachment.name}</span>
+                <button type="button" aria-label="Remover imagem" onClick={() => setImageAttachment(null)} disabled={sending} style={{ background: "transparent", border: 0, cursor: "pointer" }}>
+                  <X size={18} />
+                </button>
+              </div>
+            )}
+
             {/* INPUT */}
             <div
               className={
                 styles["chat-input"]
               }
             >
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                style={{ display: "none" }}
+                onChange={e => attachImage(e.target.files?.[0])}
+              />
+              <button
+                type="button"
+                aria-label="Anexar imagem"
+                title="Anexar imagem"
+                disabled={sending}
+                onClick={() => imageInputRef.current?.click()}
+                style={{ flexShrink: 0, width: 40, height: 40, display: "grid", placeItems: "center", background: "transparent", border: 0, cursor: "pointer", color: "#d90073" }}
+              >
+                <Paperclip size={20} />
+              </button>
               <textarea
                 value={input}
                 onChange={(e) =>
@@ -3695,7 +3769,7 @@ export default function Conversas() {
                 onClick={sendMessage}
                 disabled={
                   sending ||
-                  !input.trim()
+                  (!input.trim() && !imageAttachment)
                 }
                 className={
                   styles["chat-send-button"]
