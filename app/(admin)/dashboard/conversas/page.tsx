@@ -1150,6 +1150,7 @@ export default function Conversas() {
 
   const [imageAttachment, setImageAttachment] = useState<{ dataUrl: string; name: string } | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
+  const [readingImage, setReadingImage] = useState(false)
 
   useEffect(() => {
     setImageAttachment(null)
@@ -2741,12 +2742,13 @@ export default function Conversas() {
   // ======================
 
   async function attachImage(file?: File) {
-    if (!file || !selected || sending) return
+    if (!file || !selected || sending || readingImage) return
     if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type) || file.size > 8 * 1024 * 1024) {
       window.alert("Selecione uma imagem JPG, PNG, WebP ou GIF de até 8 MB.")
       return
     }
     const conversationId = selected.id
+    setReadingImage(true)
     try {
       const dataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
@@ -2760,6 +2762,7 @@ export default function Conversas() {
     } catch (error) {
       window.alert(error instanceof Error ? error.message : "Não consegui anexar a imagem.")
     } finally {
+      setReadingImage(false)
       if (imageInputRef.current) imageInputRef.current.value = ""
     }
   }
@@ -2768,7 +2771,8 @@ export default function Conversas() {
     if (
       (!input.trim() && !imageAttachment) ||
       !selected ||
-      sending
+      sending ||
+      readingImage
     ) {
       return
     }
@@ -3699,6 +3703,7 @@ export default function Conversas() {
               })}
             </div>
 
+            {readingImage && <div role="status" style={{ padding: "10px 16px", background: "#fff0f6" }}>Carregando imagem...</div>}
             {imageAttachment && (
               <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "#fff0f6" }}>
                 <img src={imageAttachment.dataUrl} alt="Imagem anexada" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8 }} />
@@ -3726,7 +3731,7 @@ export default function Conversas() {
                 type="button"
                 aria-label="Anexar imagem"
                 title="Anexar imagem"
-                disabled={sending}
+                disabled={sending || readingImage}
                 onClick={() => imageInputRef.current?.click()}
                 style={{ flexShrink: 0, width: 40, height: 40, display: "grid", placeItems: "center", background: "transparent", border: 0, cursor: "pointer", color: "#d90073" }}
               >
@@ -3769,6 +3774,7 @@ export default function Conversas() {
                 onClick={sendMessage}
                 disabled={
                   sending ||
+                  readingImage ||
                   (!input.trim() && !imageAttachment)
                 }
                 className={
