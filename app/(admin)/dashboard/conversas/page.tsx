@@ -2146,9 +2146,32 @@ export default function Conversas() {
       return
     }
 
+    const memory =
+      currentSelected.memory || {}
+
+    const botIsPaused =
+      currentSelected.mode === "HUMAN" ||
+      currentSelected.state === "HUMAN" ||
+      memory.bot_paused === true ||
+      memory.human_requested === true ||
+      memory.human_support_requested === true ||
+      memory.awaiting_human === true ||
+      memory.human_intervention === true
+
+    const sacConversation =
+      isSacConversation(
+        currentSelected
+      )
+
     const ok =
       window.confirm(
-        "Pausar o bot nesta conversa e assumir o atendimento manual?"
+        botIsPaused
+          ? (
+              sacConversation
+                ? "Finalizar este atendimento do SAC?"
+                : "Reativar o bot nesta conversa?"
+            )
+          : "Pausar o bot nesta conversa e assumir o atendimento manual?"
       )
 
     if (!ok) {
@@ -2158,9 +2181,44 @@ export default function Conversas() {
     setPausingHuman(true)
 
     try {
-      const response =
+      const endpoint =
+        botIsPaused
+          ? (
+              sacConversation
+                ? `${API}/conversations/${currentSelected.id}/resolve-human`
+                : `${API}/conversations/${currentSelected.id}/resume-bot`
+            )
+          : `${API}/conversations/${currentSelected.id}/request-human`
+
+      const requestBody =
+        botIsPaused
+          ? {
+              resolved_by:
+                "dashboard",
+              resolvedBy:
+                "dashboard",
+              reason:
+                "manual_dashboard_resume"
+            }
+          : {
+              requested_by:
+                "dashboard",
+              requestedBy:
+                "dashboard",
+              reason:
+                "manual_dashboard_intervention"
+            }
+
+      console.log(
+        botIsPaused
+          ? "🟢 painel reativando bot"
+          : "🟡 painel pausando bot",
+        endpoint
+      )
+
+      let response =
         await fetch(
-          `${API}/conversations/${currentSelected.id}/request-human`,
+          endpoint,
           {
             method: "POST",
             headers: {
@@ -2170,15 +2228,35 @@ export default function Conversas() {
                 "no-cache"
             },
             body:
-              JSON.stringify({
-                requested_by:
-                  "dashboard",
-
-                reason:
-                  "manual_dashboard_intervention"
-              })
+              JSON.stringify(
+                requestBody
+              )
           }
         )
+
+      if (
+        botIsPaused &&
+        !sacConversation &&
+        response.status === 404
+      ) {
+        response =
+          await fetch(
+            `${API}/conversations/${currentSelected.id}/resolve-human`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+                "Cache-Control":
+                  "no-cache"
+              },
+              body:
+                JSON.stringify(
+                  requestBody
+                )
+            }
+          )
+      }
 
       const result =
         await response.json()
@@ -2190,29 +2268,97 @@ export default function Conversas() {
       ) {
         throw new Error(
           result?.error ||
-          "Falha ao pausar o bot nesta conversa"
+          "Falha ao atualizar o bot nesta conversa"
         )
       }
 
-      if (result?.conversation?.id) {
-        const updated =
-          normalizeConversation(
-            result.conversation
-          )
+      const apiConversation =
+        result?.conversation ||
+        result?.result?.conversation ||
+        result?.result?.data ||
+        null
 
-        selectedRef.current =
-          updated
+      const baseMemory =
+        apiConversation?.memory ||
+        currentSelected.memory ||
+        {}
 
-        setSelected(updated)
+      const closedIntervention =
+        sacConversation
+          ? {
+              ...(typeof baseMemory.human_intervention === "object"
+                ? baseMemory.human_intervention
+                : {}),
+              status:
+                "closed",
+              bot_paused:
+                false
+            }
+          : false
 
-        setConversations(prev =>
-          prev.map(item =>
-            item.id === updated.id
-              ? updated
-              : item
-          )
+      const cleanMemory =
+        botIsPaused
+          ? {
+              ...baseMemory,
+              bot_paused:
+                false,
+              human_requested:
+                false,
+              human_support_requested:
+                false,
+              awaiting_human:
+                false,
+              human_intervention:
+                closedIntervention,
+              human_resolved:
+                true,
+              resumed_by:
+                "dashboard",
+              resumed_at:
+                new Date().toISOString()
+            }
+          : {
+              ...baseMemory,
+              bot_paused:
+                true,
+              human_requested:
+                true,
+              human_support_requested:
+                true,
+              awaiting_human:
+                true,
+              human_intervention:
+                true
+            }
+
+      const updated =
+        normalizeConversation({
+          ...currentSelected,
+          ...(apiConversation || {}),
+          mode:
+            botIsPaused
+              ? "DEFAULT"
+              : "HUMAN",
+          state:
+            botIsPaused
+              ? "DEFAULT"
+              : "HUMAN",
+          memory:
+            cleanMemory
+        })
+
+      selectedRef.current =
+        updated
+
+      setSelected(updated)
+
+      setConversations(prev =>
+        prev.map(item =>
+          item.id === updated.id
+            ? updated
+            : item
         )
-      }
+      )
 
       await loadMessages(
         currentSelected.id,
@@ -2231,12 +2377,12 @@ export default function Conversas() {
 
     } catch (err) {
       console.error(
-        "❌ erro ao pausar bot manualmente:",
+        "❌ erro ao atualizar bot manualmente:",
         err
       )
 
       window.alert(
-        "Não consegui pausar o bot nesta conversa. Tente novamente em alguns segundos."
+        "Não consegui atualizar o bot nesta conversa. Tente novamente em alguns segundos."
       )
 
     } finally {
@@ -2259,11 +2405,16 @@ export default function Conversas() {
       return
     }
 
+    const sacConversation =
+      isSacConversation(
+        currentSelected
+      )
+
     const ok =
       window.confirm(
-        isSacConversation(currentSelected)
+        sacConversation
           ? "Finalizar este atendimento do SAC? Depois você poderá enviar a avaliação de 1 a 5 pelo botão da conversa."
-          : "Finalizar o atendimento manual e liberar o bot para essa conversa?"
+          : "Reativar o bot nesta conversa?"
       )
 
     if (!ok) {
@@ -2273,9 +2424,30 @@ export default function Conversas() {
     setResolvingHuman(true)
 
     try {
-      const response =
+      const requestBody = {
+        resolved_by:
+          "dashboard",
+        resolvedBy:
+          "dashboard",
+        reason:
+          "manual_dashboard_resume"
+      }
+
+      const endpoint =
+        sacConversation
+          ? `${API}/conversations/${currentSelected.id}/resolve-human`
+          : `${API}/conversations/${currentSelected.id}/resume-bot`
+
+      console.log(
+        sacConversation
+          ? "✅ painel finalizando atendimento SAC"
+          : "🟢 painel chamando resume-bot",
+        endpoint
+      )
+
+      let response =
         await fetch(
-          `${API}/conversations/${currentSelected.id}/resolve-human`,
+          endpoint,
           {
             method: "POST",
             headers: {
@@ -2285,12 +2457,34 @@ export default function Conversas() {
                 "no-cache"
             },
             body:
-              JSON.stringify({
-                resolved_by:
-                  "dashboard"
-              })
+              JSON.stringify(
+                requestBody
+              )
           }
         )
+
+      if (
+        !sacConversation &&
+        response.status === 404
+      ) {
+        response =
+          await fetch(
+            `${API}/conversations/${currentSelected.id}/resolve-human`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+                "Cache-Control":
+                  "no-cache"
+              },
+              body:
+                JSON.stringify(
+                  requestBody
+                )
+            }
+          )
+      }
 
       const result =
         await response.json()
@@ -2302,34 +2496,82 @@ export default function Conversas() {
       ) {
         throw new Error(
           result?.error ||
-          "Falha ao resolver intervenção humana"
+          "Falha ao reativar o bot nesta conversa"
         )
       }
 
-      if (result?.conversation?.id) {
-        const updated =
-          normalizeConversation(
-            result.conversation
-          )
+      const apiConversation =
+        result?.conversation ||
+        result?.result?.conversation ||
+        result?.result?.data ||
+        null
 
-        selectedRef.current =
-          updated
+      const baseMemory =
+        apiConversation?.memory ||
+        currentSelected.memory ||
+        {}
 
-        setSelected(updated)
-
-        setConversations(prev =>
-          prev.map(item =>
-            item.id === updated.id
-              ? updated
-              : item
-          )
-        )
+      const cleanMemory = {
+        ...baseMemory,
+        bot_paused:
+          false,
+        human_requested:
+          false,
+        human_support_requested:
+          false,
+        awaiting_human:
+          false,
+        human_intervention:
+          sacConversation
+            ? {
+                ...(typeof baseMemory.human_intervention === "object"
+                  ? baseMemory.human_intervention
+                  : {}),
+                status:
+                  "closed",
+                bot_paused:
+                  false
+              }
+            : false,
+        human_resolved:
+          true,
+        resumed_by:
+          "dashboard",
+        resumed_at:
+          new Date().toISOString()
       }
+
+      const updated =
+        normalizeConversation({
+          ...currentSelected,
+          ...(apiConversation || {}),
+          mode:
+            "DEFAULT",
+          state:
+            "DEFAULT",
+          memory:
+            cleanMemory
+        })
+
+      selectedRef.current =
+        updated
+
+      setSelected(updated)
+
+      setConversations(prev =>
+        prev.map(item =>
+          item.id === updated.id
+            ? updated
+            : item
+        )
+      )
 
       await loadMessages(
         currentSelected.id,
         {
           silent:
+            true,
+          force:
             true
         }
       )
@@ -2339,31 +2581,14 @@ export default function Conversas() {
           true
       })
 
-      window.setTimeout(() => {
-        loadMessages(
-          currentSelected.id,
-          {
-            silent:
-              true,
-            force:
-              true
-          }
-        )
-
-        loadConversations({
-          silent:
-            true
-        })
-      }, 900)
-
     } catch (err) {
       console.error(
-        "❌ erro resolver intervenção humana:",
+        "❌ erro ao reativar bot:",
         err
       )
 
       window.alert(
-        "Não consegui liberar o bot. Tente novamente em alguns segundos."
+        "Não consegui reativar o bot nesta conversa. Tente novamente em alguns segundos."
       )
 
     } finally {
