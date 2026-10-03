@@ -7,6 +7,26 @@ import SoftParticles from "../components/SoftParticles"
 import { createClient } from "@/lib/supabase/client"
 import { dashboardHome, parseDashboardRole } from "@/lib/dashboard-access"
 
+const LOGIN_TIMEOUT_MS = 15_000
+
+async function withLoginTimeout<T>(operation: PromiseLike<T>): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | null = null
+
+  try {
+    return await Promise.race([
+      Promise.resolve(operation),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new Error("LOGIN_TIMEOUT")),
+          LOGIN_TIMEOUT_MS
+        )
+      }),
+    ])
+  } finally {
+    if (timeout) clearTimeout(timeout)
+  }
+}
+
 export default function AdminLoginPage() {
   const supabase = createClient()
 
@@ -17,64 +37,56 @@ export default function AdminLoginPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
+
+    if (loading) return
+
     setLoading(true)
 
     try {
-      // 🔥 limpa sessão anterior
-      await supabase.auth.signOut()
+      const { data, error } = await withLoginTimeout(
+        supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        })
+      )
 
-      // 🔐 login
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-
-      if (error || !data.session) {
+      if (error || !data.session || !data.user) {
         alert("Email ou senha inválidos")
-        setLoading(false)
         return
       }
 
-      // 🔐 garante sessão
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      if (!session) {
-        alert("Erro ao iniciar sessão")
-        setLoading(false)
-        return
-      }
-
-      // 🔐 verifica role
-      const { data: profile, error: profileError } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", data.user.id)
-        .maybeSingle()
+      const { data: profile, error: profileError } = await withLoginTimeout(
+        supabase
+          .from("profiles")
+          .select("role")
+          .eq("id", data.user.id)
+          .maybeSingle()
+      )
 
       if (profileError) {
         console.error(profileError)
         alert("Erro ao validar usuário")
-        setLoading(false)
         return
       }
 
       const role = parseDashboardRole(profile?.role)
 
       if (!role) {
-        await supabase.auth.signOut()
+        void supabase.auth.signOut({ scope: "local" })
         alert("Acesso não autorizado")
-        setLoading(false)
         return
       }
 
-      // 🚀 redirect
-      window.location.href = dashboardHome(role)
-
+      window.location.assign(dashboardHome(role))
     } catch (err) {
-      console.error("Erro inesperado:", err)
-      alert("Erro inesperado")
+      console.error("Erro ao entrar:", err)
+
+      if (err instanceof Error && err.message === "LOGIN_TIMEOUT") {
+        alert("O servidor de login demorou para responder. Tente novamente.")
+      } else {
+        alert("Não foi possível entrar agora. Tente novamente.")
+      }
+    } finally {
       setLoading(false)
     }
   }
