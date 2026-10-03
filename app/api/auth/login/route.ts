@@ -7,6 +7,39 @@ type LoginBody = {
   password?: unknown
 }
 
+type SupabaseErrorLike = {
+  status?: number
+  code?: string
+  message?: string
+  name?: string
+}
+
+function isInfrastructureError(error: unknown) {
+  if (!error || typeof error !== "object") return false
+
+  const candidate = error as SupabaseErrorLike
+  const status = Number(candidate.status || 0)
+  const details = [
+    candidate.name,
+    candidate.code,
+    candidate.message,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+
+  return (
+    status === 0 ||
+    status >= 500 ||
+    details.includes("fetch") ||
+    details.includes("timeout") ||
+    details.includes("timed out") ||
+    details.includes("abort") ||
+    details.includes("network") ||
+    details.includes("retryable")
+  )
+}
+
 export async function POST(request: Request) {
   let body: LoginBody
 
@@ -36,10 +69,31 @@ export async function POST(request: Request) {
       password,
     })
 
-    if (error || !data.session || !data.user) {
+    if (error) {
+      if (isInfrastructureError(error)) {
+        console.error("Supabase Auth temporariamente indisponível:", error)
+        return NextResponse.json(
+          {
+            error:
+              "O Supabase está temporariamente instável. Aguarde alguns minutos e tente novamente.",
+          },
+          { status: 503 }
+        )
+      }
+
       return NextResponse.json(
         { error: "Email ou senha inválidos" },
         { status: 401 }
+      )
+    }
+
+    if (!data.session || !data.user) {
+      return NextResponse.json(
+        {
+          error:
+            "O serviço de login não concluiu a autenticação. Tente novamente.",
+        },
+        { status: 503 }
       )
     }
 
@@ -50,9 +104,13 @@ export async function POST(request: Request) {
       .maybeSingle()
 
     if (profileError) {
+      console.error("Falha ao validar perfil no Supabase:", profileError)
       return NextResponse.json(
-        { error: "Erro ao validar usuário" },
-        { status: 500 }
+        {
+          error:
+            "O Supabase está temporariamente instável. Aguarde alguns minutos e tente novamente.",
+        },
+        { status: 503 }
       )
     }
 
@@ -72,7 +130,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Erro no login pelo servidor:", error)
     return NextResponse.json(
-      { error: "O serviço de login está indisponível. Tente novamente." },
+      {
+        error:
+          "O Supabase está temporariamente instável. Aguarde alguns minutos e tente novamente.",
+      },
       { status: 503 }
     )
   }
