@@ -4,36 +4,18 @@ import { useState } from "react"
 import styles from "./login.module.css"
 import Image from "next/image"
 import SoftParticles from "../components/SoftParticles"
-import { createClient } from "@/lib/supabase/client"
-import { dashboardHome, parseDashboardRole } from "@/lib/dashboard-access"
 
-const LOGIN_TIMEOUT_MS = 15_000
+const LOGIN_TIMEOUT_MS = 20_000
 
-async function withLoginTimeout<T>(operation: PromiseLike<T>): Promise<T> {
-  let timeout: ReturnType<typeof setTimeout> | null = null
-
-  try {
-    return await Promise.race([
-      Promise.resolve(operation),
-      new Promise<never>((_, reject) => {
-        timeout = setTimeout(
-          () => reject(new Error("LOGIN_TIMEOUT")),
-          LOGIN_TIMEOUT_MS
-        )
-      }),
-    ])
-  } finally {
-    if (timeout) clearTimeout(timeout)
-  }
+type LoginResponse = {
+  error?: string
+  redirectTo?: string
 }
 
 export default function AdminLoginPage() {
-  const supabase = createClient()
-
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
-
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -42,51 +24,48 @@ export default function AdminLoginPage() {
 
     setLoading(true)
 
+    const controller = new AbortController()
+    const timeout = window.setTimeout(
+      () => controller.abort(),
+      LOGIN_TIMEOUT_MS
+    )
+
     try {
-      const { data, error } = await withLoginTimeout(
-        supabase.auth.signInWithPassword({
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
           email: email.trim(),
           password,
-        })
-      )
+        }),
+        signal: controller.signal,
+      })
 
-      if (error || !data.session || !data.user) {
-        alert("Email ou senha inválidos")
+      const result = (await response.json().catch(() => ({}))) as LoginResponse
+
+      if (!response.ok) {
+        alert(result.error || "Não foi possível entrar agora. Tente novamente.")
         return
       }
 
-      const { data: profile, error: profileError } = await withLoginTimeout(
-        supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", data.user.id)
-          .maybeSingle()
-      )
-
-      if (profileError) {
-        console.error(profileError)
-        alert("Erro ao validar usuário")
+      if (!result.redirectTo) {
+        alert("Não foi possível abrir o painel. Tente novamente.")
         return
       }
 
-      const role = parseDashboardRole(profile?.role)
-
-      if (!role) {
-        void supabase.auth.signOut({ scope: "local" })
-        alert("Acesso não autorizado")
-        return
-      }
-
-      window.location.assign(dashboardHome(role))
+      window.location.assign(result.redirectTo)
     } catch (err) {
       console.error("Erro ao entrar:", err)
 
-      if (err instanceof Error && err.message === "LOGIN_TIMEOUT") {
+      if (err instanceof DOMException && err.name === "AbortError") {
         alert("O servidor de login demorou para responder. Tente novamente.")
       } else {
         alert("Não foi possível entrar agora. Tente novamente.")
       }
     } finally {
+      window.clearTimeout(timeout)
       setLoading(false)
     }
   }
