@@ -1260,3 +1260,96 @@
     padding: 10px;
   }
 }
+
+
+/* Ajustes de densidade: resumo e avaliações mais fáceis de ler sem cartões altos. */
+.metrics-showcase {
+  grid-template-columns: minmax(220px, 0.72fr) minmax(260px, 0.9fr) minmax(280px, 0.88fr);
+  gap: 10px;
+  padding: 10px;
+  border-radius: 20px;
+}
+
+.metrics-main,
+.sales-panel {
+  min-height: 120px;
+  padding: 14px;
+  gap: 10px;
+  border-radius: 16px;
+}
+
+.metrics-main {
+  justify-content: flex-start;
+}
+
+.metrics-icon,
+.sales-panel-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+}
+
+.metrics-details {
+  gap: 7px;
+}
+
+.metric-line {
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 13px;
+}
+
+.metric-line-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 10px;
+}
+
+.sales-panel {
+  justify-content: flex-start;
+}
+
+.sales-metrics-grid {
+  gap: 7px;
+}
+
+.sales-metric-chip {
+  min-height: 60px;
+  padding: 8px;
+  border-radius: 13px;
+}
+
+@media (max-width: 1120px) {
+  .metrics-showcase {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .sales-panel {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .dashboard-container {
+    gap: 11px;
+  }
+
+  .dashboard-hero {
+    padding: 15px;
+    border-radius: 18px;
+  }
+
+  .dashboard-title {
+    font-size: 21px;
+  }
+
+  .metrics-showcase {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 8px;
+    border-radius: 17px;
+  }
+
+  .sales-panel {
+    grid-column: auto;
+  }
+}
