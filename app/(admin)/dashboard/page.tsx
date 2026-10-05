@@ -35,16 +35,15 @@ export default async function Dashboard() {
         <div className={styles["dashboard-hero-content"]}>
           <span className={styles["dashboard-kicker"]}>
             <Sparkles size={13} />
-            Central Moda Pink
+            MODA PINK · PAINEL DE GESTÃO
           </span>
 
           <h1 className={styles["dashboard-title"]}>
-            Visão geral do atendimento
+            Tudo da operação, em um só lugar
           </h1>
 
           <p className={styles["dashboard-subtitle"]}>
-            Conversas, vendas e conexões em uma leitura rápida,
-            sem interromper o que já está na tela.
+            Acompanhe atendimento, vendas e conexões da equipe com uma visão clara do dia.
           </p>
         </div>
 
