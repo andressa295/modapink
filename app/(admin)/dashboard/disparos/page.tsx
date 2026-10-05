@@ -145,6 +145,8 @@ export default function DisparosPage() {
     useState<Campaign[]>([])
   const [contactsCount, setContactsCount] =
     useState<number | null>(null)
+  const [dailyLimit, setDailyLimit] =
+    useState(70)
   const [availableSessions, setAvailableSessions] =
     useState<BroadcastSession[]>(FALLBACK_SESSIONS)
   const [name, setName] = useState("")
@@ -181,6 +183,14 @@ export default function DisparosPage() {
         sessionData.sessions.length
           ? sessionData.sessions
           : FALLBACK_SESSIONS
+      )
+      const configuredDailyLimit =
+        Number(sessionData.dailyLimit)
+      setDailyLimit(
+        Number.isFinite(configuredDailyLimit) &&
+        configuredDailyLimit > 0
+          ? configuredDailyLimit
+          : 70
       )
       setError("")
     } catch (err) {
@@ -481,11 +491,25 @@ export default function DisparosPage() {
           </p>
         </div>
 
-        <div className={styles.contactCounter}>
-          <strong>
-            {contactsCount === null ? "—" : contactsCount}
-          </strong>
-          <span>contatos elegíveis</span>
+        <div className={styles.headerStats}>
+          <div className={styles.contactCounter}>
+            <span>CONTATOS ELEGÍVEIS</span>
+            <strong>
+              {contactsCount === null ? "—" : contactsCount}
+            </strong>
+            <small>público disponível para campanha</small>
+          </div>
+
+          <div className={styles.dailyLimitCard}>
+            <span className={styles.dailyLimitLabel}>
+              LIMITE DIÁRIO LIBERADO
+            </span>
+            <div className={styles.dailyLimitValue}>
+              <strong>{dailyLimit}</strong>
+              <span>envios<br />por número</span>
+            </div>
+            <small>renova à meia-noite, horário de Brasília</small>
+          </div>
         </div>
       </header>
 
@@ -500,7 +524,7 @@ export default function DisparosPage() {
         </div>
         <div>
           <AlertTriangle size={20} />
-          <span><strong>Limite:</strong> até 40 envios por dia e sessão</span>
+          <span><strong>Renovação:</strong> o limite reinicia à meia-noite</span>
         </div>
       </section>
 
