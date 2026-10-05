@@ -165,19 +165,17 @@ export default function DisparosPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [
-        campaignData,
-        countData,
-        sessionData
-      ] =
+      const [campaignData, sessionData] =
         await Promise.all([
           apiRequest("/"),
-          apiRequest("/contacts/count"),
           apiRequest("/sessions")
         ])
 
-      setCampaigns(campaignData.campaigns || [])
-      setContactsCount(countData.count || 0)
+      setCampaigns(
+        (campaignData.campaigns || []).filter(
+          (campaign: Campaign) => campaign.status !== "cancelled"
+        )
+      )
       setAvailableSessions(
         Array.isArray(sessionData.sessions) &&
         sessionData.sessions.length
@@ -194,6 +192,16 @@ export default function DisparosPage() {
     } finally {
       setLoadingList(false)
     }
+
+    // A contagem não deve atrasar a lista nem bloquear o formulário.
+    void apiRequest("/contacts/count")
+      .then(countData => {
+        setContactsCount(countData.count || 0)
+      })
+      .catch(() => {
+        // Mantém a contagem anterior quando o endpoint estiver lento
+        // ou indisponível; campanhas e sessões continuam utilizáveis.
+      })
   }, [])
 
   useEffect(() => {
