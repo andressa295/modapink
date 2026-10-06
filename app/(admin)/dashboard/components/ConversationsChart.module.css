@@ -383,3 +383,8 @@
     font-size: 10px;
   }
 }
+
+/* Remove glow decorativo do card. */
+.card-glow {
+  display: none;
+}
