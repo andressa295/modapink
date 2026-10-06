@@ -489,3 +489,10 @@
     gap: 4px;
   }
 }
+
+/* Cabeçalho de pedidos limpo e sem brilho rosa no canto. */
+.pedidos-hero {
+  border-color: #eceff3;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+}
