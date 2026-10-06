@@ -834,3 +834,57 @@
     padding: 16px;
   }
 }
+
+/* Premium clean: a cor da marca fica nos detalhes, sem mancha rosa no canvas. */
+.page {
+  padding: 8px 0 24px;
+  background: transparent;
+}
+
+.header {
+  margin-bottom: 14px;
+  padding: 22px 24px;
+  border: 1px solid #eceff3;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+}
+
+.header h1 {
+  margin-top: 6px;
+  font-size: clamp(26px, 3vw, 34px);
+}
+
+.contactCounter,
+.safetyGrid > div,
+.card,
+.campaign {
+  border-color: #eceff3;
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.035);
+}
+
+.contactCounter {
+  padding: 15px 18px;
+}
+
+.card {
+  padding: 20px;
+  border-radius: 18px;
+}
+
+.campaignList {
+  scrollbar-width: thin;
+  scrollbar-color: #dfd5da transparent;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 0 0 18px;
+  }
+
+  .header {
+    padding: 18px;
+    border-radius: 18px;
+  }
+}

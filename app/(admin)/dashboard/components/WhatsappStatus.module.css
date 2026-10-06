@@ -384,3 +384,8 @@
     border-radius: 16px;
   }
 }
+
+/* Remove glow decorativo do card. */
+.card-glow {
+  display: none;
+}

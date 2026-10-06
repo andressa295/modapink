@@ -658,3 +658,29 @@
     height: 205px;
   }
 }
+
+/* Premium clean: remove o brilho rosa que recortava o fundo da página. */
+.numbers-page {
+  background: transparent;
+}
+
+.numbers-header {
+  border-color: #eceff3;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
+}
+
+.numbers-header::before {
+  display: none;
+}
+
+.connection-summary,
+.card {
+  border-color: #eceff3;
+  background: #ffffff;
+  box-shadow: 0 7px 22px rgba(15, 23, 42, 0.04);
+}
+
+.card:hover {
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+}

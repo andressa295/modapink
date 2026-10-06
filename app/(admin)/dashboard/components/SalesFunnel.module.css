@@ -279,3 +279,8 @@
     white-space: normal;
   }
 }
+
+/* Remove glow decorativo do card. */
+.card-glow {
+  display: none;
+}
