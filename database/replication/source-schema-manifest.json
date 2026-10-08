@@ -1,0 +1,5596 @@
+{
+  "source_project_ref": "wpzqnfvuczqnpuvuxdlx",
+  "captured_at": "2026-10-08T01:27:53.360891+00:00",
+  "source_postgres_version": "17.6",
+  "captured_application_rows": false,
+  "relations": [
+    {
+      "kind": "r",
+      "name": "abandoned_cart_messages",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "checkout_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "checkout_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "total",
+          "type": "numeric",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_key",
+          "type": "text",
+          "default": "'principal'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "message_sent_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": "'sent'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "abandoned_carts",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "order_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "order_number",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "total",
+          "type": "numeric",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "recovered",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "whatsapp_sent",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "checkout_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "whatsapp_sent_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "recovered_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "abandoned_carts_demo_backup",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "order_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "order_number",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "total",
+          "type": "numeric",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "recovered",
+          "type": "boolean",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "whatsapp_sent",
+          "type": "boolean",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "checkout_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "whatsapp_sent_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "recovered_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "agents",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "active",
+          "type": "boolean",
+          "default": "true",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "email",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "avatar_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "sector",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "is_online",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "current_chats",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "max_chats",
+          "type": "integer",
+          "default": "5",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "automation_logs",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "uuid_generate_v4()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "automation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "executed_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "automations",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "uuid_generate_v4()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "trigger",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "response",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "flow",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "uses",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "broadcast_campaigns",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "message",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_key",
+          "type": "text",
+          "default": "'principal'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "audience",
+          "type": "text",
+          "default": "'previous_contacts'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": "'draft'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "total_count",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "sent_count",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "failed_count",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "skipped_count",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "scheduled_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "paused_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_error",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_by",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "media_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "media_type",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "media_filename",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "broadcast_recipients",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "campaign_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone_key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": "'pending'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "attempts",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_error",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "broadcast_suppressions",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "phone_key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "reason",
+          "type": "text",
+          "default": "'customer_opt_out'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "source",
+          "type": "text",
+          "default": "'whatsapp'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "conversation_assignments",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "uuid_generate_v4()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "agent_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "assigned_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "conversation_learning_events",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "message_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_key",
+          "type": "text",
+          "default": "'principal'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "event_type",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "severity",
+          "type": "text",
+          "default": "'medium'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "user_text",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "previous_bot_text",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "context",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": "'open'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "v",
+      "name": "conversation_review_stats",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "pending_reviews",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "answered_reviews",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "average_rating",
+          "type": "numeric",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": " SELECT count(*) FILTER (WHERE review_status = 'sent'::text) AS pending_reviews,\n    count(*) FILTER (WHERE review_status = 'answered'::text) AS answered_reviews,\n    round(avg(review_rating), 2) AS average_rating\n   FROM conversations\n  WHERE review_rating IS NOT NULL;",
+      "row_level_security": false,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "conversation_reviews",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "rating",
+          "type": "integer",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "comment",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "conversation_topics",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_memory_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_message_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_key",
+          "type": "text",
+          "default": "'principal'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "topic_key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "topic_type",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": "'active'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "priority",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "entities",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "pending_question",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "resume_state",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "summary",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "opened_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "pending_answer_type",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "pending_answer_schema",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "parent_topic_key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_customer_message_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_bot_question_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "conversations",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "uuid_generate_v4()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "channel",
+          "type": "text",
+          "default": "'whatsapp'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": "'open'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "first_response_at",
+          "type": "timestamp without time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_agent_message_at",
+          "type": "timestamp without time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "closed_at",
+          "type": "timestamp without time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "assigned_agent_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "state",
+          "type": "text",
+          "default": "'idle'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_message",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "avatar_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_message_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_key",
+          "type": "text",
+          "default": "'principal'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "assigned_to",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "context",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "cart",
+          "type": "jsonb",
+          "default": "'{\"items\": []}'::jsonb",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "memory",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "onboarding_sent",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "mode",
+          "type": "text",
+          "default": "'DEFAULT'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "checkout",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "review_sent_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "review_status",
+          "type": "text",
+          "default": "'pending'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "review_rating",
+          "type": "integer",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "review_comment",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "review_answered_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "review_requested_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "customer_memories",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "preferred_name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "facts",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "preferences",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "summary",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "active_topics",
+          "type": "jsonb",
+          "default": "'[]'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "recent_product_refs",
+          "type": "jsonb",
+          "default": "'[]'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "source_sessions",
+          "type": "jsonb",
+          "default": "'[]'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "turn_count",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "summary_version",
+          "type": "integer",
+          "default": "1",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_message_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_summarized_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "customers",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "uuid_generate_v4()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "email",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "tags",
+          "type": "text[]",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "metadata",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "events",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "type",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "payload",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "messages",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "uuid_generate_v4()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "sender",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "content",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "type",
+          "type": "text",
+          "default": "'text'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "external_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": "'sent'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "metadata",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "message_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "media_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "mime_type",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "state",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "flow",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "step",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "intent",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "ai_used",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "input_tokens",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "output_tokens",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "media_type",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "transcription",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "mode",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "mimetype",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "filename",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "caption",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "media_size",
+          "type": "integer",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "is_media",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "has_media",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "media_mime_type",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "media_filename",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "order_status_messages",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "order_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "order_number",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "event",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "tracking_code",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "tracking_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_key",
+          "type": "text",
+          "default": "'principal'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "message_sent_at",
+          "type": "timestamp with time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "orders",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "nuvemshop_order_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_email",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "customer_phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "total",
+          "type": "numeric(10,2)",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "subtotal",
+          "type": "numeric(10,2)",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "discount",
+          "type": "numeric(10,2)",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "shipping_cost",
+          "type": "numeric(10,2)",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "payment_status",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "fulfillment_status",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "products",
+          "type": "jsonb",
+          "default": "'[]'::jsonb",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "shipping_address",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "raw_payload",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "external_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "order_number",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "payment_method",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "shipping_status",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "shipping_method",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "tracking_number",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "tracking_url",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "currency",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "address",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "items",
+          "type": "jsonb",
+          "default": "'[]'::jsonb",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "raw",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "raw_products",
+          "type": "jsonb",
+          "default": "'[]'::jsonb",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "whatsapp_number",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "products",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "nuvemshop_product_id",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "slug",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "description",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "price",
+          "type": "numeric(10,2)",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "promotional_price",
+          "type": "numeric(10,2)",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "stock",
+          "type": "integer",
+          "default": "0",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "category",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "active",
+          "type": "boolean",
+          "default": "true",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "images",
+          "type": "jsonb",
+          "default": "'[]'::jsonb",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "variants",
+          "type": "jsonb",
+          "default": "'[]'::jsonb",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "raw_payload",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "profiles",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "email",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "role",
+          "type": "text",
+          "default": "'admin'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "ratings",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "conversation_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "score",
+          "type": "integer",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "feedback",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "settings",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "uuid_generate_v4()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "value",
+          "type": "jsonb",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "store_settings",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "gen_random_uuid()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_key",
+          "type": "text",
+          "default": "'default'::text",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "settings",
+          "type": "jsonb",
+          "default": "'{}'::jsonb",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "stores",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "uuid_generate_v4()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "shop",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "user_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp without time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": "'online'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "access_token",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "refresh_token",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": false,
+      "force_row_level_security": false
+    },
+    {
+      "kind": "r",
+      "name": "whatsapp_sessions",
+      "schema": "public",
+      "columns": [
+        {
+          "acl": null,
+          "name": "id",
+          "type": "uuid",
+          "default": "uuid_generate_v4()",
+          "identity": "",
+          "not_null": true,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "phone",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "status",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "last_seen",
+          "type": "timestamp without time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "created_at",
+          "type": "timestamp without time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "is_default",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "name",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "user_id",
+          "type": "uuid",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "store_id",
+          "type": "bigint",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "is_connected",
+          "type": "boolean",
+          "default": "false",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "deleted_at",
+          "type": "timestamp without time zone",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "session_key",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "setor",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "label",
+          "type": "text",
+          "default": null,
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "bot_enabled",
+          "type": "boolean",
+          "default": "true",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "type",
+          "type": "text",
+          "default": "'sales'::text",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        },
+        {
+          "acl": null,
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "default": "now()",
+          "identity": "",
+          "not_null": false,
+          "generated": ""
+        }
+      ],
+      "view_definition": null,
+      "row_level_security": true,
+      "force_row_level_security": false
+    }
+  ],
+  "constraints": [
+    {
+      "name": "abandoned_cart_messages_checkout_id_phone_key",
+      "type": "u",
+      "table": "abandoned_cart_messages",
+      "comment": null,
+      "validated": true,
+      "definition": "UNIQUE (checkout_id, phone)"
+    },
+    {
+      "name": "abandoned_cart_messages_pkey",
+      "type": "p",
+      "table": "abandoned_cart_messages",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "abandoned_carts_pkey",
+      "type": "p",
+      "table": "abandoned_carts",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "agents_id_fkey",
+      "type": "f",
+      "table": "agents",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (id) REFERENCES profiles(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "agents_pkey",
+      "type": "p",
+      "table": "agents",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "automation_logs_automation_id_fkey",
+      "type": "f",
+      "table": "automation_logs",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (automation_id) REFERENCES automations(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "automation_logs_conversation_id_fkey",
+      "type": "f",
+      "table": "automation_logs",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "automation_logs_pkey",
+      "type": "p",
+      "table": "automation_logs",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "automations_pkey",
+      "type": "p",
+      "table": "automations",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "broadcast_campaigns_pkey",
+      "type": "p",
+      "table": "broadcast_campaigns",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "broadcast_campaigns_status_check",
+      "type": "c",
+      "table": "broadcast_campaigns",
+      "comment": null,
+      "validated": true,
+      "definition": "CHECK ((status = ANY (ARRAY['draft'::text, 'running'::text, 'paused'::text, 'completed'::text, 'cancelled'::text])))"
+    },
+    {
+      "name": "broadcast_recipients_campaign_id_fkey",
+      "type": "f",
+      "table": "broadcast_recipients",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (campaign_id) REFERENCES broadcast_campaigns(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "broadcast_recipients_campaign_id_phone_key_key",
+      "type": "u",
+      "table": "broadcast_recipients",
+      "comment": null,
+      "validated": true,
+      "definition": "UNIQUE (campaign_id, phone_key)"
+    },
+    {
+      "name": "broadcast_recipients_conversation_id_fkey",
+      "type": "f",
+      "table": "broadcast_recipients",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "broadcast_recipients_pkey",
+      "type": "p",
+      "table": "broadcast_recipients",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "broadcast_recipients_status_check",
+      "type": "c",
+      "table": "broadcast_recipients",
+      "comment": null,
+      "validated": true,
+      "definition": "CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'failed'::text, 'skipped'::text])))"
+    },
+    {
+      "name": "broadcast_suppressions_pkey",
+      "type": "p",
+      "table": "broadcast_suppressions",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (phone_key)"
+    },
+    {
+      "name": "conversation_assignments_agent_id_fkey",
+      "type": "f",
+      "table": "conversation_assignments",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (agent_id) REFERENCES agents(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "conversation_assignments_conversation_id_fkey",
+      "type": "f",
+      "table": "conversation_assignments",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "conversation_assignments_pkey",
+      "type": "p",
+      "table": "conversation_assignments",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "conversation_learning_events_conversation_id_fkey",
+      "type": "f",
+      "table": "conversation_learning_events",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "conversation_learning_events_customer_id_fkey",
+      "type": "f",
+      "table": "conversation_learning_events",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "conversation_learning_events_message_id_fkey",
+      "type": "f",
+      "table": "conversation_learning_events",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "conversation_learning_events_pkey",
+      "type": "p",
+      "table": "conversation_learning_events",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "conversation_learning_events_severity_check",
+      "type": "c",
+      "table": "conversation_learning_events",
+      "comment": null,
+      "validated": true,
+      "definition": "CHECK ((severity = ANY (ARRAY['low'::text, 'medium'::text, 'high'::text, 'critical'::text])))"
+    },
+    {
+      "name": "conversation_learning_events_status_check",
+      "type": "c",
+      "table": "conversation_learning_events",
+      "comment": null,
+      "validated": true,
+      "definition": "CHECK ((status = ANY (ARRAY['open'::text, 'reviewed'::text, 'resolved'::text, 'ignored'::text])))"
+    },
+    {
+      "name": "conversation_reviews_conversation_id_fkey",
+      "type": "f",
+      "table": "conversation_reviews",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id)"
+    },
+    {
+      "name": "conversation_reviews_pkey",
+      "type": "p",
+      "table": "conversation_reviews",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "conversation_topics_conversation_id_fkey",
+      "type": "f",
+      "table": "conversation_topics",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "conversation_topics_customer_id_fkey",
+      "type": "f",
+      "table": "conversation_topics",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "conversation_topics_customer_memory_id_fkey",
+      "type": "f",
+      "table": "conversation_topics",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (customer_memory_id) REFERENCES customer_memories(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "conversation_topics_last_message_id_fkey",
+      "type": "f",
+      "table": "conversation_topics",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (last_message_id) REFERENCES messages(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "conversation_topics_pkey",
+      "type": "p",
+      "table": "conversation_topics",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "conversation_topics_status_check",
+      "type": "c",
+      "table": "conversation_topics",
+      "comment": null,
+      "validated": true,
+      "definition": "CHECK ((status = ANY (ARRAY['active'::text, 'paused'::text, 'awaiting_answer'::text, 'answered_side_question'::text, 'resolved'::text, 'superseded'::text])))"
+    },
+    {
+      "name": "conversations_assigned_agent_id_fkey",
+      "type": "f",
+      "table": "conversations",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (assigned_agent_id) REFERENCES agents(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "conversations_assigned_to_fkey",
+      "type": "f",
+      "table": "conversations",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (assigned_to) REFERENCES agents(id)"
+    },
+    {
+      "name": "conversations_customer_id_fkey",
+      "type": "f",
+      "table": "conversations",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "conversations_pkey",
+      "type": "p",
+      "table": "conversations",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "conversations_store_fk",
+      "type": "f",
+      "table": "conversations",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "customer_memories_customer_id_fkey",
+      "type": "f",
+      "table": "customer_memories",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "customer_memories_customer_key",
+      "type": "u",
+      "table": "customer_memories",
+      "comment": null,
+      "validated": true,
+      "definition": "UNIQUE (customer_id)"
+    },
+    {
+      "name": "customer_memories_phone_key",
+      "type": "u",
+      "table": "customer_memories",
+      "comment": null,
+      "validated": true,
+      "definition": "UNIQUE (phone)"
+    },
+    {
+      "name": "customer_memories_pkey",
+      "type": "p",
+      "table": "customer_memories",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "customers_phone_key",
+      "type": "u",
+      "table": "customers",
+      "comment": null,
+      "validated": true,
+      "definition": "UNIQUE (phone)"
+    },
+    {
+      "name": "customers_pkey",
+      "type": "p",
+      "table": "customers",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "customers_store_fk",
+      "type": "f",
+      "table": "customers",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "events_pkey",
+      "type": "p",
+      "table": "events",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "messages_conversation_fk",
+      "type": "f",
+      "table": "messages",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "messages_conversation_id_fkey",
+      "type": "f",
+      "table": "messages",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "messages_pkey",
+      "type": "p",
+      "table": "messages",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "messages_sender_check",
+      "type": "c",
+      "table": "messages",
+      "comment": null,
+      "validated": true,
+      "definition": "CHECK ((sender = ANY (ARRAY['user'::text, 'bot'::text, 'agent'::text])))"
+    },
+    {
+      "name": "messages_store_fk",
+      "type": "f",
+      "table": "messages",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (store_id) REFERENCES stores(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "order_status_messages_order_id_event_status_key",
+      "type": "u",
+      "table": "order_status_messages",
+      "comment": null,
+      "validated": true,
+      "definition": "UNIQUE (order_id, event, status)"
+    },
+    {
+      "name": "order_status_messages_pkey",
+      "type": "p",
+      "table": "order_status_messages",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "orders_conversation_id_fkey",
+      "type": "f",
+      "table": "orders",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "orders_customer_id_fkey",
+      "type": "f",
+      "table": "orders",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL"
+    },
+    {
+      "name": "orders_pkey",
+      "type": "p",
+      "table": "orders",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "products_pkey",
+      "type": "p",
+      "table": "products",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "profiles_id_fkey",
+      "type": "f",
+      "table": "profiles",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "profiles_pkey",
+      "type": "p",
+      "table": "profiles",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "ratings_conversation_id_fkey",
+      "type": "f",
+      "table": "ratings",
+      "comment": null,
+      "validated": true,
+      "definition": "FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE"
+    },
+    {
+      "name": "ratings_pkey",
+      "type": "p",
+      "table": "ratings",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "ratings_score_check",
+      "type": "c",
+      "table": "ratings",
+      "comment": null,
+      "validated": true,
+      "definition": "CHECK (((score >= 1) AND (score <= 5)))"
+    },
+    {
+      "name": "settings_key_key",
+      "type": "u",
+      "table": "settings",
+      "comment": null,
+      "validated": true,
+      "definition": "UNIQUE (key)"
+    },
+    {
+      "name": "settings_pkey",
+      "type": "p",
+      "table": "settings",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "store_settings_pkey",
+      "type": "p",
+      "table": "store_settings",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "stores_pkey",
+      "type": "p",
+      "table": "stores",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    },
+    {
+      "name": "stores_store_id_unique",
+      "type": "u",
+      "table": "stores",
+      "comment": null,
+      "validated": true,
+      "definition": "UNIQUE (store_id)"
+    },
+    {
+      "name": "unique_session_key",
+      "type": "u",
+      "table": "whatsapp_sessions",
+      "comment": null,
+      "validated": true,
+      "definition": "UNIQUE (session_key)"
+    },
+    {
+      "name": "whatsapp_sessions_pkey",
+      "type": "p",
+      "table": "whatsapp_sessions",
+      "comment": null,
+      "validated": true,
+      "definition": "PRIMARY KEY (id)"
+    }
+  ],
+  "indexes": [
+    {
+      "name": "abandoned_cart_messages_checkout_id_phone_key",
+      "table": "abandoned_cart_messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "abandoned_cart_messages_checkout_id_phone_key",
+      "definition": "CREATE UNIQUE INDEX abandoned_cart_messages_checkout_id_phone_key ON public.abandoned_cart_messages USING btree (checkout_id, phone)",
+      "replica_identity": false
+    },
+    {
+      "name": "abandoned_cart_messages_pkey",
+      "table": "abandoned_cart_messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "abandoned_cart_messages_pkey",
+      "definition": "CREATE UNIQUE INDEX abandoned_cart_messages_pkey ON public.abandoned_cart_messages USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "abandoned_carts_pkey",
+      "table": "abandoned_carts",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "abandoned_carts_pkey",
+      "definition": "CREATE UNIQUE INDEX abandoned_carts_pkey ON public.abandoned_carts USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "abandoned_carts_unique",
+      "table": "abandoned_carts",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX abandoned_carts_unique ON public.abandoned_carts USING btree (store_id, order_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "agents_pkey",
+      "table": "agents",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "agents_pkey",
+      "definition": "CREATE UNIQUE INDEX agents_pkey ON public.agents USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "automation_logs_pkey",
+      "table": "automation_logs",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "automation_logs_pkey",
+      "definition": "CREATE UNIQUE INDEX automation_logs_pkey ON public.automation_logs USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "automations_pkey",
+      "table": "automations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "automations_pkey",
+      "definition": "CREATE UNIQUE INDEX automations_pkey ON public.automations USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "broadcast_campaigns_pkey",
+      "table": "broadcast_campaigns",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "broadcast_campaigns_pkey",
+      "definition": "CREATE UNIQUE INDEX broadcast_campaigns_pkey ON public.broadcast_campaigns USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "broadcast_campaigns_status_schedule_idx",
+      "table": "broadcast_campaigns",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX broadcast_campaigns_status_schedule_idx ON public.broadcast_campaigns USING btree (status, scheduled_at, created_at)",
+      "replica_identity": false
+    },
+    {
+      "name": "broadcast_recipients_campaign_id_phone_key_key",
+      "table": "broadcast_recipients",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "broadcast_recipients_campaign_id_phone_key_key",
+      "definition": "CREATE UNIQUE INDEX broadcast_recipients_campaign_id_phone_key_key ON public.broadcast_recipients USING btree (campaign_id, phone_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "broadcast_recipients_pkey",
+      "table": "broadcast_recipients",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "broadcast_recipients_pkey",
+      "definition": "CREATE UNIQUE INDEX broadcast_recipients_pkey ON public.broadcast_recipients USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "broadcast_recipients_queue_idx",
+      "table": "broadcast_recipients",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX broadcast_recipients_queue_idx ON public.broadcast_recipients USING btree (campaign_id, status, next_attempt_at, created_at)",
+      "replica_identity": false
+    },
+    {
+      "name": "broadcast_recipients_sent_idx",
+      "table": "broadcast_recipients",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX broadcast_recipients_sent_idx ON public.broadcast_recipients USING btree (status, sent_at)",
+      "replica_identity": false
+    },
+    {
+      "name": "broadcast_suppressions_pkey",
+      "table": "broadcast_suppressions",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "broadcast_suppressions_pkey",
+      "definition": "CREATE UNIQUE INDEX broadcast_suppressions_pkey ON public.broadcast_suppressions USING btree (phone_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_assignments_pkey",
+      "table": "conversation_assignments",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "conversation_assignments_pkey",
+      "definition": "CREATE UNIQUE INDEX conversation_assignments_pkey ON public.conversation_assignments USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_learning_events_message_type_unique",
+      "table": "conversation_learning_events",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX conversation_learning_events_message_type_unique ON public.conversation_learning_events USING btree (message_id, event_type) WHERE (message_id IS NOT NULL)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_learning_events_open_idx",
+      "table": "conversation_learning_events",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX conversation_learning_events_open_idx ON public.conversation_learning_events USING btree (status, severity, created_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_learning_events_phone_idx",
+      "table": "conversation_learning_events",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX conversation_learning_events_phone_idx ON public.conversation_learning_events USING btree (phone, created_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_learning_events_pkey",
+      "table": "conversation_learning_events",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "conversation_learning_events_pkey",
+      "definition": "CREATE UNIQUE INDEX conversation_learning_events_pkey ON public.conversation_learning_events USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_reviews_pkey",
+      "table": "conversation_reviews",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "conversation_reviews_pkey",
+      "definition": "CREATE UNIQUE INDEX conversation_reviews_pkey ON public.conversation_reviews USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_topics_conversation_idx",
+      "table": "conversation_topics",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX conversation_topics_conversation_idx ON public.conversation_topics USING btree (conversation_id, updated_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_topics_customer_idx",
+      "table": "conversation_topics",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX conversation_topics_customer_idx ON public.conversation_topics USING btree (customer_id, updated_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_topics_open_unique",
+      "table": "conversation_topics",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX conversation_topics_open_unique ON public.conversation_topics USING btree (phone, topic_key) WHERE (status = ANY (ARRAY['active'::text, 'paused'::text]))",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_topics_phone_status_idx",
+      "table": "conversation_topics",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX conversation_topics_phone_status_idx ON public.conversation_topics USING btree (phone, status, updated_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_topics_pkey",
+      "table": "conversation_topics",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "conversation_topics_pkey",
+      "definition": "CREATE UNIQUE INDEX conversation_topics_pkey ON public.conversation_topics USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversation_topics_resume_idx",
+      "table": "conversation_topics",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX conversation_topics_resume_idx ON public.conversation_topics USING btree (phone, topic_key, updated_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversations_phone_idx",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX conversations_phone_idx ON public.conversations USING btree (phone)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversations_phone_session_key_unique",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX conversations_phone_session_key_unique ON public.conversations USING btree (phone, session_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversations_pkey",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "conversations_pkey",
+      "definition": "CREATE UNIQUE INDEX conversations_pkey ON public.conversations USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversations_session_key_idx",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX conversations_session_key_idx ON public.conversations USING btree (session_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "conversations_updated_at_idx",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX conversations_updated_at_idx ON public.conversations USING btree (updated_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "customer_memories_customer_key",
+      "table": "customer_memories",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "customer_memories_customer_key",
+      "definition": "CREATE UNIQUE INDEX customer_memories_customer_key ON public.customer_memories USING btree (customer_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "customer_memories_last_message_idx",
+      "table": "customer_memories",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX customer_memories_last_message_idx ON public.customer_memories USING btree (last_message_at DESC NULLS LAST)",
+      "replica_identity": false
+    },
+    {
+      "name": "customer_memories_phone_idx",
+      "table": "customer_memories",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX customer_memories_phone_idx ON public.customer_memories USING btree (phone)",
+      "replica_identity": false
+    },
+    {
+      "name": "customer_memories_phone_key",
+      "table": "customer_memories",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "customer_memories_phone_key",
+      "definition": "CREATE UNIQUE INDEX customer_memories_phone_key ON public.customer_memories USING btree (phone)",
+      "replica_identity": false
+    },
+    {
+      "name": "customer_memories_pkey",
+      "table": "customer_memories",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "customer_memories_pkey",
+      "definition": "CREATE UNIQUE INDEX customer_memories_pkey ON public.customer_memories USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "customers_phone_key",
+      "table": "customers",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "customers_phone_key",
+      "definition": "CREATE UNIQUE INDEX customers_phone_key ON public.customers USING btree (phone)",
+      "replica_identity": false
+    },
+    {
+      "name": "customers_pkey",
+      "table": "customers",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "customers_pkey",
+      "definition": "CREATE UNIQUE INDEX customers_pkey ON public.customers USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "events_pkey",
+      "table": "events",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "events_pkey",
+      "definition": "CREATE UNIQUE INDEX events_pkey ON public.events USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_conversations_customer",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_conversations_customer ON public.conversations USING btree (customer_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_conversations_last_message_at",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_conversations_last_message_at ON public.conversations USING btree (last_message_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_conversations_phone",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_conversations_phone ON public.conversations USING btree (phone)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_conversations_phone_session",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_conversations_phone_session ON public.conversations USING btree (phone, session_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_conversations_session_key",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_conversations_session_key ON public.conversations USING btree (session_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_conversations_store",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_conversations_store ON public.conversations USING btree (store_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_conversations_store_customer_session",
+      "table": "conversations",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_conversations_store_customer_session ON public.conversations USING btree (store_id, customer_phone, session_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_customers_phone",
+      "table": "customers",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_customers_phone ON public.customers USING btree (phone)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_customers_store",
+      "table": "customers",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_customers_store ON public.customers USING btree (store_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_customers_unique_phone",
+      "table": "customers",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX idx_customers_unique_phone ON public.customers USING btree (store_id, phone)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_messages_conversation",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_messages_conversation ON public.messages USING btree (conversation_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_messages_conversation_id",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_messages_conversation_id ON public.messages USING btree (conversation_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_messages_session_key",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_messages_session_key ON public.messages USING btree (session_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_messages_store",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_messages_store ON public.messages USING btree (store_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_messages_unique",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX idx_messages_unique ON public.messages USING btree (message_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_orders_customer",
+      "table": "orders",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_orders_customer ON public.orders USING btree (customer_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_orders_store",
+      "table": "orders",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_orders_store ON public.orders USING btree (store_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_orders_unique",
+      "table": "orders",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX idx_orders_unique ON public.orders USING btree (store_id, nuvemshop_order_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_products_store",
+      "table": "products",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX idx_products_store ON public.products USING btree (store_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "idx_products_unique",
+      "table": "products",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX idx_products_unique ON public.products USING btree (store_id, nuvemshop_product_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "messages_conversation_id_created_at_idx",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX messages_conversation_id_created_at_idx ON public.messages USING btree (conversation_id, created_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "messages_conversation_id_idx",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX messages_conversation_id_idx ON public.messages USING btree (conversation_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "messages_external_id_unique",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX messages_external_id_unique ON public.messages USING btree (external_id) WHERE (external_id IS NOT NULL)",
+      "replica_identity": false
+    },
+    {
+      "name": "messages_phone_idx",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX messages_phone_idx ON public.messages USING btree (phone)",
+      "replica_identity": false
+    },
+    {
+      "name": "messages_phone_session_key_created_at_idx",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX messages_phone_session_key_created_at_idx ON public.messages USING btree (phone, session_key, created_at DESC)",
+      "replica_identity": false
+    },
+    {
+      "name": "messages_pkey",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "messages_pkey",
+      "definition": "CREATE UNIQUE INDEX messages_pkey ON public.messages USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "messages_session_key_idx",
+      "table": "messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE INDEX messages_session_key_idx ON public.messages USING btree (session_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "order_status_messages_order_id_event_status_key",
+      "table": "order_status_messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "order_status_messages_order_id_event_status_key",
+      "definition": "CREATE UNIQUE INDEX order_status_messages_order_id_event_status_key ON public.order_status_messages USING btree (order_id, event, status)",
+      "replica_identity": false
+    },
+    {
+      "name": "order_status_messages_pkey",
+      "table": "order_status_messages",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "order_status_messages_pkey",
+      "definition": "CREATE UNIQUE INDEX order_status_messages_pkey ON public.order_status_messages USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "orders_external_id_idx",
+      "table": "orders",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX orders_external_id_idx ON public.orders USING btree (external_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "orders_pkey",
+      "table": "orders",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "orders_pkey",
+      "definition": "CREATE UNIQUE INDEX orders_pkey ON public.orders USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "products_pkey",
+      "table": "products",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "products_pkey",
+      "definition": "CREATE UNIQUE INDEX products_pkey ON public.products USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "profiles_pkey",
+      "table": "profiles",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "profiles_pkey",
+      "definition": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "ratings_pkey",
+      "table": "ratings",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "ratings_pkey",
+      "definition": "CREATE UNIQUE INDEX ratings_pkey ON public.ratings USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "settings_key_key",
+      "table": "settings",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "settings_key_key",
+      "definition": "CREATE UNIQUE INDEX settings_key_key ON public.settings USING btree (key)",
+      "replica_identity": false
+    },
+    {
+      "name": "settings_pkey",
+      "table": "settings",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "settings_pkey",
+      "definition": "CREATE UNIQUE INDEX settings_pkey ON public.settings USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "store_settings_pkey",
+      "table": "store_settings",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "store_settings_pkey",
+      "definition": "CREATE UNIQUE INDEX store_settings_pkey ON public.store_settings USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "store_settings_store_key_unique",
+      "table": "store_settings",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX store_settings_store_key_unique ON public.store_settings USING btree (store_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "stores_pkey",
+      "table": "stores",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "stores_pkey",
+      "definition": "CREATE UNIQUE INDEX stores_pkey ON public.stores USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "stores_store_id_unique",
+      "table": "stores",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "stores_store_id_unique",
+      "definition": "CREATE UNIQUE INDEX stores_store_id_unique ON public.stores USING btree (store_id)",
+      "replica_identity": false
+    },
+    {
+      "name": "unique_active_phone",
+      "table": "whatsapp_sessions",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX unique_active_phone ON public.whatsapp_sessions USING btree (phone) WHERE (deleted_at IS NULL)",
+      "replica_identity": false
+    },
+    {
+      "name": "unique_session_key",
+      "table": "whatsapp_sessions",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "unique_session_key",
+      "definition": "CREATE UNIQUE INDEX unique_session_key ON public.whatsapp_sessions USING btree (session_key)",
+      "replica_identity": false
+    },
+    {
+      "name": "whatsapp_sessions_pkey",
+      "table": "whatsapp_sessions",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": "whatsapp_sessions_pkey",
+      "definition": "CREATE UNIQUE INDEX whatsapp_sessions_pkey ON public.whatsapp_sessions USING btree (id)",
+      "replica_identity": false
+    },
+    {
+      "name": "whatsapp_sessions_session_key_unique",
+      "table": "whatsapp_sessions",
+      "valid": true,
+      "comment": null,
+      "clustered": false,
+      "constraint": null,
+      "definition": "CREATE UNIQUE INDEX whatsapp_sessions_session_key_unique ON public.whatsapp_sessions USING btree (session_key)",
+      "replica_identity": false
+    }
+  ],
+  "functions": [
+    {
+      "kind": "f",
+      "name": "get_sales_funnel_total",
+      "owner": "postgres",
+      "comment": null,
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.get_sales_funnel_total()\n RETURNS TABLE(carts_sent bigint, carts_recovered bigint, confirmed_sales bigint, recovered_value numeric)\n LANGUAGE sql\n SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  select\r\n    count(*) filter (\r\n      where\r\n        whatsapp_sent = true\r\n        or whatsapp_sent_at is not null\r\n    ) as carts_sent,\r\n\r\n    count(*) filter (\r\n      where\r\n        recovered = true\r\n        and (\r\n          whatsapp_sent = true\r\n          or whatsapp_sent_at is not null\r\n        )\r\n    ) as carts_recovered,\r\n\r\n    count(*) filter (\r\n      where\r\n        recovered = true\r\n        and (\r\n          whatsapp_sent = true\r\n          or whatsapp_sent_at is not null\r\n        )\r\n    ) as confirmed_sales,\r\n\r\n    coalesce(\r\n      sum(total) filter (\r\n        where\r\n          recovered = true\r\n          and (\r\n            whatsapp_sent = true\r\n            or whatsapp_sent_at is not null\r\n          )\r\n      ),\r\n      0\r\n    ) as recovered_value\r\n  from public.abandoned_carts;\r\n$function$\n",
+      "security_definer": true
+    },
+    {
+      "kind": "f",
+      "name": "increment_automation_usage",
+      "owner": "postgres",
+      "comment": null,
+      "arguments": "automation_id uuid",
+      "definition": "CREATE OR REPLACE FUNCTION public.increment_automation_usage(automation_id uuid)\n RETURNS void\n LANGUAGE sql\nAS $function$\r\n  update automations\r\n  set uses = coalesce(uses, 0) + 1\r\n  where id = automation_id;\r\n$function$\n",
+      "security_definer": false
+    },
+    {
+      "kind": "f",
+      "name": "rls_auto_enable",
+      "owner": "postgres",
+      "comment": null,
+      "arguments": "",
+      "definition": "CREATE OR REPLACE FUNCTION public.rls_auto_enable()\n RETURNS event_trigger\n LANGUAGE plpgsql\n SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE\n  cmd record;\nBEGIN\n  FOR cmd IN\n    SELECT *\n    FROM pg_event_trigger_ddl_commands()\n    WHERE command_tag IN ('CREATE TABLE', 'CREATE TABLE AS', 'SELECT INTO')\n      AND object_type IN ('table','partitioned table')\n  LOOP\n     IF cmd.schema_name IS NOT NULL AND cmd.schema_name IN ('public') AND cmd.schema_name NOT IN ('pg_catalog','information_schema') AND cmd.schema_name NOT LIKE 'pg_toast%' AND cmd.schema_name NOT LIKE 'pg_temp%' THEN\n      BEGIN\n        EXECUTE format('alter table if exists %s enable row level security', cmd.object_identity);\n        RAISE LOG 'rls_auto_enable: enabled RLS on %', cmd.object_identity;\n      EXCEPTION\n        WHEN OTHERS THEN\n          RAISE LOG 'rls_auto_enable: failed to enable RLS on %', cmd.object_identity;\n      END;\n     ELSE\n        RAISE LOG 'rls_auto_enable: skip % (either system schema or not in enforced list: %.)', cmd.object_identity, cmd.schema_name;\n     END IF;\n  END LOOP;\nEND;\n$function$\n",
+      "security_definer": true
+    }
+  ],
+  "policies": [
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "conversation_learning_events",
+      "permissive": "PERMISSIVE",
+      "policyname": "dashboard read conversation learning events",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "conversation_topics",
+      "permissive": "PERMISSIVE",
+      "policyname": "dashboard read conversation topics",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "conversations",
+      "permissive": "PERMISSIVE",
+      "policyname": "dashboard read conversations",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "customer_memories",
+      "permissive": "PERMISSIVE",
+      "policyname": "dashboard read customer memories",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "customers",
+      "permissive": "PERMISSIVE",
+      "policyname": "dashboard read customers",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "messages",
+      "permissive": "PERMISSIVE",
+      "policyname": "dashboard read messages",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "((auth.uid() = id) OR (EXISTS ( SELECT 1\n   FROM profiles profiles_1\n  WHERE ((profiles_1.id = auth.uid()) AND (profiles_1.role = 'admin'::text)))))",
+      "roles": [
+        "public"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "admin delete",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "liberar leitura",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "profiles delete",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "public"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "profiles insert",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(auth.uid() = id)",
+      "roles": [
+        "public"
+      ],
+      "tablename": "profiles",
+      "permissive": "PERMISSIVE",
+      "policyname": "profiles read own",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "store_settings",
+      "permissive": "PERMISSIVE",
+      "policyname": "store_settings_insert_authenticated",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "store_settings",
+      "permissive": "PERMISSIVE",
+      "policyname": "store_settings_select_authenticated",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "UPDATE",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "store_settings",
+      "permissive": "PERMISSIVE",
+      "policyname": "store_settings_update_authenticated",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "whatsapp_sessions",
+      "permissive": "PERMISSIVE",
+      "policyname": "Allow all",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "ALL",
+      "qual": "true",
+      "roles": [
+        "public"
+      ],
+      "tablename": "whatsapp_sessions",
+      "permissive": "PERMISSIVE",
+      "policyname": "allow all",
+      "schemaname": "public",
+      "with_check": "true"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "true",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "whatsapp_sessions",
+      "permissive": "PERMISSIVE",
+      "policyname": "dashboard read whatsapp sessions",
+      "schemaname": "public",
+      "with_check": null
+    },
+    {
+      "cmd": "DELETE",
+      "qual": "(bucket_id = 'broadcast-media'::text)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "broadcast_media_authenticated_delete",
+      "schemaname": "storage",
+      "with_check": null
+    },
+    {
+      "cmd": "INSERT",
+      "qual": null,
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "broadcast_media_authenticated_insert",
+      "schemaname": "storage",
+      "with_check": "(bucket_id = 'broadcast-media'::text)"
+    },
+    {
+      "cmd": "SELECT",
+      "qual": "(bucket_id = 'broadcast-media'::text)",
+      "roles": [
+        "authenticated"
+      ],
+      "tablename": "objects",
+      "permissive": "PERMISSIVE",
+      "policyname": "broadcast_media_authenticated_select",
+      "schemaname": "storage",
+      "with_check": null
+    }
+  ],
+  "relation_acl": {
+    "abandoned_cart_messages": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "abandoned_carts": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "abandoned_carts_demo_backup": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "agents": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "automation_logs": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "automations": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "broadcast_campaigns": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "broadcast_recipients": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "broadcast_suppressions": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "conversation_assignments": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "conversation_learning_events": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "conversation_review_stats": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "conversation_reviews": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "conversation_topics": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "conversations": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "customer_memories": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "customers": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "events": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "messages": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "order_status_messages": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "orders": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "products": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "profiles": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "ratings": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "settings": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "store_settings": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "stores": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ],
+    "whatsapp_sessions": [
+      "postgres=arwdDxtm/postgres",
+      "anon=arwdDxtm/postgres",
+      "authenticated=arwdDxtm/postgres",
+      "service_role=arwdDxtm/postgres"
+    ]
+  },
+  "function_acl": {
+    "increment_automation_usage": [
+      "=X/postgres",
+      "postgres=X/postgres",
+      "anon=X/postgres",
+      "authenticated=X/postgres",
+      "service_role=X/postgres"
+    ],
+    "rls_auto_enable": [
+      "=X/postgres",
+      "postgres=X/postgres",
+      "anon=X/postgres",
+      "authenticated=X/postgres",
+      "service_role=X/postgres"
+    ],
+    "get_sales_funnel_total": [
+      "=X/postgres",
+      "postgres=X/postgres",
+      "anon=X/postgres",
+      "authenticated=X/postgres",
+      "service_role=X/postgres"
+    ]
+  },
+  "default_privileges": [
+    {
+      "acl": [
+        "postgres=rwU/postgres",
+        "anon=rwU/postgres",
+        "authenticated=rwU/postgres",
+        "service_role=rwU/postgres"
+      ],
+      "owner": "postgres",
+      "schema": "public",
+      "object_type": "S"
+    },
+    {
+      "acl": [
+        "postgres=X/postgres",
+        "anon=X/postgres",
+        "authenticated=X/postgres",
+        "service_role=X/postgres"
+      ],
+      "owner": "postgres",
+      "schema": "public",
+      "object_type": "f"
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/postgres",
+        "anon=arwdDxtm/postgres",
+        "authenticated=arwdDxtm/postgres",
+        "service_role=arwdDxtm/postgres"
+      ],
+      "owner": "postgres",
+      "schema": "public",
+      "object_type": "r"
+    },
+    {
+      "acl": [
+        "postgres=rwU/supabase_admin",
+        "anon=rwU/supabase_admin",
+        "authenticated=rwU/supabase_admin",
+        "service_role=rwU/supabase_admin"
+      ],
+      "owner": "supabase_admin",
+      "schema": "public",
+      "object_type": "S"
+    },
+    {
+      "acl": [
+        "postgres=X/supabase_admin",
+        "anon=X/supabase_admin",
+        "authenticated=X/supabase_admin",
+        "service_role=X/supabase_admin"
+      ],
+      "owner": "supabase_admin",
+      "schema": "public",
+      "object_type": "f"
+    },
+    {
+      "acl": [
+        "postgres=arwdDxtm/supabase_admin",
+        "anon=arwdDxtm/supabase_admin",
+        "authenticated=arwdDxtm/supabase_admin",
+        "service_role=arwdDxtm/supabase_admin"
+      ],
+      "owner": "supabase_admin",
+      "schema": "public",
+      "object_type": "r"
+    }
+  ],
+  "schema_grants": [
+    {
+      "schema": "public",
+      "grantee": "pg_database_owner",
+      "grantable": false,
+      "privilege": "USAGE"
+    },
+    {
+      "schema": "public",
+      "grantee": "pg_database_owner",
+      "grantable": false,
+      "privilege": "CREATE"
+    },
+    {
+      "schema": "public",
+      "grantee": "PUBLIC",
+      "grantable": false,
+      "privilege": "USAGE"
+    },
+    {
+      "schema": "public",
+      "grantee": "postgres",
+      "grantable": false,
+      "privilege": "USAGE"
+    },
+    {
+      "schema": "public",
+      "grantee": "anon",
+      "grantable": false,
+      "privilege": "USAGE"
+    },
+    {
+      "schema": "public",
+      "grantee": "authenticated",
+      "grantable": false,
+      "privilege": "USAGE"
+    },
+    {
+      "schema": "public",
+      "grantee": "service_role",
+      "grantable": false,
+      "privilege": "USAGE"
+    }
+  ],
+  "extensions": [
+    {
+      "name": "pg_graphql",
+      "schema": "graphql",
+      "version": "1.5.11"
+    },
+    {
+      "name": "pg_stat_statements",
+      "schema": "extensions",
+      "version": "1.11"
+    },
+    {
+      "name": "pgcrypto",
+      "schema": "extensions",
+      "version": "1.3"
+    },
+    {
+      "name": "plpgsql",
+      "schema": "pg_catalog",
+      "version": "1.0"
+    },
+    {
+      "name": "supabase_vault",
+      "schema": "vault",
+      "version": "0.3.1"
+    },
+    {
+      "name": "uuid-ossp",
+      "schema": "extensions",
+      "version": "1.1"
+    }
+  ],
+  "application_event_triggers": [
+    {
+      "name": "ensure_rls",
+      "tags": [
+        "CREATE TABLE",
+        "CREATE TABLE AS",
+        "SELECT INTO"
+      ],
+      "event": "ddl_command_end",
+      "owner": "postgres",
+      "enabled": "O",
+      "function_name": "rls_auto_enable",
+      "function_schema": "public"
+    }
+  ],
+  "publications": [
+    {
+      "pubname": "supabase_realtime",
+      "attnames": [
+        "id",
+        "conversation_id",
+        "sender",
+        "content",
+        "created_at",
+        "type",
+        "external_id",
+        "status",
+        "metadata",
+        "store_id",
+        "phone",
+        "message_id",
+        "session_key",
+        "media_url",
+        "mime_type",
+        "state",
+        "flow",
+        "step",
+        "intent",
+        "ai_used",
+        "input_tokens",
+        "output_tokens",
+        "media_type",
+        "transcription",
+        "mode",
+        "mimetype",
+        "filename",
+        "caption",
+        "media_size",
+        "is_media",
+        "session_id",
+        "has_media",
+        "media_mime_type",
+        "media_filename"
+      ],
+      "rowfilter": null,
+      "tablename": "messages",
+      "schemaname": "public"
+    }
+  ],
+  "bucket_settings": [
+    {
+      "id": "whatsapp-media",
+      "name": "whatsapp-media",
+      "public": true,
+      "file_size_limit": 25000000,
+      "allowed_mime_types": null
+    },
+    {
+      "id": "broadcast-media",
+      "name": "broadcast-media",
+      "public": true,
+      "file_size_limit": 20971520,
+      "allowed_mime_types": [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "video/mp4",
+        "video/webm"
+      ]
+    }
+  ],
+  "settings_keys_without_values": [
+    {
+      "keys": [
+        "bot_texts",
+        "business_hours_message",
+        "catalog_url",
+        "company_cnpj",
+        "excursion_enabled",
+        "excursion_fee",
+        "excursion_phone",
+        "group_url",
+        "has_physical_store",
+        "instagram_url",
+        "minimum_order",
+        "motoboy_enabled",
+        "motoboy_same_day_cutoff",
+        "pickup_address",
+        "pickup_enabled",
+        "pickup_hours",
+        "pickup_location",
+        "pix_discount_percent",
+        "polyester_price",
+        "sac_hours",
+        "sac_url",
+        "separation_business_days",
+        "ships_nationwide",
+        "site_url",
+        "store_name",
+        "telegram_url",
+        "updated_at",
+        "updated_from"
+      ],
+      "store_key": "default"
+    }
+  ],
+  "application_row_triggers": [],
+  "managed_functions_owned_by_postgres": [],
+  "supabase_migration_history": [],
+  "edge_functions": []
+}

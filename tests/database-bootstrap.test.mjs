@@ -72,6 +72,11 @@ test('cria Auth e confirma profiles como admin, inclusive com trigger de perfil'
   ], calls) });
   assert.equal(result.status, 'created');
   assert.equal(result.userId, userId);
+  assert.deepEqual(JSON.parse(calls[2].body), {
+    email: 'admin@example.test', password: config().PHAND_ADMIN_PASSWORD,
+    email_confirm: true, user_metadata: { name: 'Administrador Teste' },
+    app_metadata: { role: 'admin' },
+  });
   assert.equal(calls[3].headers.Prefer, 'resolution=merge-duplicates,return=representation');
   assert.deepEqual(JSON.parse(calls[3].body), {
     id: userId, name: 'Administrador Teste', email: 'admin@example.test', role: 'admin',

@@ -1,6 +1,6 @@
 {
-  "status": "awaiting_live_database_capture",
-  "live_database_checked": false,
+  "status": "live_schema_captured_isolated_postgres_verified",
+  "live_database_checked": true,
   "captured_application_rows": false,
   "created_at": "2026-10-08T01:19:45.993807+00:00",
   "known_source_project_ref": "wpzqnfvuczqnpuvuxdlx",
@@ -209,13 +209,104 @@
       "public": true,
       "file_size_limit_bytes": 26214400,
       "source": "whatsapp-api/src/services/whatsapp.service.ts",
-      "live_verified": false
+      "live_verified": true,
+      "live_file_size_limit_bytes": 25000000,
+      "matches_live_limit": false
     }
   ],
   "limitations": [
-    "Literal .from() references are code observations, not a complete catalog of database objects.",
-    "The database may contain additional tables, views, grants, functions, triggers, managed-schema changes and configuration.",
-    "Auth users, passwords, tokens, contact data and WhatsApp sessions are not part of this inventory.",
-    "Do not use legacy schema.sql plus historical migrations as a verified blank-database baseline."
-  ]
+    "Auth provider/SMTP/site redirects are project configuration and must be set for each new store.",
+    "No Auth accounts, passwords, tokens, contacts, conversations, orders or WhatsApp sessions are copied.",
+    "Source schema grants/policies are archived; Core access is intentionally revised in a separate migration.",
+    "Managed Supabase schemas and platform roles are not recreated from a raw dump.",
+    "Hosted Supabase installation/Auth/Storage/Realtime smoke test still requires a new project.",
+    "Application branding, emails, links and business-rule fallbacks still contain Moda Pink values; neutralize before activating another store.",
+    "Do not reapply historical SQL after this baseline."
+  ],
+  "captured_at": "2026-10-08T01:27:53.360891+00:00",
+  "live_database": {
+    "project_name": "Moda Pink",
+    "project_ref": "wpzqnfvuczqnpuvuxdlx",
+    "postgres_version": "17.6",
+    "application_schemas": [
+      "public"
+    ],
+    "table_count": 27,
+    "view_count": 1,
+    "column_count_including_view": 354,
+    "constraint_count": 70,
+    "index_count": 83,
+    "function_count": 3,
+    "application_event_trigger_count": 1,
+    "application_row_trigger_count": 0,
+    "policy_count_including_storage": 20,
+    "supabase_registered_migrations": [],
+    "edge_functions": [],
+    "manifest": "database/replication/source-schema-manifest.json",
+    "captured_application_rows": false
+  },
+  "code_relations_missing_from_live_database": [
+    "meta_whatsapp_events",
+    "sac_cases"
+  ],
+  "live_relations_without_literal_from_reference": [
+    "abandoned_cart_messages",
+    "abandoned_carts_demo_backup",
+    "agents",
+    "automation_logs",
+    "automations",
+    "conversation_assignments",
+    "conversation_reviews",
+    "products",
+    "ratings",
+    "settings"
+  ],
+  "new_installation": {
+    "table_count": 29,
+    "view_count": 1,
+    "empty_seed": true,
+    "migrations": [
+      "supabase/migrations/20261008013636_phand_core_live_schema.sql",
+      "supabase/migrations/20261008013637_phand_core_runtime_and_access.sql",
+      "supabase/migrations/20261008013639_phand_core_storage_realtime.sql"
+    ],
+    "runtime_additions": [
+      "sac_cases",
+      "meta_whatsapp_events"
+    ],
+    "production_changed": false,
+    "first_admin": "scripts/database/create-admin.mjs"
+  },
+  "live_storage_buckets": [
+    {
+      "id": "whatsapp-media",
+      "name": "whatsapp-media",
+      "public": true,
+      "file_size_limit": 25000000,
+      "allowed_mime_types": null
+    },
+    {
+      "id": "broadcast-media",
+      "name": "broadcast-media",
+      "public": true,
+      "file_size_limit": 20971520,
+      "allowed_mime_types": [
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "video/mp4",
+        "video/webm"
+      ]
+    }
+  ],
+  "verification": {
+    "runtime": "PGlite 0.3.16 / PostgreSQL 17.5",
+    "passing_tests": 19,
+    "schema_sql_executed": true,
+    "source_catalog_compared": true,
+    "managed_schemas": "minimal platform fixtures",
+    "admin_http": "mocked",
+    "hosted_new_supabase_install_verified": false,
+    "hosted_login_verified": false
+  }
 }

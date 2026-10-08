@@ -1,81 +1,80 @@
-# Banco reutilizavel do Phand Core
+# Banco reutilizável do Phand Core
 
-Este diretorio prepara a captura do banco compartilhado pelo painel `modapink` e pela
-API `whatsapp-api`. **O banco real ainda nao foi consultado por estes arquivos.**
-`repository-inventory.json` registra somente o que foi verificado nos dois repositorios.
-Uma captura so vira a baseline do Core depois da comparacao com producao e de uma
-restauracao bem-sucedida num Supabase vazio.
+O banco real da Moda Pink foi consultado em **8 de outubro de 2026**, somente por
+leituras. A estrutura está versionada em `supabase/migrations/` e foi recriada e
+comparada em PostgreSQL 17 isolado. Painel e API compartilham esse banco; cada nova
+loja deve usar **outro projeto Supabase**, com suas próprias chaves.
 
-O `database/schema.sql` antigo e um historico de comandos do SQL Editor: contem
-politicas repetidas, renomeacoes de colunas ausentes e alteracoes sem `IF NOT EXISTS`.
-Nao e a baseline reproduzivel de uma instalacao nova. As migrations de ambos os
-repositorios tambem dependem de objetos criados anteriormente no banco real.
+A origem tem **27 tabelas, uma view, 354 colunas contando a view, 70 constraints,
+83 índices, três funções, um event trigger de aplicação e 20 policies** (17 em
+public, três em storage). Não havia migrations registradas no Supabase nem Edge
+Functions. `source-schema-manifest.json` registra o catálogo;
+`repository-inventory.json` cruza a estrutura com os commits analisados nos dois repos.
 
-## Capturar o banco de origem
+## SQL de uma instalação nova
 
-Use PostgreSQL client tools (`psql` e `pg_dump`) compativeis com a versao do servidor.
-Configure a conexao no ambiente libpq: `PGHOST`, `PGPORT`, `PGUSER`, `PGDATABASE` e
-autenticacao via `.pgpass` ou `PGPASSWORD`. Prefira o Session pooler do Supabase quando
-a rede nao tiver IPv6. Nao use o pooler em modo transaction para o dump.
-`PHAND_SOURCE_PROJECT_REF` identifica a origem no registro da captura.
+Os nomes foram criados pelo CLI 2.120.0, com `supabase migration new`.
+Aplicar todas as migrations, em ordem, antes de configurar integrações:
+
+| Migration | Conteúdo |
+|---|---|
+| `20261008013636_phand_core_live_schema.sql` | Snapshot de tabelas, colunas, FKs, índices, view, funções, policies e grants de public; RLS automático; extensões da aplicação |
+| `20261008013637_phand_core_runtime_and_access.sql` | SAC e eventos Meta previstos no código; permissões de admin/atendente; perfil padrão agent; proteção contra autopromoção |
+| `20261008013639_phand_core_storage_realtime.sql` | Dois buckets vazios, policies de mídia e publicação de public.messages no Realtime |
+
+A instalação final tem **29 tabelas e uma view**. `sac_cases` e
+`meta_whatsapp_events` estavam nas migrations da API, mas não no banco consultado:
+são complementos do código, e não tabelas exportadas da produção.
+A tabela auxiliar `abandoned_carts_demo_backup` tem a estrutura preservada, sem
+conteúdo e sem acesso pelo navegador. Schemas administrados pelo Supabase em auth,
+storage, realtime e vault não são substituídos por dumps. Não foram encontradas
+funções ou relações próprias do usuário nesses schemas; triggers internos e
+roles da plataforma permanecem sob sua administração.
+
+A primeira migration guarda as permissões antigas para comparação. A segunda
+estabelece o acesso do Core: administrador gerencia a loja; atendente/usuário com
+perfil válido lê o chat; anon não acessa tabelas da loja; integrações usam
+service_role no servidor. Profiles é a fonte da função de cada usuário, e usuários
+comuns não editam sua própria função. Helpers de policies ficam em private, fora
+dos schemas expostos na API. A view usa security_invoker e funções de negócio
+respeitam RLS. Não executar apenas a primeira migration.
+
+**Baseline exclusiva para projeto novo e vazio.** A primeira migration interrompe
+a execução se já houver tabela de aplicação em public, antes de qualquer DDL.
+Não aplicar no projeto `wpzqnfvuczqnpuvuxdlx` da Moda Pink. Não reaplicar o antigo
+`database/schema.sql` nem migrations históricas da API por cima do snapshot.
+
+Após criar um Supabase vazio com PostgreSQL 17, configure o identificador certo em
+`PHAND_EXPECTED_PROJECT_REF`, autentique o CLI e, na raiz deste repositório:
 
 ```bash
-node scripts/database/export-schema.mjs
+supabase link --project-ref "$PHAND_EXPECTED_PROJECT_REF"
+supabase db push --linked --skip-vault --dry-run
+supabase db push --linked --skip-vault
 ```
 
-O comando faz apenas leituras. `catalog.sql` pode ser executado separadamente no
-SQL Editor ou na integracao Supabase para levantar tabelas, colunas, constraints,
-indices, views, tipos, funcoes, triggers, RLS, grants e publicacoes Realtime.
-Nao consulta linhas de clientes, mensagens, pedidos ou usuarios.
+Use o prompt/ambiente do CLI para credenciais. Não salvar senha ou chave de servidor
+no Git. O seed é vazio; somente as configurações de buckets são inseridas:
 
-A captura local, ignorada pelo Git, contem `schema.raw.sql`, `schema.sql`,
-`catalog.json`, `managed-review.json` e `capture-status.json`. Nao fazer alteracoes
-de estrutura enquanto a captura roda: catalogo e dump sao leituras separadas.
-Funcoes, defaults e comentarios podem conter URLs/chaves de integracoes; revisar
-esses literais e tornar configuraveis os valores de cada loja antes de versionar.
+| Bucket | Público | Limite exato | Tipos permitidos |
+|---|---|---|---|
+| whatsapp-media | sim | 25.000.000 bytes | sem restrição no catálogo de origem |
+| broadcast-media | sim | 20.971.520 bytes | JPEG, PNG, WebP, MP4 e WebM |
 
-Schemas administrados pelo Supabase (`auth`, `storage`, `realtime` e outros) nao
-sao substituidos por um dump bruto. Revisar separadamente triggers/policies personalizados,
-funcoes/indices nesses schemas, extensoes, roles proprias, buckets, cron e Edge Functions.
-O inventario identifica triggers que chamam funcoes da aplicacao e policies nesses
-schemas; ele nao equivale ao diff completo do ambiente gerenciado.
-A configuracao dos provedores de Auth, URLs de redirecionamento e SMTP fica fora do
-schema SQL e precisa ser configurada no projeto novo.
+O limite real de whatsapp-media é 25 MB decimais; o fallback antigo da API declara
+25 MiB. A configuração real foi preservada. Mídia em bucket público continua
+acessível por URL pública. Escrita/exclusão de campanha exige admin;
+whatsapp-media recebe gravações do backend. Nenhuma linha de storage.objects é copiada.
 
-## Transformar a captura em baseline
+## Criar o primeiro login
 
-1. Comparar o catalogo real com `repository-inventory.json`. Confirmar tambem objetos
-   que existem no banco e nao aparecem no codigo.
-2. Habilitar extensoes/roles necessarias no Supabase de teste e preparar uma migration
-   separada para personalizacoes dos schemas gerenciados e Realtime.
-3. Revisar o dump, retirar credenciais e personalizar somente valores de configuracao.
-4. Restaurar `schema.sql` num projeto **novo e vazio**, usando `psql -X -v ON_ERROR_STOP=1
-   --single-transaction --file caminho/schema.sql` com a conexao do destino no ambiente.
-5. Comparar catalogos de origem/destino e testar painel, login, permissao de atendente,
-   conversas, pedidos, memoria, automacoes, SAC, campanhas e midias.
-6. Versionar o SQL validado em `supabase/migrations/<timestamp>_phand_core_baseline.sql`,
-   as personalizacoes revisadas, um seed limpo e a configuracao de Auth sem segredos.
+O login usa Supabase Auth e um perfil com `id = auth.users.id` e `role = 'admin'`.
+Informe no ambiente local da instalação:
 
-O snapshot ja inclui as alteracoes aplicadas no banco de origem. Nao reaplicar
-automaticamente as migrations historicas por cima dele: isso pode duplicar funcoes,
-politicas ou backfills. O seed da nova loja nao leva contatos, contas, mensagens,
-pedidos, memorias, tokens Nuvemshop nem sessoes WhatsApp da Moda Pink.
-
-A API usa o bucket `whatsapp-media`, publico e com limite de 25 MiB, e tenta cria-lo
-quando precisa armazenar uma midia. Confirmar essa configuracao e as policies no
-destino; os arquivos da loja de origem nao sao parte da estrutura reutilizavel.
-
-## Criar o primeiro login de uma instalacao nova
-
-O login atual usa Supabase Auth e uma linha em `public.profiles` com o mesmo `id` e
-`role = 'admin'`. Criar somente uma dessas partes nao libera o painel.
-
-Informe no ambiente local da instalacao:
-
-| Variavel | Valor |
+| Variável | Valor |
 |---|---|
-| `PHAND_TARGET_SUPABASE_URL` | URL HTTPS padrao do projeto novo |
-| `PHAND_TARGET_SUPABASE_SERVICE_ROLE_KEY` | Chave de servidor do projeto novo |
+| `PHAND_TARGET_SUPABASE_URL` | URL HTTPS padrão do projeto novo |
+| `PHAND_TARGET_SUPABASE_SERVICE_ROLE_KEY` | Chave service_role de servidor do projeto novo |
 | `PHAND_EXPECTED_PROJECT_REF` | Identificador esperado do destino |
 | `PHAND_SOURCE_PROJECT_REF` | Identificador do banco de origem |
 | `PHAND_ADMIN_EMAIL` | E-mail do primeiro administrador |
@@ -87,25 +86,73 @@ node scripts/database/create-admin.mjs
 node scripts/database/create-admin.mjs --apply
 ```
 
-O primeiro comando apenas valida a configuracao; o segundo cria Auth e perfil. O
-script bloqueia o projeto da Moda Pink, exige confirmacao explicita do identificador
-de destino e recusa bancos com perfis/contas existentes. Se o perfil falhar, tenta
-remover somente a conta criada por aquela tentativa. Uma falha de rede pode deixar
-resultado remoto incerto; nesse caso conferir o projeto antes de repetir.
-Senha e chave nunca sao impressas ou salvas pelo script. Nao existe senha universal
-nem password de cliente dentro do Git. Para os proximos usuarios, o painel atual
-usa seu fluxo de criacao/convite, com nome, e-mail e funcao.
+O primeiro comando valida sem escrever; o segundo cria Auth com e-mail confirmado e
+perfil admin. Nome vai em user_metadata; o marcador admin vai em app_metadata e
+profiles. O painel autoriza por profiles. O script bloqueia a Moda Pink/origem,
+exige identificador de destino compatível e recusa bancos com perfis/contas existentes.
+Se o perfil falhar, tenta remover somente os registros daquela tentativa. Uma falha
+de rede pode deixar resultado remoto incerto: conferir o projeto antes de repetir.
+Chave e senha não são impressas ou salvas. Não existe senha universal no repositório.
+Os próximos usuários seguem o fluxo de criação/convite do painel.
 
-## Validacao local
+## Configuração de cada loja
+
+`supabase/config.toml` configura o ambiente **local**: PostgreSQL 17, Auth por e-mail,
+cadastro público desativado, senha mínima 12, confirmação de e-mail e URLs de
+desenvolvimento. Ele não captura o Auth atual nem altera automaticamente o projeto
+hospedado. No projeto novo, habilitar e-mail, desativar cadastro público, definir
+senha mínima, Site URL e redirects do domínio da loja incluindo `/reset-password`.
+Definir `NEXT_PUBLIC_SITE_URL` do painel com o domínio novo. Configurar SMTP/serviço de
+e-mail para convites e recuperação; as chaves ficam no ambiente de servidor.
+
+Configurar painel e API com a mesma URL/chaves do novo Supabase, com service_role
+somente no servidor. Refazer OAuth/webhooks Nuvemshop, credenciais Meta e conexão
+WhatsApp. Não copiar stores, tokens, sessões ou usuários da origem.
+Preencher regras comerciais e todos os textos em Configurações do painel, no
+registro store_key = default, antes de ligar WhatsApp/webhooks/automações.
+As chaves encontradas estão inventariadas sem valores; não há seed de regras da Moda Pink.
+
+**Limite de escopo:** esta entrega trata do banco. O código ainda tem marca,
+remetentes de e-mail, links e fallbacks comerciais da Moda Pink (por exemplo,
+`lib/store-settings.ts` e `whatsapp-api/src/config/business-rules.ts`). Campos vazios
+na API podem retornar esses fallbacks. A neutralização dos valores, telas e textos
+deve preceder a ativação de outra loja. Salvar o SQL não conclui a neutralização do
+sistema inteiro.
+
+## Verificação reproduzível
 
 ```bash
-node --test tests/database-bootstrap.test.mjs
+npm ci --prefix tests/database --ignore-scripts
+npm test --prefix tests/database
 ```
 
-Os testes simulam as respostas HTTP, verificam o bloqueio da origem, a criacao dos
-dois registros, o rollback e a exportacao somente de estrutura. Nao equivalem a
-executar a baseline ou testar login num Supabase real.
+Verificado em PostgreSQL **17.5** do PGlite 0.3.16 (origem: 17.6): **19 testes passaram**.
+Eles executam o SQL, comparam o catálogo e grants, verificam instalação vazia, FKs
+Auth, bloqueio de banco existente, chat, configurações, autopromoção, mídia e RLS
+automático. O bootstrap admin usa respostas HTTP simuladas, incluindo rollback.
 
-Referencias: [Backup/restore Supabase](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore),
-[createUser](https://supabase.com/docs/reference/javascript/auth-admin-createuser),
-[pg_dump](https://www.postgresql.org/docs/current/app-pgdump.html).
+Os schemas da plataforma são fixtures mínimas, e não um Supabase hospedado.
+**Falta validar instalação e login num Supabase novo**, com Auth, Storage, Realtime
+e integrações reais. Não foi criada conta nem alterada estrutura/dado de produção.
+
+## Capturas futuras
+
+`catalog.sql` consulta a estrutura pela integração/SQL Editor. Para dump adicional,
+use psql/pg_dump compatíveis com o servidor e ambiente libpq (`PGHOST`, `PGPORT`,
+`PGUSER`, `PGDATABASE`, `.pgpass`/`PGPASSWORD`):
+
+```bash
+node scripts/database/export-schema.mjs
+```
+
+O script faz leituras, salva capturas ignoradas pelo Git e as marca como ainda não
+verificadas por restauração. Catalogação/dump são leituras separadas: não alterar
+estrutura durante a captura. Revisar literais de funções/defaults/comentários antes
+de versionar. Capturas novas não substituem as migrations automaticamente.
+Rever buckets, policies, event triggers e personalizações gerenciadas separadamente;
+o dump não exporta configuração Auth, secrets, arquivos Storage, Edge Functions ou cron.
+
+Referências: [Backup/restore](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore),
+[Auth createUser](https://supabase.com/docs/reference/javascript/auth-admin-createuser),
+[Criar buckets](https://supabase.com/docs/guides/storage/buckets/creating-buckets),
+[Configuração local](https://supabase.com/docs/guides/local-development/cli/config).

@@ -1,0 +1,4 @@
+-- Seed intencionalmente sem dados. Cada nova loja comeca sem clientes, pedidos,
+-- conversas, sessoes WhatsApp, usuarios, tokens ou regras comerciais da Moda Pink.
+-- Criar o admin com scripts/database/create-admin.mjs e preencher as configuracoes
+-- da loja pelo painel ANTES de ativar WhatsApp/webhooks/automacoes.

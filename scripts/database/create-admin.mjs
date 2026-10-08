@@ -62,7 +62,8 @@ export async function createAdmin({ env = process.env, apply = false, fetchImpl 
   const created = await request('/auth/v1/admin/users', {
     method: 'POST', body: {
       email: config.email, password: config.password, email_confirm: true,
-      user_metadata: { name: config.name, role: 'admin' },
+      user_metadata: { name: config.name },
+      app_metadata: { role: 'admin' },
     },
   });
   const userId = created?.user?.id || created?.id;

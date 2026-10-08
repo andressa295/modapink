@@ -1,0 +1,7 @@
+{
+  "name": "phand-core-schema-verification",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test schema.test.mjs ../database-bootstrap.test.mjs" },
+  "devDependencies": { "@electric-sql/pglite": "0.3.16" }
+}
