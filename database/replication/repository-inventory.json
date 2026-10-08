@@ -1,0 +1,221 @@
+{
+  "status": "awaiting_live_database_capture",
+  "live_database_checked": false,
+  "captured_application_rows": false,
+  "created_at": "2026-10-08T01:19:45.993807+00:00",
+  "known_source_project_ref": "wpzqnfvuczqnpuvuxdlx",
+  "relation_reference_count": 20,
+  "relation_references": [
+    "abandoned_carts",
+    "broadcast_campaigns",
+    "broadcast_recipients",
+    "broadcast_suppressions",
+    "conversation_learning_events",
+    "conversation_review_stats",
+    "conversation_topics",
+    "conversations",
+    "customer_memories",
+    "customers",
+    "events",
+    "messages",
+    "meta_whatsapp_events",
+    "order_status_messages",
+    "orders",
+    "profiles",
+    "sac_cases",
+    "store_settings",
+    "stores",
+    "whatsapp_sessions"
+  ],
+  "repositories": [
+    {
+      "repository": "andressa295/modapink",
+      "inspected_ref": "559e3179a0a7167f4ab29ee72253a0267f730caa",
+      "runtime_files_scanned": 73,
+      "relation_references": {
+        "abandoned_carts": [
+          "app/api/nuvemshop/webhook/route.ts"
+        ],
+        "conversation_review_stats": [
+          "app/(admin)/dashboard/components/DashboardMetrics.tsx"
+        ],
+        "conversations": [
+          "app/(admin)/dashboard/components/ConversationsChart.tsx",
+          "app/(admin)/dashboard/components/DashboardMetrics.tsx",
+          "app/(admin)/dashboard/components/DebugSupabase.tsx",
+          "app/(admin)/dashboard/components/RecentConversations.tsx",
+          "app/(admin)/dashboard/conversas/page.tsx",
+          "app/api/nuvemshop/webhook/route.ts",
+          "app/api/orders/route.ts"
+        ],
+        "events": [
+          "app/api/catalog/checkout/route.ts"
+        ],
+        "messages": [
+          "app/(admin)/dashboard/components/ConversationsChart.tsx",
+          "app/(admin)/dashboard/components/DashboardMetrics.tsx"
+        ],
+        "orders": [
+          "app/api/nuvemshop/webhook/route.ts",
+          "app/api/orders/financial-sync/route.ts",
+          "app/api/orders/route.ts",
+          "app/api/reports/financial/route.ts"
+        ],
+        "profiles": [
+          "app/(admin)/dashboard/components/Sidebar.tsx",
+          "app/(admin)/dashboard/components/Topbar.tsx",
+          "app/(admin)/dashboard/usuarios/page.tsx",
+          "app/api/auth/login/route.ts",
+          "app/api/store-settings/route.ts",
+          "app/api/users/create/route.ts",
+          "app/api/users/invite/route.ts",
+          "app/login/page.tsx",
+          "lib/auth/requireAdmin.ts",
+          "lib/dashboard-auth.ts"
+        ],
+        "store_settings": [
+          "app/api/store-settings/route.ts",
+          "lib/catalog/nuvemshop.ts"
+        ],
+        "stores": [
+          "app/api/nuvemshop/callback/route.ts",
+          "app/api/nuvemshop/register-webhook/route.ts",
+          "app/api/nuvemshop/webhook/route.ts",
+          "app/api/orders/financial-sync/route.ts",
+          "app/api/orders/route.ts",
+          "app/api/reports/financial/route.ts",
+          "lib/catalog/nuvemshop.ts"
+        ],
+        "whatsapp_sessions": [
+          "app/api/orders/route.ts",
+          "app/api/whatsapp/session/[id]/qr/route.ts",
+          "app/api/whatsapp/session/route.ts",
+          "lib/catalog/nuvemshop.ts"
+        ]
+      },
+      "existing_sql_files": [
+        "database/migrations/20260928_orders_runtime_compat.sql",
+        "database/migrations/20261002_dashboard_chat_only.sql",
+        "database/schema.sql",
+        "database/store-settings.sql"
+      ]
+    },
+    {
+      "repository": "andressa295/whatsapp-api",
+      "inspected_ref": "cbcc7202b77d8f5825ab610e13a5e222b6aeef2a",
+      "runtime_files_scanned": 76,
+      "relation_references": {
+        "abandoned_carts": [
+          "src/services/abandoned-cart.service.ts"
+        ],
+        "broadcast_campaigns": [
+          "src/routes/broadcasts.ts",
+          "src/services/broadcast.service.ts"
+        ],
+        "broadcast_recipients": [
+          "src/routes/broadcasts.ts",
+          "src/services/broadcast.service.ts"
+        ],
+        "broadcast_suppressions": [
+          "src/services/broadcast.service.ts",
+          "src/services/whatsapp.service.ts"
+        ],
+        "conversation_learning_events": [
+          "src/services/conversation-learning.service.ts"
+        ],
+        "conversation_topics": [
+          "src/modapink/conversation/conversation-intelligence.ts"
+        ],
+        "conversations": [
+          "src/routes/conversations.ts",
+          "src/server.api.ts",
+          "src/services/broadcast.service.ts",
+          "src/services/conversation-review.service.ts",
+          "src/services/conversation.service.ts",
+          "src/services/whatsapp.service.ts"
+        ],
+        "customer_memories": [
+          "src/modapink/conversation/conversation-intelligence.ts",
+          "src/modapink/conversation/customer-memory.ts"
+        ],
+        "customers": [
+          "src/modapink/conversation/customer-memory.ts"
+        ],
+        "messages": [
+          "src/modapink/conversation/conversation-intelligence.ts",
+          "src/routes/conversations.ts",
+          "src/server.api.ts",
+          "src/services/broadcast.service.ts",
+          "src/services/conversation-learning.service.ts",
+          "src/services/conversation.service.ts",
+          "src/services/whatsapp.service.ts"
+        ],
+        "meta_whatsapp_events": [
+          "src/services/meta-whatsapp-commerce.service.ts"
+        ],
+        "order_status_messages": [
+          "src/services/order-notification.service.ts"
+        ],
+        "profiles": [
+          "src/server.api.ts"
+        ],
+        "sac_cases": [
+          "src/routes/conversations.ts",
+          "src/services/whatsapp.service.ts"
+        ],
+        "store_settings": [
+          "src/services/store-settings.service.ts"
+        ],
+        "stores": [
+          "src/routes/store.routes.ts",
+          "src/server.api.ts",
+          "src/services/catalog.service.ts",
+          "src/services/nuvemshop.service.ts",
+          "src/services/order-notification.service.ts"
+        ],
+        "whatsapp_sessions": [
+          "src/routes/sessions.routes.ts",
+          "src/server.api.ts",
+          "src/services/whatsapp.service.ts",
+          "src/startup/restoreSessions.ts"
+        ]
+      },
+      "existing_sql_files": [
+        "supabase/migrations/20260901180000_link_global_customer_memory.sql",
+        "supabase/migrations/20260901193000_conversation_intelligence.sql",
+        "supabase/migrations/20260901210000_dialogue_learning.sql",
+        "supabase/migrations/20260901213000_historical_memory_backfill.sql",
+        "supabase/migrations/20260910113000_broadcast_campaigns.sql",
+        "supabase/migrations/20260915140000_broadcast_media.sql",
+        "supabase/migrations/20261002120000_sac_cases.sql",
+        "supabase/migrations/20261007150000_meta_whatsapp_commerce.sql"
+      ]
+    }
+  ],
+  "authentication": {
+    "provider": "Supabase Auth",
+    "profile_relation": "public.profiles",
+    "profile_id_matches": "auth.users.id",
+    "dashboard_roles": [
+      "admin",
+      "agent",
+      "user"
+    ],
+    "first_admin": "scripts/database/create-admin.mjs"
+  },
+  "code_declared_storage_buckets": [
+    {
+      "name": "whatsapp-media",
+      "public": true,
+      "file_size_limit_bytes": 26214400,
+      "source": "whatsapp-api/src/services/whatsapp.service.ts",
+      "live_verified": false
+    }
+  ],
+  "limitations": [
+    "Literal .from() references are code observations, not a complete catalog of database objects.",
+    "The database may contain additional tables, views, grants, functions, triggers, managed-schema changes and configuration.",
+    "Auth users, passwords, tokens, contact data and WhatsApp sessions are not part of this inventory.",
+    "Do not use legacy schema.sql plus historical migrations as a verified blank-database baseline."
+  ]
+}
