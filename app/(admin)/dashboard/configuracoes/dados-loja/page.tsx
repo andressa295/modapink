@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react"
 
 import Link from "next/link"
+import { AlertCircle, ArrowLeft, CheckCircle2, LoaderCircle, Save, Store } from "lucide-react"
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 
 import {
   DEFAULT_STORE_SETTINGS,
@@ -150,7 +152,8 @@ export default function DadosLojaPage() {
   if (loading) {
     return (
       <div className={styles.container}>
-        <div className={styles.loadingCard}>
+        <div className={styles.loadingCard} role="status">
+          <LoaderCircle size={18} className={styles.spinner} aria-hidden="true" />
           Carregando dados da loja...
         </div>
       </div>
@@ -165,10 +168,11 @@ export default function DadosLojaPage() {
             href="/dashboard/configuracoes"
             className={styles.backLink}
           >
-            ← Voltar para configurações
+            <ArrowLeft size={13} aria-hidden="true" /> Voltar para configurações
           </Link>
 
           <h1>
+            <Store size={24} aria-hidden="true" />
             Dados da loja
           </h1>
 
@@ -183,7 +187,11 @@ export default function DadosLojaPage() {
           className={styles.saveButton}
           onClick={saveSettings}
           disabled={saving}
+          aria-busy={saving}
         >
+          {saving
+            ? <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" />
+            : <Save size={15} aria-hidden="true" />}
           {saving
             ? "Salvando..."
             : "Salvar alterações"}
@@ -191,13 +199,15 @@ export default function DadosLojaPage() {
       </div>
 
       {saved && (
-        <div className={styles.successAlert}>
+        <div className={styles.successAlert} role="status" aria-live="polite">
+          <CheckCircle2 size={16} aria-hidden="true" />
           Dados salvos com sucesso.
         </div>
       )}
 
       {error && (
-        <div className={styles.errorAlert}>
+        <div className={styles.errorAlert} role="alert">
+          <AlertCircle size={16} aria-hidden="true" />
           {error}
         </div>
       )}
@@ -336,7 +346,7 @@ export default function DadosLojaPage() {
 
             <label className={styles.field}>
               <span>
-                Catálogo do WhatsApp
+                <WhatsAppIcon size={13} aria-hidden="true" /> Catálogo do WhatsApp
               </span>
 
               <input
@@ -591,6 +601,7 @@ export default function DadosLojaPage() {
         <aside className={styles.previewColumn}>
           <div className={styles.previewCard}>
             <span className={styles.previewLabel}>
+              <WhatsAppIcon size={14} aria-hidden="true" />
               Prévia da resposta
             </span>
 
