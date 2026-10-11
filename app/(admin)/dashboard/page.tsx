@@ -18,9 +18,9 @@ export default async function Dashboard() {
     <div className={styles.dashboard}>
       <header className={styles.pageHeader}>
         <div>
-          <span className={styles.eyebrow}>VISÃO GERAL</span>
-          <h1>Mais clareza para vender melhor.</h1>
-          <p>Vendas pelo WhatsApp e atendimento, em uma visão da sua operação.</p>
+          <span className={styles.eyebrow}>PAINEL DA LOJA</span>
+          <h1>Visão geral</h1>
+          <p>Vendas, conversas e atendimento pelo WhatsApp.</p>
         </div>
         <Link href="/dashboard/conversas" className={styles.primaryAction}>
           <MessageCircle size={16} aria-hidden="true" />
@@ -37,13 +37,13 @@ export default async function Dashboard() {
         <aside className={styles.operation} aria-label="Conexão e atalhos">
           <WhatsappStatus />
           <nav className={styles.shortcuts} aria-label="Atalhos da operação">
-            <span className={styles.shortcutTitle}>CONTINUE POR AQUI</span>
-            <Link href="/dashboard/pedidos">
-              <span><strong>Pedidos da loja</strong><small>Acompanhe pagamentos e envios</small></span>
+            <span className={styles.shortcutTitle}>ACESSO RÁPIDO</span>
+            <Link href="/dashboard/conversas?tab=human">
+              <span><strong>Atendimento manual</strong><small>Abra as conversas com o bot pausado</small></span>
               <ArrowUpRight size={16} aria-hidden="true" />
             </Link>
-            <Link href="/dashboard/disparos">
-              <span><strong>Campanhas e disparos</strong><small>Veja o andamento das campanhas</small></span>
+            <Link href="/dashboard/conversas?tab=sac">
+              <span><strong>SAC e avaliações</strong><small>Atenda e finalize os chamados</small></span>
               <ArrowUpRight size={16} aria-hidden="true" />
             </Link>
           </nav>
