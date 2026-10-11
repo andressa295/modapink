@@ -59,7 +59,14 @@ test('missing and unknown roles fail closed', () => {
 
 function authHarness({ user = { id: 'verified-id' }, authError = null, role = 'user', profileError = null } = {}) {
   let selectedId
-  const session = { auth: { getUser: async () => ({ data: { user }, error: authError }) } }
+  const session = { auth: { getClaims: async () => ({
+    data: { claims: user ? {
+      sub: user.id,
+      user_metadata: user.user_metadata,
+      app_metadata: user.app_metadata
+    } : null },
+    error: authError
+  }) } }
   const admin = { from: table => {
     assert.equal(table, 'profiles')
     return { select: column => {

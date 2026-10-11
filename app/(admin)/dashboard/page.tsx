@@ -1,86 +1,56 @@
-// app/(admin)/dashboard/page.tsx
-
+import Link from "next/link"
 import { redirect } from "next/navigation"
-import {
-  Activity,
-  RefreshCw,
-  Sparkles
-} from "lucide-react"
-
+import { ArrowUpRight, MessageCircle } from "lucide-react"
 import DashboardMetrics from "./components/DashboardMetrics"
 import ConversationsChart from "./components/ConversationsChart"
 import SalesFunnel from "./components/SalesFunnel"
 import RecentConversations from "./components/RecentConversations"
 import WhatsappStatus from "./components/WhatsappStatus"
-
 import styles from "./styles/dashboard.module.css"
-
 import { createClient } from "@/lib/supabase/server"
 
 export default async function Dashboard() {
   const supabase = await createClient()
-
-  const {
-    data: { user },
-    error
-  } = await supabase.auth.getUser()
-
-  if (error || !user) {
-    redirect("/login")
-  }
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) redirect("/login")
 
   return (
-    <main className={styles["dashboard-container"]}>
-      <section className={styles["dashboard-hero"]}>
-        <div className={styles["dashboard-hero-content"]}>
-          <span className={styles["dashboard-kicker"]}>
-            <Sparkles size={13} />
-            MODA PINK · PAINEL DE GESTÃO
-          </span>
-
-          <h1 className={styles["dashboard-title"]}>
-            Tudo da operação, em um só lugar
-          </h1>
-
-          <p className={styles["dashboard-subtitle"]}>
-            Acompanhe atendimento, vendas e conexões da equipe com uma visão clara do dia.
-          </p>
+    <div className={styles.dashboard}>
+      <header className={styles.pageHeader}>
+        <div>
+          <span className={styles.eyebrow}>VISÃO GERAL</span>
+          <h1>Mais clareza para vender melhor.</h1>
+          <p>Vendas pelo WhatsApp e atendimento, em uma visão da sua operação.</p>
         </div>
+        <Link href="/dashboard/conversas" className={styles.primaryAction}>
+          <MessageCircle size={16} aria-hidden="true" />
+          Abrir atendimento
+          <ArrowUpRight size={15} aria-hidden="true" />
+        </Link>
+      </header>
 
-        <div className={styles["dashboard-hero-aside"]}>
-          <div className={styles["dashboard-live-card"]}>
-            <span className={styles["dashboard-live-icon"]}>
-              <Activity size={15} />
-            </span>
+      <SalesFunnel />
+      <DashboardMetrics />
 
-            <div>
-              <strong>Monitoramento ativo</strong>
-              <span>Atualização silenciosa em segundo plano</span>
-            </div>
-          </div>
-
-          <span className={styles["dashboard-refresh-pill"]}>
-            <RefreshCw size={12} />
-            Tempo real
-          </span>
-        </div>
-      </section>
-
-      <section className={styles["dashboard-grid"]}>
-        <DashboardMetrics />
-      </section>
-
-      <section className={styles["showcase-grid"]}>
-        <div className={styles["showcase-chart"]}>
-          <ConversationsChart />
-          <SalesFunnel />
-        </div>
-
-        <aside className={styles["showcase-status"]}>
+      <div className={styles.mainGrid}>
+        <ConversationsChart />
+        <aside className={styles.operation} aria-label="Conexão e atalhos">
           <WhatsappStatus />
-          <RecentConversations />
+          <nav className={styles.shortcuts} aria-label="Atalhos da operação">
+            <span className={styles.shortcutTitle}>CONTINUE POR AQUI</span>
+            <Link href="/dashboard/pedidos">
+              <span><strong>Pedidos da loja</strong><small>Acompanhe pagamentos e envios</small></span>
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </Link>
+            <Link href="/dashboard/disparos">
+              <span><strong>Campanhas e disparos</strong><small>Veja o andamento das campanhas</small></span>
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </Link>
+          </nav>
         </aside>
-      </section>
-    </main>
+      </div>
+
+      <RecentConversations />
+    </div>
   )
 }

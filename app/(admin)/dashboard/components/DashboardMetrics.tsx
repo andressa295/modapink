@@ -12,11 +12,7 @@ import {
   Clock3,
   MessageCircle,
   ReceiptText,
-  ShoppingBag,
-  ShoppingCart,
-  Sparkles,
-  Star,
-  Users
+  Star
 } from "lucide-react"
 
 import {
@@ -24,6 +20,7 @@ import {
 } from "@/lib/supabase/client"
 
 import styles from "../styles/dashboard.module.css"
+import { getDateRange, isCheckoutSignal, type MessageRow } from "@/lib/dashboard-activity"
 
 type Metrics = {
   conversationsToday: number
@@ -33,153 +30,17 @@ type Metrics = {
   rating: string
   ratingTrend: string
   checkoutsCreated: number
-  cartRecoveriesSent: number
-  salesStarted: number
 }
 
-type MessageRow = {
-  id?: string | null
-  conversation_id?: string | null
-  sender?: string | null
-  created_at?: string | null
-  text?: string | null
-  content?: string | null
-  body?: string | null
-  message?: string | null
-  caption?: string | null
-  intent?: string | null
-  flow?: string | null
-  step?: string | null
+type ConversationMetricRow = {
+  id: string
+  phone: string | null
+  created_at: string | null
+  first_response_at: string | null
 }
 
 function startOfToday() {
-  const date =
-    new Date()
-
-  date.setHours(
-    0,
-    0,
-    0,
-    0
-  )
-
-  return date
-}
-
-function normalizeText(
-  value?: string | null
-) {
-  return String(value || "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
-function getMessageText(
-  message: MessageRow
-) {
-  return [
-    message.text,
-    message.content,
-    message.body,
-    message.message,
-    message.caption,
-    message.intent,
-    message.flow,
-    message.step
-  ]
-    .filter(Boolean)
-    .join(" ")
-}
-
-function isOutgoingMessage(
-  message: MessageRow
-) {
-  const sender =
-    normalizeText(
-      message.sender
-    )
-
-  return (
-    sender === "agent" ||
-    sender === "bot" ||
-    sender === "system" ||
-    sender === "automacao" ||
-    sender === "automacoes"
-  )
-}
-
-function isCheckoutSignal(
-  message: MessageRow
-) {
-  const text =
-    normalizeText(
-      getMessageText(message)
-    )
-
-  return Boolean(
-    text.includes("checkout") ||
-    text.includes("link de compra") ||
-    text.includes("link do pedido") ||
-    text.includes("finalizar compra") ||
-    text.includes("finalize sua compra") ||
-    text.includes("pedido criado") ||
-    text.includes("pedido gerado") ||
-    text.includes("pagamento do pedido") ||
-    text.includes("draft_order") ||
-    text.includes("draft order") ||
-    text.includes("/checkout") ||
-    text.includes("comprar agora")
-  )
-}
-
-function isCartRecoverySignal(
-  message: MessageRow
-) {
-  const text =
-    normalizeText(
-      getMessageText(message)
-    )
-
-  return Boolean(
-    text.includes("carrinho abandonado") ||
-    text.includes("recuperacao de carrinho") ||
-    text.includes("recuperar carrinho") ||
-    text.includes("carrinho enviado") ||
-    text.includes("abandoned cart") ||
-    text.includes("seu carrinho") ||
-    text.includes("carrinho esperando") ||
-    text.includes("ficou no carrinho") ||
-    text.includes("finalize sua compra") ||
-    text.includes("esqueceu seu carrinho")
-  )
-}
-
-function isSalesIntentSignal(
-  message: MessageRow
-) {
-  const text =
-    normalizeText(
-      getMessageText(message)
-    )
-
-  return Boolean(
-    isCheckoutSignal(message) ||
-    text.includes("quero comprar") ||
-    text.includes("vou comprar") ||
-    text.includes("finalizar pedido") ||
-    text.includes("fechar pedido") ||
-    text.includes("fazer pedido") ||
-    text.includes("pedido de compra") ||
-    text.includes("gerar pedido") ||
-    text.includes("gerar checkout") ||
-    text.includes("mandar o link") ||
-    text.includes("manda o link") ||
-    text.includes("pix para pagamento") ||
-    text.includes("pagamento aprovado")
-  )
+  return new Date(getDateRange("7d").endExclusive.getTime() - 86400000)
 }
 
 function formatAverageMinutes(
@@ -193,7 +54,7 @@ function formatAverageMinutes(
   }
 
   if (minutes < 1) {
-    return "agora"
+    return "< 1 min"
   }
 
   if (minutes < 60) {
@@ -223,7 +84,7 @@ function formatRating(
     return "—"
   }
 
-  return value.toFixed(1)
+  return value.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 }
 
 function getFirstDate(
@@ -248,80 +109,31 @@ function getFirstDate(
 
 async function loadMessagesWithText(
   supabase: ReturnType<typeof createClient>,
-  todayISO: string
+  todayISO: string,
+  endISO: string
 ) {
   const selects = [
-    `
-      id,
-      conversation_id,
-      sender,
-      created_at,
-      text,
-      content,
-      body,
-      message,
-      caption,
-      intent,
-      flow,
-      step
-    `,
-    `
-      id,
-      conversation_id,
-      sender,
-      created_at,
-      text,
-      content,
-      caption,
-      intent,
-      flow,
-      step
-    `,
-    `
-      id,
-      conversation_id,
-      sender,
-      created_at,
-      content,
-      intent,
-      flow,
-      step
-    `,
-    `
-      id,
-      conversation_id,
-      sender,
-      created_at,
-      text,
-      content
-    `,
-    `
-      id,
-      conversation_id,
-      sender,
-      created_at
-    `
+    "id, conversation_id, sender, created_at, text, content, body, message, caption, intent, flow, step",
+    "id, conversation_id, sender, created_at, text, content, caption, intent, flow, step",
+    "id, conversation_id, sender, created_at, content, intent, flow, step",
+    "id, conversation_id, sender, created_at, text, content",
+    "id, conversation_id, sender, created_at, content",
+    "id, conversation_id, sender, created_at, text",
   ]
 
   for (const select of selects) {
-    const {
-      data,
-      error
-    } = await supabase
-      .from("messages")
-      .select(select)
-      .gte(
-        "created_at",
-        todayISO
-      )
-      .limit(1200)
-
-    if (!error) {
-      return (data || []) as MessageRow[]
+    const rows: MessageRow[] = []
+    for (let offset = 0; ; offset += 500) {
+      const { data, error } = await supabase.from("messages").select(select)
+        .gte("created_at", todayISO).lt("created_at", endISO)
+        .order("created_at", { ascending: true }).order("id", { ascending: true })
+        .range(offset, offset + 499)
+      if (error) break
+      rows.push(...((data || []) as unknown as MessageRow[]))
+      if (!data || data.length < 500) return rows
     }
   }
-
-  return []
+  return null
 }
 
 export default function DashboardMetrics() {
@@ -343,10 +155,13 @@ export default function DashboardMetrics() {
     averageTimeTrend: "",
     rating: "—",
     ratingTrend: "",
-    checkoutsCreated: 0,
-    cartRecoveriesSent: 0,
-    salesStarted: 0
+    checkoutsCreated: 0
   })
+
+  const [error, setError] = useState(false)
+  const [hasData, setHasData] = useState(false)
+  const [messagesAvailable, setMessagesAvailable] = useState(false)
+  const [reviewsAvailable, setReviewsAvailable] = useState(false)
 
   useEffect(() => {
     const supabase =
@@ -396,20 +211,14 @@ export default function DashboardMetrics() {
           )
 
         if (conversationsError) {
-          console.warn(
-            "Não foi possível carregar métricas de conversas:",
-            conversationsError
-          )
-
-          return
+          throw conversationsError
         }
 
-        const list =
-          conversations || []
+        const list = (conversations || []) as ConversationMetricRow[]
 
         const conversationIds =
           list
-            .map((item: any) => item.id)
+            .map((item: ConversationMetricRow) => item.id)
             .filter(Boolean)
 
         const conversationsToday =
@@ -418,7 +227,7 @@ export default function DashboardMetrics() {
         const clientsToday =
           new Set(
             list
-              .map((item: any) => item.phone)
+              .map((item: ConversationMetricRow) => item.phone)
               .filter(Boolean)
           ).size
 
@@ -461,15 +270,14 @@ export default function DashboardMetrics() {
             )
           }
 
-          const responseMessagesList =
-            responseMessages || []
+          const responseMessagesList = (responseMessages || []) as MessageRow[]
 
           responseTimes =
             conversationIds
               .map((conversationId: string) => {
                 const related =
                   responseMessagesList.filter(
-                    (message: any) =>
+                    (message: MessageRow) =>
                       message.conversation_id === conversationId
                   )
 
@@ -477,11 +285,11 @@ export default function DashboardMetrics() {
                   getFirstDate(
                     related
                       .filter(
-                        (message: any) =>
+                        (message: MessageRow) =>
                           message.sender === "user"
                       )
                       .map(
-                        (message: any) =>
+                        (message: MessageRow) =>
                           message.created_at
                       )
                   )
@@ -493,7 +301,7 @@ export default function DashboardMetrics() {
                 const firstAgentAfterUser =
                   getFirstDate(
                     related
-                      .filter((message: any) => {
+                      .filter((message: MessageRow) => {
                         if (
                           message.sender !== "agent" ||
                           !message.created_at
@@ -512,7 +320,7 @@ export default function DashboardMetrics() {
                         )
                       })
                       .map(
-                        (message: any) =>
+                        (message: MessageRow) =>
                           message.created_at
                       )
                   )
@@ -539,7 +347,7 @@ export default function DashboardMetrics() {
         if (!responseTimes.length) {
           responseTimes =
             list
-              .map((item: any) => {
+              .map((item: ConversationMetricRow) => {
                 const created =
                   item.created_at
                     ? new Date(item.created_at).getTime()
@@ -548,9 +356,7 @@ export default function DashboardMetrics() {
                 const responded =
                   item.first_response_at
                     ? new Date(item.first_response_at).getTime()
-                    : item.last_agent_message_at
-                      ? new Date(item.last_agent_message_at).getTime()
-                      : null
+                    : null
 
                 if (
                   !created ||
@@ -635,76 +441,19 @@ export default function DashboardMetrics() {
             )
         }
 
-        const messagesToday =
-          await loadMessagesWithText(
-            supabase,
-            todayISO
-          )
+        const messageResult = await loadMessagesWithText(supabase, todayISO, new Date(today.getTime() + 86400000).toISOString())
+        const messagesToday = messageResult || []
 
-        const outgoingMessages =
-          messagesToday.filter(
-            isOutgoingMessage
-          )
-
-        const checkoutsCreated =
-          outgoingMessages.filter(
-            isCheckoutSignal
-          ).length
-
-        const cartRecoveriesSent =
-          outgoingMessages.filter(
-            isCartRecoverySignal
-          ).length
-
-        const salesConversationIds =
-          new Set<string>()
-
-        messagesToday.forEach(
-          message => {
-            if (
-              message.conversation_id &&
-              isSalesIntentSignal(message)
-            ) {
-              salesConversationIds.add(
-                message.conversation_id
-              )
-            }
-          }
-        )
-
-        list.forEach((conversation: any) => {
-          const statusText =
-            normalizeText(
-              [
-                conversation.state,
-                conversation.mode,
-                conversation.status,
-                conversation.last_message
-              ]
-                .filter(Boolean)
-                .join(" ")
-            )
-
-          if (
-            conversation.id &&
-            (
-              statusText.includes("buying") ||
-              statusText.includes("cart") ||
-              statusText.includes("checkout") ||
-              statusText.includes("pedido") ||
-              statusText.includes("compra")
-            )
-          ) {
-            salesConversationIds.add(
-              conversation.id
-            )
-          }
-        })
+        const checkoutsCreated = messagesToday.filter(isCheckoutSignal).length
 
         if (!active) {
           return
         }
 
+        setError(false)
+        setHasData(true)
+        setMessagesAvailable(messageResult !== null)
+        setReviewsAvailable(!reviewsError)
         setMetrics({
           conversationsToday,
           clientsToday,
@@ -729,11 +478,11 @@ export default function DashboardMetrics() {
               ? `${ratingsCount} avaliação(ões)`
               : "",
 
-          checkoutsCreated,
-          cartRecoveriesSent,
-          salesStarted:
-            salesConversationIds.size
+          checkoutsCreated
         })
+      } catch (error) {
+        console.warn("Não foi possível atualizar o resumo da dashboard:", error)
+        if (active) setError(true)
       } finally {
         requestInFlightRef.current = false
 
@@ -747,8 +496,8 @@ export default function DashboardMetrics() {
 
     const interval =
       window.setInterval(
-        () => loadMetrics(false),
-        30000
+        () => { if (document.visibilityState === "visible") loadMetrics(false) },
+        60000
       )
 
     return () => {
@@ -761,150 +510,52 @@ export default function DashboardMetrics() {
     }
   }, [])
 
+  const unavailable = loading || !hasData
+  const cards = [
+    {
+      title: "Novas conversas",
+      value: unavailable ? "—" : metrics.conversationsToday,
+      description: unavailable ? "Resumo do dia" : `${metrics.clientsToday} novos clientes hoje`,
+      icon: MessageCircle,
+      className: styles.metricPink,
+    },
+    {
+      title: "Mensagens de checkout",
+      value: unavailable || !messagesAvailable ? "—" : metrics.checkoutsCreated,
+      description: loading ? "Atividade de hoje" : messagesAvailable ? "Identificadas no chat hoje" : "Dados do chat indisponíveis",
+      icon: ReceiptText,
+      className: styles.metricViolet,
+    },
+    {
+      title: "Primeira resposta",
+      value: unavailable ? "—" : metrics.averageTime,
+      description: metrics.averageTimeTrend ? `Média de ${metrics.averageTimeTrend}` : "Conversas novas de hoje",
+      icon: Clock3,
+      className: styles.metricBlue,
+    },
+    {
+      title: "Avaliação do SAC",
+      value: unavailable ? "—" : metrics.rating,
+      description: !reviewsAvailable && !loading ? "Avaliações indisponíveis" : metrics.ratingTrend ? `${metrics.ratingTrend} · geral` : "Aguardando avaliações",
+      icon: Star,
+      className: styles.metricAmber,
+    },
+  ]
+
   return (
-    <section className={styles["metrics-showcase"]}>
-      <div className={styles["metrics-main"]}>
-        <div className={styles["metrics-main-header"]}>
-          <span className={styles["metrics-icon"]}>
-            <MessageCircle size={18} />
-          </span>
-
-          <span className={styles["metrics-kicker"]}>
-            Atendimento hoje
-          </span>
-        </div>
-
-        <strong className={styles["metrics-number"]}>
-          {loading
-            ? "—"
-            : metrics.conversationsToday}
-        </strong>
-
-        <p className={styles["metrics-description"]}>
-          {metrics.clientsToday > 0
-            ? `${metrics.clientsToday} cliente(s) únicos em atendimento hoje.`
-            : "Aguardando o movimento de atendimento de hoje."}
-        </p>
-      </div>
-
-      <div className={styles["metrics-details"]}>
-        <div className={styles["metric-line"]}>
-          <span className={styles["metric-line-icon"]}>
-            <Users size={15} />
-          </span>
-
-          <div className={styles["metric-line-content"]}>
-            <small>Clientes únicos</small>
-
-            <strong>
-              {loading
-                ? "—"
-                : metrics.clientsToday}
-            </strong>
-          </div>
-        </div>
-
-        <div className={styles["metric-line"]}>
-          <span className={styles["metric-line-icon"]}>
-            <Clock3 size={15} />
-          </span>
-
-          <div className={styles["metric-line-content"]}>
-            <small>
-              Tempo médio
-            </small>
-
-            <strong>
-              {loading
-                ? "—"
-                : metrics.averageTime}
-            </strong>
-          </div>
-        </div>
-
-        <div className={styles["metric-line"]}>
-          <span className={styles["metric-line-icon"]}>
-            <Star size={15} />
-          </span>
-
-          <div className={styles["metric-line-content"]}>
-            <small>
-              Avaliação
-            </small>
-
-            <strong>
-              {loading
-                ? "—"
-                : metrics.rating}
-            </strong>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles["sales-panel"]}>
-        <div className={styles["sales-panel-header"]}>
-          <div>
-            <span className={styles["sales-panel-icon"]}>
-              <ShoppingBag size={17} />
-            </span>
-          </div>
-
-          <div>
-            <span className={styles["sales-panel-kicker"]}>
-              Vendas pelo WhatsApp
-            </span>
-
-            <h3>
-              Automação comercial
-            </h3>
-          </div>
-
-          <Sparkles
-            size={17}
-            className={styles["sales-panel-sparkle"]}
-          />
-        </div>
-
-        <div className={styles["sales-metrics-grid"]}>
-          <div className={styles["sales-metric-chip"]}>
-            <span>
-              <ReceiptText size={14} />
-              Checkouts
-            </span>
-
-            <strong>
-              {loading
-                ? "—"
-                : metrics.checkoutsCreated}
-            </strong>
-          </div>
-
-          <div className={styles["sales-metric-chip"]}>
-            <span>
-              <ShoppingCart size={14} />
-              Carrinhos
-            </span>
-
-            <strong>
-              {loading
-                ? "—"
-                : metrics.cartRecoveriesSent}
-            </strong>
-          </div>
-
-          <div className={styles["sales-metric-chip"]}>
-            <span>
-              <ShoppingBag size={14} />
-              Vendas iniciadas
-            </span>
-
-            <strong>
-              {loading
-                ? "—"
-                : metrics.salesStarted}
-            </strong>
-          </div>
-        </div>
+    <section aria-label="Atendimento hoje e avaliação geral" className={styles.metricsSection} aria-busy={loading}>
+      {error && <p className={styles.dataNotice} role="status">{hasData ? "Não foi possível atualizar o resumo. Exibindo a última consulta." : "Não foi possível carregar o resumo de atendimento."}</p>}
+      <div className={styles.metricsGrid}>
+        {cards.map(({ title, value, description, icon: Icon, className }) => (
+          <article className={styles.summaryCard} key={title}>
+            <div className={styles.summaryTop}>
+              <span>{title}</span>
+              <span className={`${styles.summaryIcon} ${className}`}><Icon size={16} aria-hidden="true" /></span>
+            </div>
+            <strong className={styles.summaryValue}>{value}{title === "Avaliação do SAC" && value !== "—" && <small>/ 5</small>}</strong>
+            <p>{description}</p>
+          </article>
+        ))}
       </div>
     </section>
   )
