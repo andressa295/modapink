@@ -1,7 +1,9 @@
 "use client"
 
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
+
 import { useEffect, useId, useMemo, useRef, useState } from "react"
-import { CalendarDays, ChevronDown, MessageCircle, ReceiptText, ShoppingCart, CreditCard, RefreshCw } from "lucide-react"
+import { CalendarDays, ChevronDown, ReceiptText, ShoppingCart, CreditCard, RefreshCw } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import {
   buildDailyActivity, getDateRange, listDays,
@@ -17,7 +19,7 @@ const periods: { id: PeriodId; label: string }[] = [
   { id: "lastMonth", label: "Mês passado" },
 ]
 const metrics = [
-  { id: "conversations" as const, label: "Conversas", description: "Novas conversas no período", icon: MessageCircle },
+  { id: "conversations" as const, label: "Conversas", description: "Novas conversas no período", icon: WhatsAppIcon },
   { id: "checkouts" as const, label: "Checkouts", description: "Mensagens de checkout enviadas", icon: ReceiptText },
   { id: "carts" as const, label: "Carrinhos", description: "Mensagens sobre carrinhos enviadas", icon: ShoppingCart },
   { id: "payments" as const, label: "Pagamentos", description: "Conversas com aviso de pagamento aprovado", icon: CreditCard },

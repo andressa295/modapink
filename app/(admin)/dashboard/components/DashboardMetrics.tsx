@@ -2,6 +2,8 @@
 
 "use client"
 
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
+
 import {
   useEffect,
   useRef,
@@ -10,7 +12,6 @@ import {
 
 import {
   Clock3,
-  MessageCircle,
   ReceiptText,
   Star
 } from "lucide-react"
@@ -516,7 +517,7 @@ export default function DashboardMetrics() {
       title: "Novas conversas",
       value: unavailable ? "—" : metrics.conversationsToday,
       description: unavailable ? "Resumo do dia" : `${metrics.clientsToday} novos clientes hoje`,
-      icon: MessageCircle,
+      icon: WhatsAppIcon,
       className: styles.metricPink,
     },
     {

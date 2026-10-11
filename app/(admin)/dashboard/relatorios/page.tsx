@@ -2,11 +2,17 @@
 
 import { useEffect, useMemo, useState } from "react"
 import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  CalendarDays,
+  CircleDollarSign,
   CreditCard,
   Download,
   Percent,
+  ReceiptText,
   RefreshCcw,
   Search,
+  ShoppingBag,
   Truck,
   WalletCards
 } from "lucide-react"
@@ -227,19 +233,24 @@ function Card({
   title,
   value,
   detail,
+  icon,
   tone = "normal"
 }: {
   title: string
   value: string
   detail: string
+  icon: React.ReactNode
   tone?: string
 }) {
   return (
-    <div className={`${styles.card} ${styles[tone]}`}>
-      <span>{title}</span>
+    <article className={`${styles.card} ${styles[tone]}`}>
+      <div className={styles.cardHeader}>
+        <span>{title}</span>
+        <span className={styles.cardIcon} aria-hidden="true">{icon}</span>
+      </div>
       <strong>{value}</strong>
       <small>{detail}</small>
-    </div>
+    </article>
   )
 }
 
@@ -316,7 +327,7 @@ function ShippingCard({
       </div>
 
       <div className={styles.methodNet}>
-        <span>Frete cobrado</span>
+        <span>Valor total do frete</span>
         <strong>{money.format(data.charged)}</strong>
       </div>
 
@@ -506,18 +517,19 @@ export default function Relatorios() {
   )
 
   return (
-    <main className={styles.page}>
+    <main className={styles.page} aria-busy={loading}>
       <header className={styles.header}>
         <div>
-          <h1>Financeiro</h1>
+          <span className={styles.eyebrow}>FINANCEIRO DA LOJA</span>
+          <h1>Relatórios</h1>
           <p>
-            Acompanhe pagamentos, descontos, fretes, taxas e
-            estornos da Moda Pink.
+            Vendas, recebimentos e entregas em uma visão organizada.
           </p>
         </div>
 
         <div className={styles.headerActions}>
           <button
+            type="button"
             onClick={() => load(range, true)}
             disabled={loading}
           >
@@ -529,6 +541,7 @@ export default function Relatorios() {
           </button>
 
           <button
+            type="button"
             className={styles.export}
             onClick={exportCsv}
             disabled={!data}
@@ -539,11 +552,13 @@ export default function Relatorios() {
         </div>
       </header>
 
-      <section className={styles.filters}>
-        <div className={styles.quickFilters}>
+      <section className={styles.filters} aria-label="Período do relatório">
+        <div className={styles.quickFilters} role="group" aria-label="Períodos rápidos">
           {ranges.map((item) => (
             <button
+              type="button"
               key={item.value}
+              aria-pressed={range === item.value}
               className={
                 range === item.value
                   ? styles.active
@@ -557,8 +572,10 @@ export default function Relatorios() {
         </div>
 
         <div className={styles.custom}>
+          <CalendarDays size={16} aria-hidden="true" />
           <input
             type="date"
+            aria-label="Data inicial"
             value={from}
             onChange={(event) => setFrom(event.target.value)}
           />
@@ -567,11 +584,13 @@ export default function Relatorios() {
 
           <input
             type="date"
+            aria-label="Data final"
             value={to}
             onChange={(event) => setTo(event.target.value)}
           />
 
           <button
+            type="button"
             onClick={() => {
               if (range === "custom") {
                 load("custom")
@@ -586,13 +605,13 @@ export default function Relatorios() {
       </section>
 
       {error && (
-        <div className={styles.error}>
+        <div className={styles.error} role="alert">
           {error}
         </div>
       )}
 
       {loading && !data && (
-        <div className={styles.loading}>
+        <div className={styles.loading} role="status">
           <RefreshCcw className={styles.spin} />
           Carregando movimentações...
         </div>
@@ -602,23 +621,25 @@ export default function Relatorios() {
         <>
           <div className={styles.period}>
             <strong>
+              <CalendarDays size={14} aria-hidden="true" />
               {data.range.from.split("-").reverse().join("/")}
               {" a "}
               {data.range.to.split("-").reverse().join("/")}
             </strong>
 
-            <span>
+            <span role="status">
               {loading
                 ? "Atualizando em segundo plano..."
                 : `Atualizado em ${formatDate(data.generatedAt, true)}`}
             </span>
           </div>
 
-          <section className={styles.cards}>
+          <section className={styles.cards} aria-label="Resumo financeiro">
             <Card
               title="Venda sem frete"
               value={money.format(data.metrics.salesWithoutFreight)}
               detail={`${number.format(data.metrics.orders)} pedidos pagos`}
+              icon={<ShoppingBag size={17} />}
               tone="pink"
             />
 
@@ -626,6 +647,7 @@ export default function Relatorios() {
               title="Frete cobrado"
               value={money.format(data.metrics.freight)}
               detail="Ônibus, Correios e motoboy separados abaixo"
+              icon={<Truck size={17} />}
               tone="orange"
             />
 
@@ -633,12 +655,14 @@ export default function Relatorios() {
               title="Taxas de pagamento"
               value={money.format(data.metrics.paymentFees)}
               detail="Pix e cartão de crédito"
+              icon={<CreditCard size={17} />}
             />
 
             <Card
               title="Estornos e reembolsos"
               value={money.format(data.metrics.refunds)}
               detail="Somente valores realmente devolvidos"
+              icon={<ArrowUpRight size={17} />}
               tone="red"
             />
 
@@ -646,12 +670,14 @@ export default function Relatorios() {
               title="Total recebido"
               value={money.format(data.metrics.totalReceived)}
               detail="Produtos mais frete"
+              icon={<ArrowDownLeft size={17} />}
             />
 
             <Card
               title="Líquido real"
               value={money.format(data.metrics.net)}
               detail="Recebido menos taxas e estornos"
+              icon={<CircleDollarSign size={17} />}
               tone="green"
             />
 
@@ -659,12 +685,14 @@ export default function Relatorios() {
               title="Descontos"
               value={money.format(data.metrics.discounts)}
               detail="Cupons, Pix e promoções"
+              icon={<Percent size={17} />}
             />
 
             <Card
               title="Ticket sem frete"
               value={money.format(data.metrics.ticketWithoutFreight)}
               detail={`${number.format(data.metrics.items)} itens vendidos`}
+              icon={<ReceiptText size={17} />}
             />
           </section>
 
@@ -702,6 +730,7 @@ export default function Relatorios() {
               <div>
                 <span>Entradas e saídas</span>
                 <h2>Movimentação diária</h2>
+                <p>O valor acima de cada coluna é o líquido do dia.</p>
               </div>
 
               <div className={styles.legend}>
@@ -727,6 +756,9 @@ export default function Relatorios() {
                   <div
                     className={styles.chartItem}
                     key={item.date}
+                    role="img"
+                    aria-label={`${item.date.slice(8, 10)}/${item.date.slice(5, 7)}: entradas de ${money.format(item.sales)}, estornos de ${money.format(item.refunds)} e líquido de ${money.format(item.net)}`}
+                    title={`Entradas: ${money.format(item.sales)} · Estornos: ${money.format(item.refunds)} · Líquido: ${money.format(item.net)}`}
                   >
                     <small>{money.format(item.net)}</small>
 
@@ -734,11 +766,11 @@ export default function Relatorios() {
                       <i
                         className={styles.salesBar}
                         style={{
-                          height:
+                          height: item.sales ?
                             `${Math.max(
                               2,
                               item.sales / maxChart * 100
-                            )}%`
+                            )}%` : "0%"
                         }}
                       />
 
@@ -806,11 +838,11 @@ export default function Relatorios() {
             </div>
           </section>
 
-          <section className={styles.panel}>
+          <section className={`${styles.panel} ${styles.shippingPanel}`}>
             <div className={styles.panelTitle}>
               <div>
-                <span>Como os pedidos foram enviados</span>
-                <h2>Fretes separados e detalhados</h2>
+                <span>Quanto foi cobrado em cada tipo de entrega</span>
+                <h2>Valores de frete</h2>
               </div>
             </div>
 
@@ -856,6 +888,7 @@ export default function Relatorios() {
               <div>
                 <span>Detalhamento</span>
                 <h2>Pagamentos e estornos</h2>
+                <p>{number.format(movements.length)} movimentações encontradas</p>
               </div>
 
               <div className={styles.tableTools}>
@@ -863,6 +896,8 @@ export default function Relatorios() {
                   <Search size={16} />
 
                   <input
+                    type="search"
+                    aria-label="Buscar pedido, cliente, pagamento ou entrega"
                     placeholder="Pedido, cliente, pagamento ou entrega"
                     value={search}
                     onChange={(event) => {
@@ -872,6 +907,7 @@ export default function Relatorios() {
                 </label>
 
                 <select
+                  aria-label="Tipo de movimentação"
                   value={type}
                   onChange={(event) => {
                     setType(event.target.value)
@@ -884,21 +920,22 @@ export default function Relatorios() {
               </div>
             </div>
 
-            <div className={styles.tableScroll}>
+            <div className={styles.tableScroll} role="region" aria-label="Tabela de pagamentos e estornos" tabIndex={0}>
               <table>
+                <caption className={styles.srOnly}>Movimentações financeiras do período selecionado.</caption>
                 <thead>
                   <tr>
-                    <th>Data</th>
-                    <th>Pedido</th>
-                    <th>Cliente</th>
-                    <th>Movimentação</th>
-                    <th>Pagamento</th>
-                    <th>Entrega</th>
-                    <th>Sem frete</th>
-                    <th>Frete</th>
-                    <th>Taxa</th>
-                    <th>Estorno</th>
-                    <th>Líquido</th>
+                    <th scope="col">Data</th>
+                    <th scope="col">Pedido</th>
+                    <th scope="col">Cliente</th>
+                    <th scope="col">Movimentação</th>
+                    <th scope="col">Pagamento</th>
+                    <th scope="col">Entrega</th>
+                    <th scope="col">Sem frete</th>
+                    <th scope="col">Frete</th>
+                    <th scope="col">Taxa</th>
+                    <th scope="col">Estorno</th>
+                    <th scope="col">Líquido</th>
                   </tr>
                 </thead>
 

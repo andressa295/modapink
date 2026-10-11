@@ -1,12 +1,14 @@
 "use client"
 
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
+
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
   BarChart3, ChevronLeft, Instagram, LayoutDashboard, LogOut,
-  Megaphone, MessageCircle, Package, Settings, Smartphone, Users,
+  Megaphone, Package, Settings, Smartphone, Users,
 } from "lucide-react"
 import { canAccessDashboard, type DashboardRole } from "@/lib/dashboard-access"
 import { createClient } from "@/lib/supabase/client"
@@ -19,7 +21,7 @@ const navigation = [
     label: "Operação",
     items: [
       { label: "Visão geral", href: "/dashboard", icon: LayoutDashboard },
-      { label: "Atendimento", href: "/dashboard/conversas", icon: MessageCircle },
+      { label: "Atendimento", href: "/dashboard/conversas", icon: WhatsAppIcon },
       { label: "Pedidos", href: "/dashboard/pedidos", icon: Package },
       { label: "Campanhas", href: "/dashboard/disparos", icon: Megaphone },
       { label: "Instagram", href: "/dashboard/instagram", icon: Instagram },
