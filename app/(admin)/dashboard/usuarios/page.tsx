@@ -1,6 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { Check, Mail, Pencil, Plus, Search, ShieldCheck, Trash2, Users, X } from "lucide-react"
+
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 
 import styles from "../styles/users.module.css"
 
@@ -23,6 +26,7 @@ const roleLabels: Record<UserRole, string> = {
 
 export default function Usuarios() {
   const [users, setUsers] = useState<User[]>([])
+  const [search, setSearch] = useState("")
   const [editingId, setEditingId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [sendingInviteId, setSendingInviteId] = useState<string | null>(null)
@@ -292,236 +296,251 @@ export default function Usuarios() {
     loadUsers()
   }
 
-  return (
-    <div className={styles["users-page"]}>
-      {/* HEADER */}
-      <div className={styles["users-header"]}>
-        <div>
-          <div className={styles["users-title"]}>
-            Usuários
-          </div>
+  const searchTerm = search.trim().toLocaleLowerCase("pt-BR")
+  const visibleUsers = users.filter((user) =>
+    [user.name, user.email, roleLabels[user.role] || user.role]
+      .some((value) => String(value || "").toLocaleLowerCase("pt-BR").includes(searchTerm))
+  )
+  const adminCount = users.filter((user) => user.role === "admin").length
+  const chatCount = users.filter((user) => user.role === "agent" || user.role === "user").length
 
-          <p className={styles["users-subtitle"]}>
-            Gerencie administradores, atendentes e usuários do painel.
-          </p>
+  return (
+    <div className={styles.page}>
+      <header className={styles.pageHeader}>
+        <div>
+          <span className={styles.eyebrow}>GESTÃO DE ACESSOS</span>
+          <h1>Usuários</h1>
+          <p>Organize sua equipe e os acessos ao painel.</p>
         </div>
 
         {currentUserRole === "admin" && (
           <button
-            className={styles["users-button"]}
+            type="button"
+            className={styles.primaryButton}
             onClick={() => setCreating(true)}
+            aria-expanded={creating}
+            aria-controls="create-user-form"
           >
-            + Novo usuário
+            <Plus size={15} aria-hidden="true" />
+            Novo usuário
           </button>
         )}
-      </div>
+      </header>
 
-      {/* CREATE */}
-      {creating && currentUserRole === "admin" && (
-        <div className={styles["users-create"]}>
-          <input
-            className={styles["users-input"]}
-            placeholder="Nome"
-            value={createForm.name}
-            onChange={(e) =>
-              setCreateForm({
-                ...createForm,
-                name: e.target.value
-              })
-            }
-          />
-
-          <input
-            className={styles["users-input"]}
-            placeholder="E-mail"
-            type="email"
-            value={createForm.email}
-            onChange={(e) =>
-              setCreateForm({
-                ...createForm,
-                email: e.target.value
-              })
-            }
-          />
-
-          <select
-            className={styles["users-select"]}
-            value={createForm.role}
-            onChange={(e) =>
-              setCreateForm({
-                ...createForm,
-                role: e.target.value as UserRole
-              })
-            }
-          >
-            <option value="admin">
-              Administrador
-            </option>
-
-            <option value="agent">
-              Atendente
-            </option>
-
-            <option value="user">
-              Usuário
-            </option>
-          </select>
-
-          <button
-            className={styles["users-save"]}
-            onClick={createUser}
-            disabled={loading}
-          >
-            {loading ? "Criando..." : "Criar e enviar link"}
-          </button>
-
-          <button
-            className={styles["users-cancel"]}
-            onClick={() => setCreating(false)}
-            disabled={loading}
-          >
-            Cancelar
-          </button>
+      <section className={styles.metrics} aria-label="Resumo da equipe">
+        <div className={styles.metric}>
+          <div><span>Equipe cadastrada</span><Users size={17} aria-hidden="true" /></div>
+          <strong>{users.length}</strong>
+          <p>Usuários no painel</p>
         </div>
+        <div className={styles.metric}>
+          <div><span>Administradores</span><ShieldCheck size={17} aria-hidden="true" /></div>
+          <strong>{adminCount}</strong>
+          <p>Acesso completo</p>
+        </div>
+        <div className={styles.metric}>
+          <div><span>Atendimento</span><WhatsAppIcon size={17} /></div>
+          <strong>{chatCount}</strong>
+          <p>Acesso somente às conversas</p>
+        </div>
+      </section>
+
+      {creating && currentUserRole === "admin" && (
+        <form
+          id="create-user-form"
+          className={styles.createForm}
+          onSubmit={(event) => {
+            event.preventDefault()
+            createUser()
+          }}
+        >
+          <div className={styles.sectionHeading}>
+            <div>
+              <h2>Novo usuário</h2>
+              <p>O link para definir a senha será enviado por e-mail.</p>
+            </div>
+            <button
+              type="button"
+              className={styles.iconButton}
+              onClick={() => setCreating(false)}
+              disabled={loading}
+              aria-label="Fechar cadastro de usuário"
+            ><X size={17} aria-hidden="true" /></button>
+          </div>
+          <div className={styles.formFields}>
+            <label className={styles.field}>
+              <span>Nome</span>
+              <input
+                className={styles.input}
+                placeholder="Nome completo"
+                autoComplete="name"
+                value={createForm.name}
+                onChange={(event) => setCreateForm({ ...createForm, name: event.target.value })}
+              />
+            </label>
+            <label className={styles.field}>
+              <span>E-mail</span>
+              <input
+                className={styles.input}
+                placeholder="nome@loja.com.br"
+                type="email"
+                autoComplete="email"
+                value={createForm.email}
+                onChange={(event) => setCreateForm({ ...createForm, email: event.target.value })}
+              />
+            </label>
+            <label className={styles.field}>
+              <span>Perfil de acesso</span>
+              <select
+                className={styles.input}
+                value={createForm.role}
+                onChange={(event) => setCreateForm({ ...createForm, role: event.target.value as UserRole })}
+              >
+                <option value="admin">Administrador</option>
+                <option value="agent">Atendente</option>
+                <option value="user">Usuário</option>
+              </select>
+            </label>
+          </div>
+          <div className={styles.formFooter}>
+            <p>
+              {createForm.role === "admin"
+                ? "Administrador: acesso a todas as áreas do painel."
+                : "Atendentes e usuários: acesso somente às conversas."}
+            </p>
+            <div className={styles.formActions}>
+              <button type="button" className={styles.secondaryButton} onClick={() => setCreating(false)} disabled={loading}>Cancelar</button>
+              <button type="submit" className={styles.primaryButton} disabled={loading}>
+                <Mail size={14} aria-hidden="true" />
+                {loading ? "Criando..." : "Criar e enviar link"}
+              </button>
+            </div>
+          </div>
+        </form>
       )}
 
-      {/* TABLE */}
-      <div className={styles["users-table"]}>
-        <div className={`${styles["users-row"]} ${styles.header}`}>
-          <div>Nome</div>
-          <div>E-mail</div>
-          <div>Cargo</div>
-          <div>Ações</div>
-        </div>
-
-        {users.map((u) => (
-          <div
-            key={u.id}
-            className={styles["users-row"]}
-          >
-            <div>
-              {editingId === u.id ? (
-                <input
-                  className={styles["users-input"]}
-                  value={editForm.name}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      name: e.target.value
-                    })
-                  }
-                />
-              ) : (
-                u.name || "-"
-              )}
-            </div>
-
-            <div>
-              {editingId === u.id ? (
-                <input
-                  className={styles["users-input"]}
-                  type="email"
-                  value={editForm.email}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      email: e.target.value
-                    })
-                  }
-                />
-              ) : (
-                u.email || "-"
-              )}
-            </div>
-
-            <div>
-              {editingId === u.id ? (
-                <select
-                  className={styles["users-select"]}
-                  value={editForm.role}
-                  onChange={(e) =>
-                    setEditForm({
-                      ...editForm,
-                      role: e.target.value as UserRole
-                    })
-                  }
-                >
-                  <option value="admin">
-                    Administrador
-                  </option>
-
-                  <option value="agent">
-                    Atendente
-                  </option>
-
-                  <option value="user">
-                    Usuário
-                  </option>
-                </select>
-              ) : (
-                roleLabels[u.role] || u.role
-              )}
-            </div>
-
-            <div className={styles["users-actions"]}>
-              {currentUserRole === "admin" && (
-                editingId === u.id ? (
-                  <>
-                    <button
-                      className={styles["users-save"]}
-                      onClick={() => saveEdit(u.id)}
-                      disabled={loading}
-                    >
-                      Salvar
-                    </button>
-
-                    <button
-                      className={styles["users-cancel"]}
-                      onClick={cancelEdit}
-                      disabled={loading}
-                    >
-                      Cancelar
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      className={styles["users-edit"]}
-                      onClick={() => startEdit(u)}
-                    >
-                      Editar
-                    </button>
-
-                    <button
-                      className={styles["users-link"]}
-                      onClick={() => resendPasswordLink(u)}
-                      disabled={sendingInviteId === u.id}
-                    >
-                      {sendingInviteId === u.id
-                        ? "Enviando..."
-                        : "Enviar link"}
-                    </button>
-
-                    <button
-                      className={styles["users-delete"]}
-                      onClick={() => deleteUser(u.id)}
-                      disabled={u.id === currentUserId}
-                    >
-                      Excluir
-                    </button>
-                  </>
-                )
-              )}
-            </div>
+      <section className={styles.directory} aria-labelledby="users-directory-title">
+        <div className={styles.directoryHeader}>
+          <div>
+            <h2 id="users-directory-title">Sua equipe <span>{users.length}</span></h2>
+            <p>Administradores gerenciam o painel. Os demais perfis acessam as conversas.</p>
           </div>
-        ))}
-
-        {users.length === 0 && (
-          <div className={styles["users-empty"]}>
-            Nenhum usuário cadastrado ainda.
+          <label className={styles.search}>
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Buscar por nome, e-mail ou perfil"
+              placeholder="Buscar na equipe"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+        </div>
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th scope="col">Usuário</th>
+              <th scope="col">E-mail</th>
+              <th scope="col">Perfil de acesso</th>
+              <th scope="col" className={styles.actionsHeading}>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {visibleUsers.map((user) => (
+              <tr key={user.id} className={editingId === user.id ? styles.editingRow : undefined}>
+                <td data-label="Usuário">
+                  {editingId === user.id ? (
+                    <input
+                      className={styles.input}
+                      aria-label={`Nome de ${user.name || user.email || "usuário"}`}
+                      value={editForm.name}
+                      onChange={(event) => setEditForm({ ...editForm, name: event.target.value })}
+                    />
+                  ) : (
+                    <div className={styles.userIdentity}>
+                      <span className={styles.avatar} aria-hidden="true">
+                        {(user.name || user.email || "?").trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toLocaleUpperCase("pt-BR")}
+                      </span>
+                      <div>
+                        <strong>{user.name || "Sem nome"}</strong>
+                        {user.id === currentUserId && <span className={styles.selfBadge}>Você</span>}
+                      </div>
+                    </div>
+                  )}
+                </td>
+                <td data-label="E-mail" className={styles.emailCell}>
+                  {editingId === user.id ? (
+                    <input
+                      className={styles.input}
+                      type="email"
+                      aria-label={`E-mail de ${user.name || user.email || "usuário"}`}
+                      value={editForm.email}
+                      onChange={(event) => setEditForm({ ...editForm, email: event.target.value })}
+                    />
+                  ) : user.email || "Não informado"}
+                </td>
+                <td data-label="Perfil de acesso">
+                  {editingId === user.id ? (
+                    <select
+                      className={styles.input}
+                      aria-label={`Perfil de ${user.name || user.email || "usuário"}`}
+                      value={editForm.role}
+                      onChange={(event) => setEditForm({ ...editForm, role: event.target.value as UserRole })}
+                    >
+                      <option value="admin">Administrador</option>
+                      <option value="agent">Atendente</option>
+                      <option value="user">Usuário</option>
+                    </select>
+                  ) : (
+                    <div className={styles.roleCell}>
+                      <span className={`${styles.roleBadge} ${user.role === "admin" ? styles.adminBadge : ""}`}>
+                        {roleLabels[user.role] || user.role}
+                      </span>
+                      <small>{user.role === "admin" ? "Painel completo" : user.role === "agent" || user.role === "user" ? "Somente conversas" : "Perfil não reconhecido"}</small>
+                    </div>
+                  )}
+                </td>
+                <td data-label="Ações">
+                  <div className={styles.actions}>
+                    {currentUserRole === "admin" && (
+                      editingId === user.id ? (
+                        <>
+                          <button type="button" className={styles.saveButton} onClick={() => saveEdit(user.id)} disabled={loading}>
+                            <Check size={14} aria-hidden="true" />Salvar
+                          </button>
+                          <button type="button" className={styles.secondaryButton} onClick={cancelEdit} disabled={loading}>Cancelar</button>
+                        </>
+                      ) : (
+                        <>
+                          <button type="button" className={styles.secondaryButton} onClick={() => startEdit(user)} aria-label={`Editar ${user.name || user.email || "usuário"}`}>
+                            <Pencil size={13} aria-hidden="true" />Editar
+                          </button>
+                          <button type="button" className={styles.secondaryButton} onClick={() => resendPasswordLink(user)} disabled={sendingInviteId === user.id} aria-label={`Enviar link de senha para ${user.name || user.email || "usuário"}`}>
+                            <Mail size={13} aria-hidden="true" />{sendingInviteId === user.id ? "Enviando..." : "Enviar link"}
+                          </button>
+                          <button type="button" className={styles.deleteButton} onClick={() => deleteUser(user.id)} disabled={user.id === currentUserId} aria-label={`Excluir ${user.name || user.email || "usuário"}`} title={user.id === currentUserId ? "Você não pode excluir seu próprio usuário" : "Excluir usuário"}>
+                            <Trash2 size={14} aria-hidden="true" />
+                          </button>
+                        </>
+                      )
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {visibleUsers.length === 0 && (
+          <div className={styles.empty}>
+            <Users size={24} aria-hidden="true" />
+            <strong>{searchTerm ? "Nenhum usuário encontrado" : "Nenhum usuário cadastrado ainda"}</strong>
+            <p>{searchTerm ? "Tente buscar por outro nome, e-mail ou perfil." : "Adicione as pessoas que vão trabalhar no painel."}</p>
           </div>
         )}
-      </div>
+        {searchTerm && visibleUsers.length > 0 && (
+          <div className={styles.resultCount}>{visibleUsers.length} de {users.length} usuários</div>
+        )}
+      </section>
     </div>
   )
 }

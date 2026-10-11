@@ -7,6 +7,8 @@ import {
 } from "react"
 
 import Link from "next/link"
+import { AlertCircle, ArrowLeft, CheckCircle2, LoaderCircle, Save, Bot } from "lucide-react"
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 
 import {
   DEFAULT_STORE_SETTINGS,
@@ -418,7 +420,8 @@ export default function TextosBotPage() {
   if (loading) {
     return (
       <div className={styles.container}>
-        <div className={styles.loadingCard}>
+        <div className={styles.loadingCard} role="status">
+          <LoaderCircle size={18} className={styles.spinner} aria-hidden="true" />
           Carregando textos do bot...
         </div>
       </div>
@@ -433,10 +436,11 @@ export default function TextosBotPage() {
             href="/dashboard/configuracoes"
             className={styles.backLink}
           >
-            ← Voltar para configurações
+            <ArrowLeft size={13} aria-hidden="true" /> Voltar para configurações
           </Link>
 
           <h1>
+            <Bot size={24} aria-hidden="true" />
             Textos do bot
           </h1>
 
@@ -451,7 +455,11 @@ export default function TextosBotPage() {
           className={styles.saveButton}
           onClick={saveTexts}
           disabled={saving}
+          aria-busy={saving}
         >
+          {saving
+            ? <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" />
+            : <Save size={15} aria-hidden="true" />}
           {saving
             ? "Salvando..."
             : "Salvar textos"}
@@ -459,19 +467,32 @@ export default function TextosBotPage() {
       </div>
 
       {saved && (
-        <div className={styles.successAlert}>
+        <div className={styles.successAlert} role="status" aria-live="polite">
+          <CheckCircle2 size={16} aria-hidden="true" />
           Textos salvos com sucesso.
         </div>
       )}
 
       {error && (
-        <div className={styles.errorAlert}>
+        <div className={styles.errorAlert} role="alert">
+          <AlertCircle size={16} aria-hidden="true" />
           {error}
         </div>
       )}
 
       <div className={styles.layout}>
-        <aside className={styles.sidebar}>
+        <aside className={styles.sidebar} aria-label="Categorias de respostas">
+          <label className={styles.mobileCategories}>
+            <span>Categoria de resposta</span>
+            <select
+              value={activeKey}
+              onChange={(event) => setActiveKey(event.target.value as keyof BotTexts)}
+            >
+              {fields.map((field) => (
+                <option key={field.key} value={field.key}>{field.title}</option>
+              ))}
+            </select>
+          </label>
           <span className={styles.sidebarLabel}>
             Categorias
           </span>
@@ -480,6 +501,7 @@ export default function TextosBotPage() {
             <button
               key={field.key}
               type="button"
+              aria-pressed={activeKey === field.key}
               className={
                 activeKey === field.key
                   ? `${styles.navButton} ${styles.navButtonActive}`
@@ -593,6 +615,7 @@ export default function TextosBotPage() {
 
           <section className={styles.previewCard}>
             <span className={styles.previewLabel}>
+              <WhatsAppIcon size={14} aria-hidden="true" />
               Prévia da resposta
             </span>
 

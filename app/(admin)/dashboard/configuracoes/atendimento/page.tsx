@@ -7,6 +7,8 @@ import {
 } from "react"
 
 import Link from "next/link"
+import { AlertCircle, ArrowLeft, CheckCircle2, LoaderCircle, Save } from "lucide-react"
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 
 import {
   DEFAULT_STORE_SETTINGS,
@@ -359,7 +361,8 @@ export default function AtendimentoPage() {
   if (loading) {
     return (
       <div className={styles.container}>
-        <div className={styles.loadingCard}>
+        <div className={styles.loadingCard} role="status">
+          <LoaderCircle size={18} className={styles.spinner} aria-hidden="true" />
           Carregando atendimento e retirada...
         </div>
       </div>
@@ -374,10 +377,11 @@ export default function AtendimentoPage() {
             href="/dashboard/configuracoes"
             className={styles.backLink}
           >
-            ← Voltar para configurações
+            <ArrowLeft size={13} aria-hidden="true" /> Voltar para configurações
           </Link>
 
           <h1>
+            <WhatsAppIcon size={24} aria-hidden="true" />
             Atendimento e retirada
           </h1>
 
@@ -392,7 +396,11 @@ export default function AtendimentoPage() {
           className={styles.saveButton}
           onClick={saveSettings}
           disabled={saving}
+          aria-busy={saving}
         >
+          {saving
+            ? <LoaderCircle size={15} className={styles.spinner} aria-hidden="true" />
+            : <Save size={15} aria-hidden="true" />}
           {saving
             ? "Salvando..."
             : "Salvar atendimento"}
@@ -400,13 +408,15 @@ export default function AtendimentoPage() {
       </div>
 
       {saved && (
-        <div className={styles.successAlert}>
+        <div className={styles.successAlert} role="status" aria-live="polite">
+          <CheckCircle2 size={16} aria-hidden="true" />
           Configurações salvas com sucesso.
         </div>
       )}
 
       {error && (
-        <div className={styles.errorAlert}>
+        <div className={styles.errorAlert} role="alert">
+          <AlertCircle size={16} aria-hidden="true" />
           {error}
         </div>
       )}
@@ -604,7 +614,7 @@ export default function AtendimentoPage() {
             <div className={styles.gridTwo}>
               <label className={styles.field}>
                 <span>
-                  WhatsApp da excursão
+                  <WhatsAppIcon size={13} aria-hidden="true" /> WhatsApp da excursão
                 </span>
 
                 <input
@@ -796,6 +806,7 @@ export default function AtendimentoPage() {
         <aside className={styles.previewColumn}>
           <div className={styles.previewCard}>
             <span className={styles.previewLabel}>
+              <WhatsAppIcon size={14} aria-hidden="true" />
               Prévia
             </span>
 
@@ -810,6 +821,7 @@ export default function AtendimentoPage() {
 
           <div className={styles.previewCard}>
             <span className={styles.previewLabel}>
+              <WhatsAppIcon size={14} aria-hidden="true" />
               Prévia
             </span>
 

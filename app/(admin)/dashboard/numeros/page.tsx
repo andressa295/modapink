@@ -3,15 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import {
-  Link2,
   Plus,
   QrCode,
   RefreshCw,
   ShieldCheck,
-  Smartphone,
   Trash2,
   X
 } from "lucide-react"
+
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 
 import styles from "../styles/numeros.module.css"
 
@@ -197,41 +197,41 @@ function getStatusText(
     status === "ready" ||
     status === "connected"
   ) {
-    return "🟢 Online"
+    return "Online"
   }
 
   if (
     status === "initializing"
   ) {
-    return "🟡 Iniciando sessão"
+    return "Iniciando sessão"
   }
 
   if (
     status === "qr" ||
     status === "connecting"
   ) {
-    return "🟡 Aguardando QR Code"
+    return "Aguardando QR Code"
   }
 
   if (
     status === "authenticated"
   ) {
-    return "🟡 Autenticado, conectando..."
+    return "Autenticado, conectando..."
   }
 
   if (
     status === "auth_failure"
   ) {
-    return "🔴 Falha na autenticação"
+    return "Falha na autenticação"
   }
 
   if (
     status === "error"
   ) {
-    return "🔴 Erro na conexão"
+    return "Erro na conexão"
   }
 
-  return "🔴 Desconectado"
+  return "Desconectado"
 }
 
 function formatPhone(
@@ -348,6 +348,9 @@ export default function Numeros() {
 
   const sessionsRequestInFlightRef =
     useRef(false)
+
+  const connectButtonRef = useRef<HTMLButtonElement | null>(null)
+  const connectionDialogRef = useRef<HTMLDivElement | null>(null)
 
   const connectedIds =
     useMemo(
@@ -765,91 +768,85 @@ export default function Numeros() {
 
   }, [])
 
-  return (
+  useEffect(() => {
+    if (!showModal) return
+    const dialog = connectionDialogRef.current
+    if (!dialog) return
+    const trigger = connectButtonRef.current
+    if (!dialog.contains(document.activeElement)) dialog.focus()
 
-    <div
-      className={
-        styles["numbers-page"]
+    function handleDialogKeyDown(event: KeyboardEvent) {
+      if (!dialog) return
+      if (event.key === "Escape") {
+        event.preventDefault()
+        dialog.querySelector<HTMLButtonElement>("[data-close-modal]")?.click()
+        return
       }
-    >
+      if (event.key !== "Tab") return
+      const controls = Array.from(dialog.querySelectorAll<HTMLElement>(
+        "button:not(:disabled), select:not(:disabled), [tabindex='0']"
+      ))
+      const first = controls[0]
+      const last = controls[controls.length - 1]
+      const outsideControls = !controls.includes(document.activeElement as HTMLElement)
+      if (event.shiftKey && (document.activeElement === first || outsideControls)) {
+        event.preventDefault()
+        last?.focus()
+      } else if (!event.shiftKey && (document.activeElement === last || outsideControls)) {
+        event.preventDefault()
+        first?.focus()
+      }
+    }
 
-      {/* HEADER */}
-      <div
-        className={
-          styles["numbers-header"]
-        }
-      >
+    document.addEventListener("keydown", handleDialogKeyDown)
+    return () => {
+      document.removeEventListener("keydown", handleDialogKeyDown)
+      if (trigger?.isConnected) trigger.focus()
+    }
+  }, [showModal])
+
+  return (
+    <div className={styles["numbers-page"]}>
+      <header className={styles["numbers-header"]}>
         <div className={styles["header-copy"]}>
           <span className={styles["header-icon"]}>
-            <Link2 size={18} />
+            <WhatsAppIcon size={22} />
           </span>
-
           <div>
-            <span className={styles["header-eyebrow"]}>
-              Infraestrutura
-            </span>
-
-            <h1>
-              Conexões WhatsApp
-            </h1>
-
-            <p>
-              Acompanhe as sessões sem interromper os números já autenticados.
-            </p>
+            <span className={styles["header-eyebrow"]}>Canais da loja</span>
+            <h1>Conexões WhatsApp</h1>
+            <p>Acompanhe seus números e o estado de cada conexão.</p>
           </div>
         </div>
-
         <button
-          className={
-            styles["btn-add"]
-          }
-
+          type="button"
+          ref={connectButtonRef}
+          className={styles["btn-add"]}
           onClick={() => {
-
-            const nextSession =
-              idsPermitidos.find(
-                option =>
-                  !connectedIds.has(
-                    option.id
-                  )
-              )
-
-            setSessionId(
-              nextSession?.id ||
-                "principal"
+            const nextSession = idsPermitidos.find(
+              option => !connectedIds.has(option.id)
             )
-
+            setSessionId(nextSession?.id || "principal")
             setQr(null)
             setErrorMessage("")
-
             setShowModal(true)
           }}
-          disabled={
-            connectedIds.size >=
-              idsPermitidos.length
-          }
+          disabled={connectedIds.size >= idsPermitidos.length}
         >
-          <Plus size={15} />
-          {connectedIds.size >=
-          idsPermitidos.length
+          <Plus size={16} aria-hidden="true" />
+          {connectedIds.size >= idsPermitidos.length
             ? "Todas conectadas"
             : "Conectar número"}
-
         </button>
+      </header>
 
-      </div>
-
-      <div className={styles["connection-summary"]}>
+      <section className={styles["connection-summary"]} aria-label="Resumo das conexões">
         <div>
           <span className={styles["summary-icon"]}>
-            <ShieldCheck size={16} />
+            <ShieldCheck size={18} aria-hidden="true" />
           </span>
-
           <div>
-            <strong>
-              {connectedIds.size} de {idsPermitidos.length} sessões online
-            </strong>
-
+            <strong>{connectedIds.size} de {idsPermitidos.length} sessões online</strong>
             <span>
               {sessionsLoading
                 ? "Sincronizando conexões..."
@@ -857,305 +854,142 @@ export default function Numeros() {
             </span>
           </div>
         </div>
-
         <span className={styles["last-sync"]}>
-          <RefreshCw size={12} />
+          <RefreshCw size={12} aria-hidden="true" />
           {lastSyncAt
-            ? `Atualizado às ${lastSyncAt.toLocaleTimeString(
-                "pt-BR",
-                {
-                  hour: "2-digit",
-                  minute: "2-digit"
-                }
-              )}`
+            ? `Atualizado às ${lastSyncAt.toLocaleTimeString("pt-BR", {
+                hour: "2-digit",
+                minute: "2-digit"
+              })}`
             : "Aguardando atualização"}
         </span>
-      </div>
+      </section>
 
       {errorMessage && !showModal && (
-        <div className={styles["connection-alert"]}>
-          {errorMessage}
-        </div>
+        <div className={styles["connection-alert"]} role="alert">{errorMessage}</div>
       )}
 
-      {/* GRID */}
-      <div
-        className={
-          styles["numbers-grid"]
-        }
-      >
-
+      <div className={styles["numbers-grid"]} aria-busy={sessionsLoading}>
         {sessions.length === 0 && (
-
-          <div
-            className={
-              styles["empty-state"]
-            }
-          >
-
-            <Smartphone size={26} />
-
-            <strong>
-              Nenhum número conectado
-            </strong>
-
+          <div className={styles["empty-state"]}>
+            <span className={styles["empty-icon"]}><WhatsAppIcon size={28} /></span>
+            <strong>{sessionsLoading ? "Carregando conexões" : "Nenhum número conectado"}</strong>
             <p>
-              Conecte uma sessão para começar o atendimento.
+              {sessionsLoading
+                ? "Consultando o estado dos seus canais de atendimento."
+                : "Conecte uma sessão para começar o atendimento."}
             </p>
-
           </div>
         )}
 
-        {sessions.map((s) => (
-
-          <div
-            key={s.id}
-
-            className={
-              styles.card
-            }
-          >
-
-            {/* CARD HEADER */}
-            <div
-              className={
-                styles["card-header"]
-              }
-            >
-
-              <span
-                className={
-                  styles.badge
-                }
-            >
-
-                <Smartphone size={11} />
-                Sessão
-
-              </span>
-
-              <h3>
-                {getSessionName(s.id)}
-              </h3>
-
-            </div>
-
-            {/* CARD BODY */}
-            <div
-              className={
-                styles["card-body"]
-              }
-            >
-
-              <p
-                className={
-                  styles.phone
-                }
-              >
-
-                {formatPhone(s.phone)}
-
-              </p>
-
-              <div
-                className={`
-                  ${styles["status-indicator"]}
-                  ${getStatusClass(s.status)}
-                `}
-              >
-
-                <span>
-                  {getStatusText(s.status)}
-                </span>
-
+        {sessions.map(s => (
+          <article key={s.id} className={styles.card}>
+            <div className={styles["card-header"]}>
+              <span className={styles["card-icon"]}><WhatsAppIcon size={22} /></span>
+              <div>
+                <span className={styles.badge}>WhatsApp</span>
+                <h2>{getSessionName(s.id)}</h2>
               </div>
-
             </div>
-
-            {/* CARD FOOTER */}
-            <div
-              className={
-                styles["card-footer"]
-              }
-            >
-
+            <div className={styles["card-body"]}>
+              <span className={styles["phone-label"]}>Número vinculado</span>
+              <p className={styles.phone}>{formatPhone(s.phone)}</p>
+              <div className={`${styles["status-indicator"]} ${getStatusClass(s.status)}`}>
+                <span className={styles["status-dot"]} aria-hidden="true" />
+                <span>{getStatusText(s.status)}</span>
+              </div>
+            </div>
+            <div className={styles["card-footer"]}>
               <button
-                className={
-                  styles["btn-delete"]
-                }
-
-                onClick={() =>
-                  removeSession(
-                    s.id,
-                    s.rawId
-                  )
-                }
+                type="button"
+                className={styles["btn-delete"]}
+                aria-label={`Remover conexão de ${getSessionName(s.id)}`}
+                onClick={() => removeSession(s.id, s.rawId)}
               >
-                <Trash2 size={14} />
+                <Trash2 size={14} aria-hidden="true" />
                 Remover conexão
-
               </button>
-
             </div>
-
-          </div>
+          </article>
         ))}
-
       </div>
 
-      {/* MODAL */}
       {showModal && (
-
-        <div
-          className={
-            styles["modal-overlay"]
-          }
-        >
-
+        <div className={styles["modal-overlay"]}>
           <div
-            className={
-              styles["modal-content"]
-            }
+            className={styles["modal-content"]}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="connect-whatsapp-title"
+            aria-describedby="connect-whatsapp-description"
+            ref={connectionDialogRef}
+            tabIndex={-1}
           >
-
-            <h2>
-              Vincular aparelho
-            </h2>
-
-            <p>
-              Selecione quem será o dono desta conexão:
+            <span className={styles["modal-icon"]}><WhatsAppIcon size={26} /></span>
+            <span className={styles["header-eyebrow"]}>Nova conexão</span>
+            <h2 id="connect-whatsapp-title">Vincular aparelho</h2>
+            <p id="connect-whatsapp-description">
+              Escolha o canal e leia o QR Code no WhatsApp do celular.
             </p>
 
+            <label htmlFor="whatsapp-session" className={styles["select-label"]}>Canal de atendimento</label>
             <select
-
+              id="whatsapp-session"
+              autoFocus
               value={sessionId}
-
-              onChange={(e) =>
-                setSessionId(
-                  normalizeSessionId(
-                    e.target.value
-                  )
-                )
-              }
-
-              className={
-                styles["select-session"]
-              }
-
-              disabled={
-                loading ||
-                qr !== null
-              }
+              onChange={e => setSessionId(normalizeSessionId(e.target.value))}
+              className={styles["select-session"]}
+              disabled={loading || qr !== null}
             >
-
-              {idsPermitidos.map(
-                (opt) => (
-
-                  <option
-                    key={opt.id}
-                    value={opt.id}
-                    disabled={
-                      connectedIds.has(
-                        opt.id
-                      )
-                    }
-                  >
-
-                    {opt.nome}
-                    {connectedIds.has(opt.id)
-                      ? " — conectado"
-                      : ""}
-
-                  </option>
-                )
-              )}
-
+              {idsPermitidos.map(opt => (
+                <option key={opt.id} value={opt.id} disabled={connectedIds.has(opt.id)}>
+                  {opt.nome}{connectedIds.has(opt.id) ? " — conectado" : ""}
+                </option>
+              ))}
             </select>
 
             {!qr && (
-
-              <button
-
-                className={
-                  styles["btn-primary"]
-                }
-
-                onClick={
-                  createSession
-                }
-
-                disabled={loading}
-              >
-                <QrCode size={16} />
+              <button type="button" className={styles["btn-primary"]} onClick={createSession} disabled={loading}>
                 {loading
-                  ? "Preparando conexão..."
-                  : "Gerar QR Code"}
-
+                  ? <RefreshCw size={16} className={styles.spinner} aria-hidden="true" />
+                  : <QrCode size={16} aria-hidden="true" />}
+                {loading ? "Preparando conexão..." : "Gerar QR Code"}
               </button>
             )}
 
             {qr && (
-
-              <div
-                className={
-                  styles["qr-container"]
-                }
-              >
-
-                <img
-                  src={qr}
-                  alt="WhatsApp QR Code"
-                />
-
-                <p>
-                  No celular, abra WhatsApp, vá em Aparelhos conectados
-                  e toque em Conectar um aparelho.
-                </p>
-
-                <small>
-                  O código é atualizado automaticamente enquanto esta janela estiver aberta.
-                </small>
-
+              <div className={styles["qr-container"]}>
+                <img src={qr} width={256} height={256} alt={`QR Code para conectar ${getSessionName(sessionId)} ao WhatsApp`} />
+                <ol className={styles["qr-steps"]}>
+                  <li>Abra o WhatsApp no celular.</li>
+                  <li>Entre em <strong>Aparelhos conectados</strong>.</li>
+                  <li>Toque em <strong>Conectar um aparelho</strong> e leia o código.</li>
+                </ol>
+                <small>O código é atualizado automaticamente enquanto esta janela estiver aberta.</small>
               </div>
             )}
 
             {errorMessage && (
-              <div className={styles["modal-alert"]}>
-                {errorMessage}
-              </div>
+              <div className={styles["modal-alert"]} role="alert">{errorMessage}</div>
             )}
-
             <button
-
-              className={
-                styles["btn-close"]
-              }
-
+              type="button"
+              data-close-modal
+              className={styles["btn-close"]}
               onClick={() => {
-
                 clearAllIntervals()
-
                 setShowModal(false)
-
                 setQr(null)
-
                 setLoading(false)
-
-                setSessionId(
-                  "principal"
-                )
+                setSessionId("principal")
               }}
-              >
-              <X size={14} />
+            >
+              <X size={14} aria-hidden="true" />
               Fechar
-
             </button>
-
           </div>
-
         </div>
       )}
-
     </div>
   )
 }
