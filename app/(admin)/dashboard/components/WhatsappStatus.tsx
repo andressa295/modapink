@@ -1,8 +1,9 @@
 "use client"
 
 import Link from "next/link"
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 import { useEffect, useState } from "react"
-import { ArrowUpRight, Clock3, LoaderCircle, Phone, Wifi, WifiOff } from "lucide-react"
+import { ArrowUpRight, Clock3, LoaderCircle, Wifi, WifiOff } from "lucide-react"
 import styles from "./WhatsappStatus.module.css"
 
 type Status = "online" | "offline" | "connecting"
@@ -104,7 +105,7 @@ export default function WhatsappStatus() {
       </header>
 
       <div className={styles.connection}>
-        <span className={styles.connectionIcon}><Phone size={18} aria-hidden="true" /></span>
+        <span className={styles.connectionIcon}><WhatsAppIcon size={18} aria-hidden="true" /></span>
         <div>
           <strong>Atendimento automático 1</strong>
           <span>{connection?.phone || (loading ? "Carregando número…" : unavailable ? "Número indisponível" : "Sem número conectado")}</span>

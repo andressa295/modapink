@@ -1,11 +1,14 @@
+
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 import Link from "next/link"
 import { redirect } from "next/navigation"
-import { ArrowUpRight, MessageCircle } from "lucide-react"
+import { ArrowUpRight } from "lucide-react"
 import DashboardMetrics from "./components/DashboardMetrics"
 import ConversationsChart from "./components/ConversationsChart"
 import SalesFunnel from "./components/SalesFunnel"
 import RecentConversations from "./components/RecentConversations"
 import WhatsappStatus from "./components/WhatsappStatus"
+import CampaignOverview from "./components/CampaignOverview"
 import styles from "./styles/dashboard.module.css"
 import { createClient } from "@/lib/supabase/server"
 
@@ -23,7 +26,7 @@ export default async function Dashboard() {
           <p>Vendas, conversas e atendimento pelo WhatsApp.</p>
         </div>
         <Link href="/dashboard/conversas" className={styles.primaryAction}>
-          <MessageCircle size={16} aria-hidden="true" />
+          <WhatsAppIcon size={16} aria-hidden="true" />
           Abrir atendimento
           <ArrowUpRight size={15} aria-hidden="true" />
         </Link>
@@ -39,10 +42,12 @@ export default async function Dashboard() {
           <nav className={styles.shortcuts} aria-label="Atalhos da operação">
             <span className={styles.shortcutTitle}>ACESSO RÁPIDO</span>
             <Link href="/dashboard/conversas?tab=human">
+              <WhatsAppIcon size={17} className={styles.shortcutIcon} aria-hidden="true" />
               <span><strong>Atendimento manual</strong><small>Abra as conversas com o bot pausado</small></span>
               <ArrowUpRight size={16} aria-hidden="true" />
             </Link>
             <Link href="/dashboard/conversas?tab=sac">
+              <WhatsAppIcon size={17} className={styles.shortcutIcon} aria-hidden="true" />
               <span><strong>SAC e avaliações</strong><small>Atenda e finalize os chamados</small></span>
               <ArrowUpRight size={16} aria-hidden="true" />
             </Link>
@@ -50,6 +55,7 @@ export default async function Dashboard() {
         </aside>
       </div>
 
+      <CampaignOverview />
       <RecentConversations />
     </div>
   )

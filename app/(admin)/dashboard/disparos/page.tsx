@@ -17,13 +17,17 @@ import {
   Pause,
   Play,
   RotateCcw,
+  Save,
+  Send,
   Square,
   Trash2,
+  Users,
   Video
 } from "lucide-react"
 
 import styles from "../styles/disparos.module.css"
 import { createClient } from "@/lib/supabase/client"
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 
 const API = process.env.NEXT_PUBLIC_API_URL!
 
@@ -164,6 +168,19 @@ export default function DisparosPage() {
     useState(true)
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
+  const [statusFilter, setStatusFilter] =
+    useState<"all" | Exclude<CampaignStatus, "cancelled">>("all")
+
+  const campaignSummary = useMemo(() => ({
+    sent: campaigns.reduce((total, campaign) => total + campaign.sent_count, 0),
+    running: campaigns.filter(campaign => campaign.status === "running").length,
+    completed: campaigns.filter(campaign => campaign.status === "completed").length
+  }), [campaigns])
+
+  const visibleCampaigns = useMemo(
+    () => campaigns.filter(campaign => statusFilter === "all" || campaign.status === statusFilter),
+    [campaigns, statusFilter]
+  )
 
   const loadData = useCallback(async () => {
     try {
@@ -482,58 +499,71 @@ export default function DisparosPage() {
       <header className={styles.header}>
         <div>
           <span className={styles.eyebrow}>
-            <Megaphone size={17} /> Comunicação
+            COMUNICAÇÃO DA LOJA
           </span>
-          <h1>Disparos segmentados</h1>
+          <h1>Campanhas</h1>
           <p>
-            Envie novidades para quem já conversou com a Moda Pink,
-            com fila, intervalo e controle de pausa.
+            Crie mensagens, acompanhe os envios e mantenha o controle de cada campanha.
           </p>
         </div>
+        <span className={styles.headerContext}><Megaphone size={16} /> Disparos pelo WhatsApp</span>
+      </header>
 
-        <div className={styles.headerStats}>
+      <section className={styles.headerStats} aria-label="Resumo das campanhas">
           <div className={styles.contactCounter}>
-            <span>CONTATOS ELEGÍVEIS</span>
+            <div className={styles.statLabel}><span>Campanhas</span><Megaphone size={17} /></div>
+            <strong>{loadingList ? "—" : campaigns.length.toLocaleString("pt-BR")}</strong>
+            <small>{campaignSummary.running} em envio · {campaignSummary.completed} concluídas</small>
+          </div>
+
+          <div className={styles.contactCounter}>
+            <div className={styles.statLabel}><span>Mensagens enviadas</span><Send size={17} /></div>
+            <strong>{loadingList ? "—" : campaignSummary.sent.toLocaleString("pt-BR")}</strong>
+            <small>nas campanhas desta lista</small>
+          </div>
+
+          <div className={styles.contactCounter}>
+            <div className={styles.statLabel}><span>Contatos elegíveis</span><Users size={17} /></div>
             <strong>
-              {contactsCount === null ? "—" : contactsCount}
+              {contactsCount === null ? "—" : contactsCount.toLocaleString("pt-BR")}
             </strong>
             <small>público disponível para campanha</small>
           </div>
 
           <div className={styles.dailyLimitCard}>
-            <span className={styles.dailyLimitLabel}>
-              LIMITE DIÁRIO LIBERADO
-            </span>
+            <div className={styles.statLabel}><span>Limite diário</span><Clock3 size={17} /></div>
             <div className={styles.dailyLimitValue}>
               <strong>{dailyLimit}</strong>
-              <span>envios<br />por número</span>
+              <span>envios por número</span>
             </div>
-            <small>renova à meia-noite, horário de Brasília</small>
+            <small>renova à meia-noite · Brasília</small>
           </div>
-        </div>
-      </header>
+      </section>
 
       <section className={styles.safetyGrid}>
         <div>
-          <Clock3 size={20} />
+          <Clock3 size={16} />
           <span><strong>Horário:</strong> somente das 9h às 20h</span>
         </div>
         <div>
-          <Pause size={20} />
+          <Pause size={16} />
           <span><strong>Intervalo:</strong> aleatório de 45 a 90 segundos</span>
         </div>
         <div>
-          <AlertTriangle size={20} />
+          <AlertTriangle size={16} />
           <span><strong>Renovação:</strong> o limite reinicia à meia-noite</span>
         </div>
       </section>
+
+      {error && <div className={styles.error} role="alert">{error}</div>}
+      {notice && <div className={styles.notice} role="status">{notice}</div>}
 
       <div className={styles.columns}>
         <section className={styles.card}>
           <div className={styles.cardHeading}>
             <div>
               <h2>Nova campanha</h2>
-              <p>Primeiro salve como rascunho. Nada será enviado ainda.</p>
+              <p>Prepare a mensagem e salve para revisar antes de iniciar.</p>
             </div>
           </div>
 
@@ -582,8 +612,7 @@ export default function DisparosPage() {
               placeholder="Oi, {{nome}}! Chegaram novidades na Moda Pink 💗"
             />
             <small>
-              Use <code>{"{{nome}}"}</code> para chamar a cliente pelo primeiro nome.
-              {" "}{message.length}/1500
+              Use <code>{"{{nome}}"}</code> para personalizar. <span className={styles.characterCount}>{message.length}/1500</span>
             </small>
           </label>
 
@@ -636,7 +665,7 @@ export default function DisparosPage() {
 
           {(preview || mediaPreview) && (
             <div className={styles.preview}>
-              <span>Prévia da mensagem</span>
+              <span><WhatsAppIcon size={14} aria-hidden="true" /> Prévia da mensagem</span>
               {preview && (
                 <p>{`${preview}\n\nSe não quiser receber novidades, responda SAIR.`}</p>
               )}
@@ -650,36 +679,46 @@ export default function DisparosPage() {
 
           <button
             className={styles.primaryButton}
+            type="button"
             onClick={createDraft}
             disabled={loading}
           >
-            Salvar rascunho
+            <Save size={16} /> {loading ? "Aguarde…" : "Salvar rascunho"}
           </button>
         </section>
 
         <section className={styles.card}>
           <div className={styles.cardHeading}>
             <div>
-              <h2>Campanhas</h2>
-              <p>Acompanhe o progresso e interrompa quando precisar.</p>
+              <h2>Suas campanhas <span className={styles.listCount}>{visibleCampaigns.length}</span></h2>
+              <p>Últimas 50 campanhas. Canceladas são removidas desta lista.</p>
             </div>
+            <label className={styles.statusFilter}>
+              <span className={styles.srOnly}>Filtrar campanhas por status</span>
+              <select value={statusFilter} onChange={event => setStatusFilter(event.target.value as typeof statusFilter)}>
+                <option value="all">Todos os status</option>
+                <option value="draft">Rascunhos</option>
+                <option value="running">Em envio</option>
+                <option value="paused">Pausadas</option>
+                <option value="completed">Concluídas</option>
+              </select>
+            </label>
           </div>
-
-          {error && <div className={styles.error}>{error}</div>}
-          {notice && <div className={styles.notice}>{notice}</div>}
 
           {loadingList ? (
             <p className={styles.empty}>Carregando campanhas...</p>
           ) : campaigns.length === 0 ? (
-            <p className={styles.empty}>Nenhuma campanha criada ainda.</p>
+            <div className={styles.empty}><Megaphone size={25} /><strong>Sua primeira campanha começa aqui</strong><p>Prepare a mensagem no formulário e salve um rascunho.</p></div>
+          ) : visibleCampaigns.length === 0 ? (
+            <div className={styles.empty}><Megaphone size={25} /><strong>Nenhuma campanha neste status</strong><p>Escolha outro status para visualizar as campanhas.</p></div>
           ) : (
             <div className={styles.campaignList}>
-              {campaigns.map(campaign => {
+              {visibleCampaigns.map(campaign => {
                 const progress = campaign.total_count
-                  ? Math.round(
+                  ? Math.min(100, Math.max(0, Math.round(
                       ((campaign.sent_count + campaign.failed_count + campaign.skipped_count) /
                         campaign.total_count) * 100
-                    )
+                    )))
                   : 0
 
                 return (
@@ -687,7 +726,7 @@ export default function DisparosPage() {
                     <div className={styles.campaignTop}>
                       <div>
                         <h3>{campaign.name}</h3>
-                        <span>{getSessionLabel(campaign.session_key)}</span>
+                        <span className={styles.campaignChannel}><WhatsAppIcon size={13} aria-hidden="true" /> {getSessionLabel(campaign.session_key)}</span>
                       </div>
                       <span className={`${styles.status} ${styles[campaign.status]}`}>
                         {STATUS_LABEL[campaign.status]}
@@ -706,6 +745,7 @@ export default function DisparosPage() {
                           <img
                             src={campaign.media_url}
                             alt={campaign.media_filename || campaign.name}
+                            loading="lazy"
                           />
                         )}
                         <span>
@@ -723,14 +763,15 @@ export default function DisparosPage() {
                       <p className={styles.campaignMessage}>{campaign.message}</p>
                     )}
 
-                    <div className={styles.progressTrack}>
+                    <div className={styles.progressHeading}><span>Progresso da fila</span><strong>{progress}%</strong></div>
+                    <div className={styles.progressTrack} role="progressbar" aria-label={`Progresso de ${campaign.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
                       <span style={{ width: `${progress}%` }} />
                     </div>
                     <div className={styles.metrics}>
-                      <span>{campaign.sent_count} enviadas</span>
-                      <span>{campaign.failed_count} falhas</span>
-                      <span>{campaign.skipped_count} ignoradas</span>
-                      <strong>{campaign.total_count || "—"} total</strong>
+                      <span><strong>{campaign.sent_count}</strong> enviadas</span>
+                      <span><strong>{campaign.failed_count}</strong> falhas</span>
+                      <span><strong>{campaign.skipped_count}</strong> ignoradas</span>
+                      <span><strong>{campaign.total_count || "—"}</strong> total</span>
                     </div>
 
                     <div className={styles.actions}>

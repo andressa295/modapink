@@ -1,8 +1,10 @@
 "use client"
 
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
+
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { ArrowUpRight, MessageCircle } from "lucide-react"
+import { ArrowUpRight } from "lucide-react"
 import styles from "./RecentConversations.module.css"
 import { createClient } from "@/lib/supabase/client"
 
@@ -121,7 +123,7 @@ export default function RecentConversations() {
           <h2>Últimas conversas</h2>
         </div>
         <Link href="/dashboard/conversas" className={styles.viewAll}>
-          Abrir atendimento<ArrowUpRight size={14} aria-hidden="true" />
+          <WhatsAppIcon size={15} aria-hidden="true" />Abrir atendimento<ArrowUpRight size={14} aria-hidden="true" />
         </Link>
       </header>
 
@@ -135,7 +137,7 @@ export default function RecentConversations() {
 
         {!loading && !unavailable && conversations.length === 0 && (
           <div className={styles.empty}>
-            <MessageCircle size={22} aria-hidden="true" />
+            <WhatsAppIcon size={22} aria-hidden="true" />
             <strong>Nenhuma conversa por enquanto</strong>
             <span>As próximas interações do WhatsApp aparecerão aqui.</span>
           </div>

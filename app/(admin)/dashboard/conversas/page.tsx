@@ -1,10 +1,12 @@
 "use client"
 
+import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
+
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import {
   ArrowLeft,
-  MessageCircle,
+  ChevronDown,
   Search,
   SendHorizontal,
   Paperclip,
@@ -110,17 +112,17 @@ const chatTabs: ChatTab[] = [
   },
   {
     id: "human",
-    nome: "Intervenções humanas",
+    nome: "Atendimento manual",
     short: "Humanos"
   },
   {
     id: "principal",
-    nome: "Atendimento automático 1",
+    nome: "Atendimento 1 · IA",
     short: "Atend. Auto 1"
   },
   {
     id: "vendedora_1",
-    nome: "Atendimento automático 2",
+    nome: "Atendimento 2 · IA",
     short: "Atend. Auto 2"
   },
   {
@@ -3230,7 +3232,7 @@ export default function Conversas() {
         >
           <div className={styles["sidebar-title-group"]}>
             <span className={styles["sidebar-title-icon"]}>
-              <MessageCircle size={17} />
+              <WhatsAppIcon size={17} />
             </span>
 
             <div>
@@ -3269,43 +3271,23 @@ export default function Conversas() {
           )}
         </label>
 
-        {/* ABAS */}
-        <div
-          aria-label="Filtrar por canal de atendimento"
-          className={
-            styles["vendedoras-tabs"]
-          }
-        >
-          {chatTabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`
-                ${styles["tab-button"]}
-                ${
-                  activeTab === tab.id
-                    ? styles["tab-active"]
-                    : ""
-                }
-                ${
-                  tab.id === "human"
-                    ? styles["tab-human"]
-                    : ""
-                }
-              `}
-              onClick={() =>
-                changeTab(tab.id)
-              }
-              type="button"
-              aria-pressed={activeTab === tab.id}
-              title={tab.nome}
+        <label className={styles["channel-picker"]}>
+          <span>Canal de atendimento</span>
+          <div className={styles["channel-select-wrap"]}>
+            <WhatsAppIcon size={16} className={styles["channel-select-icon"]} aria-hidden="true" />
+            <select
+              value={activeTab}
+              onChange={event => changeTab(event.target.value as TabId)}
+              aria-label="Canal de atendimento"
+              className={styles["channel-select"]}
             >
-              <span>
-                {tab.short}
-              </span>
-
-            </button>
-          ))}
-        </div>
+              {chatTabs.map(tab => (
+                <option key={tab.id} value={tab.id}>{tab.nome}</option>
+              ))}
+            </select>
+            <ChevronDown size={15} className={styles["channel-select-chevron"]} aria-hidden="true" />
+          </div>
+        </label>
 
         <div className={styles["conversation-list-heading"]}>
           <span>{chatTabs.find(tab => tab.id === activeTab)?.nome}</span>
@@ -3840,7 +3822,7 @@ export default function Conversas() {
                 styles["empty-icon"]
               }
             >
-              <MessageCircle size={30} />
+              <WhatsAppIcon size={30} />
             </div>
 
             <h3>
@@ -3852,7 +3834,7 @@ export default function Conversas() {
             </p>
             <div className={styles["empty-tips"]}>
               <span><Search size={15} aria-hidden="true" /> Busque por nome, telefone ou mensagem</span>
-              <span><MessageCircle size={15} aria-hidden="true" /> Filtre pelos canais de atendimento</span>
+              <span><WhatsAppIcon size={15} aria-hidden="true" /> Filtre pelos canais de atendimento</span>
             </div>
           </div>
         )}
