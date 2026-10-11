@@ -1,263 +1,130 @@
 "use client"
 
-import {
-  useEffect,
-  useRef,
-  useState
-} from "react"
-
-import {
-  Activity,
-  Clock3,
-  LoaderCircle,
-  Phone,
-  Wifi,
-  WifiOff
-} from "lucide-react"
-
+import Link from "next/link"
+import { useEffect, useState } from "react"
+import { ArrowUpRight, Clock3, LoaderCircle, Phone, Wifi, WifiOff } from "lucide-react"
 import styles from "./WhatsappStatus.module.css"
 
-type Status =
-  | "online"
-  | "offline"
-  | "connecting"
-
+type Status = "online" | "offline" | "connecting"
 type StatusResponse = {
   status?: string
   phone?: string | null
   lastSeen?: string | null
 }
 
-function normalizeStatus(
-  value?: string | null
-): Status {
-  const clean =
-    String(value || "")
-      .toLowerCase()
-      .trim()
-
-  if (
-    clean === "online" ||
-    clean === "ready" ||
-    clean === "connected"
-  ) {
-    return "online"
-  }
-
-  if (
-    clean === "connecting" ||
-    clean === "initializing" ||
-    clean === "authenticated" ||
-    clean === "qr"
-  ) {
-    return "connecting"
-  }
-
+function normalizeStatus(value: string): Status {
+  const clean = value.toLowerCase().trim()
+  if (["online", "ready", "connected"].includes(clean)) return "online"
+  if (["connecting", "initializing", "authenticated", "qr"].includes(clean)) return "connecting"
   return "offline"
 }
 
+function formatLastSeen(value?: string | null) {
+  if (!value) return "—"
+  const timestamp = new Date(value).getTime()
+  if (!Number.isFinite(timestamp)) return "—"
+  const diff = Math.max(0, Math.floor((Date.now() - timestamp) / 60000))
+  if (diff < 1) return "agora"
+  if (diff < 60) return diff + " min atrás"
+  if (diff < 1440) return Math.floor(diff / 60) + "h atrás"
+  return Math.floor(diff / 1440) + "d atrás"
+}
+
 export default function WhatsappStatus() {
-  const requestInFlightRef =
-    useRef(false)
-
-  const consecutiveFailuresRef =
-    useRef(0)
-
-  const [mounted, setMounted] = useState(false)
-
   const [loading, setLoading] = useState(true)
-
-  const [status, setStatus] = useState<Status>("connecting")
-
-  const [phone, setPhone] = useState("Não conectado")
-
-  const [lastSeen, setLastSeen] = useState("—")
+  const [unavailable, setUnavailable] = useState(false)
+  const [connection, setConnection] = useState<StatusResponse | null>(null)
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) {
-      return
-    }
+    let active = true
+    let requestInFlight = false
+    let controller: AbortController | null = null
 
     async function loadStatus() {
-      if (requestInFlightRef.current) {
-        return
-      }
-
-      requestInFlightRef.current = true
+      if (requestInFlight || document.visibilityState === "hidden") return
+      requestInFlight = true
+      controller = new AbortController()
+      const timeout = window.setTimeout(() => controller?.abort(), 12000)
 
       try {
-        const res = await fetch(
-          "https://api.modapink.phand.com.br/status",
-          {
-            cache: "no-store"
-          }
-        )
-
-        if (!res.ok) {
-          throw new Error("Erro ao buscar status")
-        }
-
-        const data: StatusResponse = await res.json()
-
-        consecutiveFailuresRef.current = 0
-
-        setStatus(
-          normalizeStatus(data.status)
-        )
-
-        setPhone(data.phone || "Não conectado")
-
-        if (!data.lastSeen) {
-          setLastSeen("—")
-        } else {
-          const date = new Date(data.lastSeen)
-
-          const diff = Math.floor(
-            (Date.now() - date.getTime()) / 60000
-          )
-
-          if (diff < 1) {
-            setLastSeen("agora")
-          } else if (diff < 60) {
-            setLastSeen(`${diff} min atrás`)
-          } else {
-            setLastSeen(`${Math.floor(diff / 60)}h atrás`)
-          }
-        }
-      } catch (err) {
-        console.error("Erro ao buscar status do WhatsApp:", err)
-
-        consecutiveFailuresRef.current += 1
-
-        if (
-          consecutiveFailuresRef.current >= 3
-        ) {
-          setStatus("offline")
+        const response = await fetch("https://api.modapink.phand.com.br/status", {
+          cache: "no-store",
+          signal: controller.signal
+        })
+        if (!response.ok) throw new Error("Status do WhatsApp indisponível")
+        const result: StatusResponse = await response.json()
+        if (!result.status) throw new Error("Resposta de status inválida")
+        if (!active) return
+        setConnection(result)
+        setUnavailable(false)
+      } catch (error) {
+        if (active) {
+          console.warn("Não foi possível consultar a conexão do WhatsApp:", error)
+          setUnavailable(true)
         }
       } finally {
-        requestInFlightRef.current = false
-        setLoading(false)
+        window.clearTimeout(timeout)
+        requestInFlight = false
+        if (active) setLoading(false)
       }
     }
 
-    loadStatus()
-
-    const interval = window.setInterval(
-      loadStatus,
-      5000
-    )
+    void loadStatus()
+    const interval = window.setInterval(() => void loadStatus(), 15000)
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") void loadStatus()
+    }
+    document.addEventListener("visibilitychange", onVisibility)
 
     return () => {
-      requestInFlightRef.current = false
+      active = false
+      controller?.abort()
       window.clearInterval(interval)
+      document.removeEventListener("visibilitychange", onVisibility)
     }
-  }, [mounted])
+  }, [])
 
-  if (!mounted) {
-    return null
-  }
-
-  const statusText = {
-    online: "Online",
-    offline: "Offline",
-    connecting: "Conectando"
-  }
-
-  const StatusIcon =
-    status === "online"
-      ? Wifi
-      : status === "offline"
-        ? WifiOff
-        : LoaderCircle
+  const status = connection?.status ? normalizeStatus(connection.status) : "connecting"
+  const statusText = { online: "Conectado", offline: "Desconectado", connecting: "Conectando" }
+  const StatusIcon = unavailable ? WifiOff : status === "online" ? Wifi : status === "offline" ? WifiOff : LoaderCircle
+  const label = loading ? "Verificando" : unavailable ? "Consulta indisponível" : statusText[status]
+  const statusClass = unavailable ? styles.unavailable : styles[status]
 
   return (
-    <article className={styles["dashboard-card"]}>
-      <div className={styles["card-glow"]} />
-
-      <header className={styles["card-header"]}>
-        <div className={styles["card-title-group"]}>
-          <span className={styles["card-icon"]}>
-            <Activity size={17} />
-          </span>
-
-          <div>
-            <span className={styles["card-kicker"]}>
-              Conexão
-            </span>
-
-            <h3>
-              Status do WhatsApp
-            </h3>
-          </div>
+    <article className={styles.card} aria-busy={loading}>
+      <header className={styles.header}>
+        <div>
+          <span className={styles.eyebrow}>Conexão</span>
+          <h2>WhatsApp</h2>
         </div>
-
-        {!loading && (
-          <span
-            className={`
-              ${styles["status-badge"]}
-              ${styles[status]}
-            `}
-          >
-            <StatusIcon
-              size={13}
-              className={
-                status === "connecting"
-                  ? styles["spin-icon"]
-                  : undefined
-              }
-            />
-
-            {statusText[status]}
-          </span>
-        )}
+        <span className={styles.badge + " " + statusClass} role="status">
+          <StatusIcon size={12} aria-hidden="true" className={!unavailable && status === "connecting" ? styles.spin : undefined} />
+          {label}
+        </span>
       </header>
 
-      <div className={styles["status-box"]}>
-        <div
-          className={`
-            ${styles["status-indicator"]}
-            ${styles[status]}
-          `}
-        />
-
+      <div className={styles.connection}>
+        <span className={styles.connectionIcon}><Phone size={18} aria-hidden="true" /></span>
         <div>
-          <span className={styles["status-label"]}>
-            {loading ? "Carregando..." : statusText[status]}
-          </span>
-
-          <small>
-            Monitoramento do Atendimento automático 1
-          </small>
+          <strong>Atendimento automático 1</strong>
+          <span>{connection?.phone || (loading ? "Carregando número…" : unavailable ? "Número indisponível" : "Sem número conectado")}</span>
         </div>
       </div>
 
-      <div className={styles["info-list"]}>
-        <div className={styles["info-item"]}>
-          <span className={styles["info-icon"]}>
-            <Phone size={15} />
-          </span>
-
-          <div>
-            <small>Número conectado</small>
-            <strong>{phone}</strong>
-          </div>
-        </div>
-
-        <div className={styles["info-item"]}>
-          <span className={styles["info-icon"]}>
-            <Clock3 size={15} />
-          </span>
-
-          <div>
-            <small>Última atividade</small>
-            <strong>{lastSeen}</strong>
-          </div>
-        </div>
+      <div className={styles.lastActivity}>
+        <span><Clock3 size={13} aria-hidden="true" />Última atividade</span>
+        <strong>{formatLastSeen(connection?.lastSeen)}</strong>
       </div>
+
+      {unavailable && (
+        <p className={styles.notice}>
+          {connection ? "A consulta falhou. Os dados exibidos são da última atualização." : "Não foi possível confirmar a conexão. Tentaremos novamente em instantes."}
+        </p>
+      )}
+
+      <Link href="/dashboard/numeros" className={styles.manage}>
+        Gerenciar números<ArrowUpRight size={14} aria-hidden="true" />
+      </Link>
     </article>
   )
 }
