@@ -7,6 +7,7 @@ import {
   buildDailyActivity, getDateRange, listDays,
   type PeriodId, type MetricId, type MessageRow,
 } from "@/lib/dashboard-activity"
+import { buildChartGeometry } from "@/lib/dashboard-chart"
 import styles from "./ConversationsChart.module.css"
 
 const periods: { id: PeriodId; label: string }[] = [
@@ -57,6 +58,8 @@ function formatNumber(value: number) { return new Intl.NumberFormat("pt-BR").for
 export default function ConversationsChart() {
   const chartId = useId().replace(/:/g, "")
   const requestSequence = useRef(0)
+  const graphRef = useRef<HTMLDivElement>(null)
+  const [graphWidth, setGraphWidth] = useState(680)
   const [period, setPeriod] = useState<PeriodId>("7d")
   const [metric, setMetric] = useState<MetricId>("conversations")
   const [refreshKey, setRefreshKey] = useState(0)
@@ -67,6 +70,23 @@ export default function ConversationsChart() {
   const [hovered, setHovered] = useState<number | null>(null)
   const [showTable, setShowTable] = useState(false)
   const selected = metrics.find(item => item.id === metric) || metrics[0]
+
+  useEffect(() => {
+    const graph = graphRef.current
+    if (!graph) return
+    const measure = () => {
+      const width = graph.getBoundingClientRect().width
+      if (width > 0) setGraphWidth(width)
+    }
+    measure()
+    if (typeof ResizeObserver !== "undefined") {
+      const observer = new ResizeObserver(measure)
+      observer.observe(graph)
+      return () => observer.disconnect()
+    }
+    window.addEventListener("resize", measure)
+    return () => window.removeEventListener("resize", measure)
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -103,18 +123,12 @@ export default function ConversationsChart() {
 
   const total = useMemo(() => data.reduce((sum, item) => sum + item.value, 0), [data])
   const bestDay = useMemo(() => data.length && total > 0 ? data.reduce((best, item) => item.value > best.value ? item : best, data[0]) : null, [data, total])
-  const maximum = Math.max(1, ...data.map(item => item.value))
-  const scale = Math.max(4, Math.ceil(maximum / 4) * 4)
-  const width = 680, height = 180, left = 42, right = 16, top = 14, bottom = 14
-  const plotHeight = height - top - bottom
-  const points = data.map((item, index) => ({
-    x: left + index / Math.max(1, data.length - 1) * (width - left - right),
-    y: top + (1 - item.value / scale) * plotHeight,
-  }))
+  const geometry = useMemo(() => buildChartGeometry(graphWidth, data.map(item => item.value)), [graphWidth, data])
+  const { width, height, left, right, top, bottom, points, ticks, xTickIndexes } = geometry
   const linePath = points.map((point, index) => `${index ? "L" : "M"} ${point.x} ${point.y}`).join(" ")
   const areaPath = points.length ? `${linePath} L ${points[points.length - 1].x} ${height - bottom} L ${points[0].x} ${height - bottom} Z` : ""
   const activeIndex = hovered !== null && data[hovered] ? hovered : null
-  const tickStep = Math.max(1, Math.ceil((data.length - 1) / 6))
+  const tooltipInset = Math.min(width / 2, 116)
 
   return (
     <section className={styles.card} aria-label="Atividade comercial pelo WhatsApp" aria-busy={loading}>
@@ -147,27 +161,24 @@ export default function ConversationsChart() {
         </div>
       </div>
       {error && <div className={styles.error} role="status"><span>{hasData ? "Atualização indisponível. Exibindo a última consulta." : "Não foi possível carregar este indicador."}</span><button type="button" onClick={() => setRefreshKey(key => key + 1)}><RefreshCw size={12} aria-hidden="true" />Tentar novamente</button></div>}
-      <div className={styles.graph}>
+      <div ref={graphRef} className={styles.graph}>
         {loading ? <div className={styles.loading} role="status">Carregando atividade…</div> : !hasData ? <div className={styles.empty}>O gráfico estará disponível quando a consulta for concluída.</div> : (
           <>
-            <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${chartId}-title ${chartId}-description`} preserveAspectRatio="none" className={styles.svg}>
+            <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-labelledby={`${chartId}-title ${chartId}-description`} preserveAspectRatio="xMinYMin meet" className={styles.svg}>
               <title id={`${chartId}-title`}>{selected.description}</title>
               <desc id={`${chartId}-description`}>{total} no período. Os valores de cada dia estão disponíveis abaixo do gráfico.</desc>
-              {[0, 1, 2, 3, 4].map(step => {
-                const y = top + step / 4 * plotHeight
-                return <g key={step}><line x1={left} x2={width - right} y1={y} y2={y} className={styles.gridLine} /><text x={left - 10} y={y + 4} textAnchor="end" className={styles.axisText}>{formatNumber(scale * (1 - step / 4))}</text></g>
-              })}
+              {ticks.map(({ value, y }) => <g key={value}><line x1={left} x2={width - right} y1={y} y2={y} className={styles.gridLine} /><text x={left - 10} y={y + 4} textAnchor="end" className={styles.axisText}>{formatNumber(value)}</text></g>)}
               <path d={areaPath} className={styles.area} />
               <path d={linePath} className={styles.line} />
               {activeIndex !== null && <line x1={points[activeIndex].x} x2={points[activeIndex].x} y1={top} y2={height - bottom} className={styles.crosshair} />}
-              {points.map((point, index) => <circle key={data[index].date} cx={point.x} cy={point.y} r={activeIndex === index ? 5 : data.length <= 7 ? 3 : 0} className={styles.point} />)}
+              {points.map((point, index) => <circle key={data[index].date} cx={point.x} cy={point.y} r={activeIndex === index ? 4 : data.length <= 7 ? 2.5 : 0} className={styles.point} />)}
             </svg>
-            <div className={styles.hitAreas} style={{ gridTemplateColumns: `repeat(${data.length}, minmax(0, 1fr))` }}>
-              {data.map((item, index) => <button key={item.date} type="button" aria-label={`${item.fullLabel}: ${item.value} ${selected.label.toLowerCase()}`} onMouseEnter={() => setHovered(index)} onMouseLeave={() => setHovered(null)} onFocus={() => setHovered(index)} onBlur={() => setHovered(null)} onClick={() => setHovered(index)} />)}
+            <div className={styles.hitAreas}>
+              {data.map((item, index) => <button key={item.date} type="button" style={{ left: `${points[index].hitLeft / width * 100}%`, width: `${points[index].hitWidth / width * 100}%` }} aria-label={`${item.fullLabel}: ${item.value} ${selected.label.toLowerCase()}`} onMouseEnter={() => setHovered(index)} onMouseLeave={() => setHovered(null)} onFocus={() => setHovered(index)} onBlur={() => setHovered(null)} onClick={() => setHovered(index)} />)}
             </div>
-            {activeIndex !== null && <div className={styles.tooltip} style={{ left: `${Math.min(85, Math.max(15, points[activeIndex].x / width * 100))}%` }} role="status"><span>{data[activeIndex].fullLabel}</span><strong>{formatNumber(data[activeIndex].value)} {selected.label.toLowerCase()}</strong></div>}
+            {activeIndex !== null && <div className={styles.tooltip} style={{ left: Math.min(width - tooltipInset, Math.max(tooltipInset, points[activeIndex].x)) }} role="status"><span>{data[activeIndex].fullLabel}</span><strong>{formatNumber(data[activeIndex].value)} {selected.label.toLowerCase()}</strong></div>}
             <div className={styles.xAxis} aria-hidden="true">
-              {data.map((item, index) => <span key={item.date} style={{ left: `${points[index].x / width * 100}%` }}>{index === 0 || index === data.length - 1 || (index % tickStep === 0 && index < data.length - 2) ? item.label : ""}</span>)}
+              {xTickIndexes.map(index => <span key={data[index].date} style={{ left: `${points[index].x / width * 100}%` }}>{data[index].label}</span>)}
             </div>
             {total === 0 && <span className={styles.zeroLabel}>Sem atividade neste indicador no período.</span>}
           </>

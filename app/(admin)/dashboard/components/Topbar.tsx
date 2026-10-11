@@ -1,229 +1,88 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-
+import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
+import { Clock3 } from "lucide-react"
+import type { DashboardRole } from "@/lib/dashboard-access"
+import { createClient } from "@/lib/supabase/client"
+import MobileNav from "./layout/MobileNav"
 import styles from "./styles/topbar.module.css"
 
-import type { DashboardRole } from "@/lib/dashboard-access"
-
-import { createClient } from "@/lib/supabase/client"
-
-import { usePathname } from "next/navigation"
-
-import {
-  CalendarDays,
-  Clock3,
-  Sparkles
-} from "lucide-react"
-
-// MOBILE
-import MobileNav from "./layout/MobileNav"
+const pageNames = [
+  ["/dashboard/conversas", "Atendimento"],
+  ["/dashboard/disparos", "Campanhas"],
+  ["/dashboard/instagram", "Instagram"],
+  ["/dashboard/numeros", "Números"],
+  ["/dashboard/usuarios", "Usuários"],
+  ["/dashboard/pedidos", "Pedidos"],
+  ["/dashboard/relatorios", "Relatórios"],
+  ["/dashboard/configuracoes", "Configurações"],
+] as const
 
 export default function Topbar({ role }: { role: DashboardRole }) {
-  const [time, setTime] = useState("")
-  const [date, setDate] = useState("")
-  const [greeting, setGreeting] = useState("Olá")
+  const [clock, setClock] = useState({ time: "", date: "", greeting: "Olá" })
   const [userName, setUserName] = useState("Usuário")
-
   const pathname = usePathname()
+  const pageTitle = pageNames.find(([path]) => pathname === path || pathname.startsWith(`${path}/`))?.[1] || "Visão geral"
+  const userInitial = userName.trim().charAt(0).toUpperCase() || "U"
 
-  const pageTitle = useMemo(() => {
-    if (pathname === "/dashboard") {
-      return "Dashboard"
-    }
-
-    if (pathname?.startsWith("/dashboard/conversas")) {
-      return "WhatsApp"
-    }
-
-    if (pathname?.startsWith("/dashboard/instagram")) {
-      return "Instagram"
-    }
-
-    if (pathname?.startsWith("/dashboard/numeros")) {
-      return "Números"
-    }
-
-    if (pathname?.startsWith("/dashboard/usuarios")) {
-      return "Usuários"
-    }
-
-    if (pathname?.startsWith("/dashboard/pedidos")) {
-      return "Pedidos"
-    }
-
-    if (pathname?.startsWith("/dashboard/relatorios")) {
-      return "Relatórios"
-    }
-
-    if (pathname?.startsWith("/dashboard/configuracoes")) {
-      return "Configurações"
-    }
-
-    return "Dashboard"
-  }, [pathname])
-
-  const userInitial = useMemo(() => {
-    return (
-      userName
-        ?.trim()
-        ?.charAt(0)
-        ?.toUpperCase() || "U"
-    )
-  }, [userName])
-
-  // ======================
-  // CLOCK
-  // ======================
   useEffect(() => {
     const updateClock = () => {
       const now = new Date()
-
-      const formattedTime = now.toLocaleTimeString(
-        "pt-BR",
-        {
-          hour: "2-digit",
-          minute: "2-digit"
-        }
-      )
-
-      const formattedDate = now.toLocaleDateString(
-        "pt-BR",
-        {
-          weekday: "long",
-          day: "numeric",
-          month: "long"
-        }
-      )
-
-      const hour = now.getHours()
-
-      let nextGreeting = "Boa noite"
-
-      if (hour >= 5 && hour < 12) {
-        nextGreeting = "Bom dia"
-      } else if (hour >= 12 && hour < 18) {
-        nextGreeting = "Boa tarde"
-      }
-
-      setTime(formattedTime)
-      setDate(formattedDate)
-      setGreeting(nextGreeting)
+      const options = { timeZone: "America/Sao_Paulo" }
+      const hour = Number(new Intl.DateTimeFormat("pt-BR", { ...options, hour: "numeric", hourCycle: "h23" }).format(now))
+      setClock({
+        time: now.toLocaleTimeString("pt-BR", { ...options, hour: "2-digit", minute: "2-digit" }),
+        date: now.toLocaleDateString("pt-BR", { ...options, weekday: "short", day: "numeric", month: "short" }),
+        greeting: hour >= 5 && hour < 12 ? "Bom dia" : hour >= 12 && hour < 18 ? "Boa tarde" : "Boa noite",
+      })
     }
-
-    updateClock()
-
-    const interval = setInterval(
-      updateClock,
-      1000
-    )
-
-    return () => clearInterval(interval)
+    const frame = requestAnimationFrame(updateClock)
+    const interval = window.setInterval(updateClock, 30_000)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearInterval(interval)
+    }
   }, [])
 
-  // ======================
-  // USER
-  // ======================
   useEffect(() => {
+    let active = true
     const supabase = createClient()
-
     async function loadUser() {
       try {
-        const {
-          data: { user }
-        } = await supabase.auth.getUser()
-
-        if (!user) {
-          setUserName("Usuário")
-          return
-        }
-
-        const {
-          data: profile,
-          error
-        } = await supabase
-          .from("profiles")
-          .select("name")
-          .eq("id", user.id)
-          .single()
-
-        if (error || !profile) {
-          setUserName("Usuário")
-          return
-        }
-
-        setUserName(
-          profile.name || "Usuário"
-        )
-      } catch (err) {
-        console.error(
-          "Erro ao carregar usuário:",
-          err
-        )
-
-        setUserName("Usuário")
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
+        const { data: profile } = await supabase.from("profiles").select("name").eq("id", user.id).single()
+        if (active) setUserName(profile?.name || "Usuário")
+      } catch (error) {
+        console.error("Erro ao carregar usuário:", error)
       }
     }
-
-    loadUser()
+    void loadUser()
+    return () => { active = false }
   }, [])
 
   return (
     <header className={styles.topbar}>
-      {/* LEFT */}
-      <div className={styles["topbar-left"]}>
-        {/* MOBILE ONLY */}
-        <div className={styles["mobile-only"]}>
-          <MobileNav role={role} />
-        </div>
-
-        {/* INFO */}
-        <div className={styles["topbar-info"]}>
-          <div className={styles["title-row"]}>
-            <span className={styles["title-icon"]}>
-              <Sparkles size={15} />
-            </span>
-
-            <div className={styles["topbar-title"]}>
-              {pageTitle}
-            </div>
-          </div>
-
-          <div className={styles["topbar-date"]}>
-            <CalendarDays size={13} />
-
-            <span>
-              {date}
-            </span>
-          </div>
+      <div className={styles.left}>
+        <div className={styles.mobileOnly}><MobileNav role={role} /></div>
+        <div className={styles.breadcrumb} aria-label="Página atual">
+          <span className={styles.storeName}>Moda Pink</span>
+          <span className={styles.separator} aria-hidden="true">/</span>
+          <span className={styles.pageTitle}>{pageTitle}</span>
         </div>
       </div>
-
-      {/* RIGHT */}
-      <div className={styles["topbar-right"]}>
-        <div className={styles["topbar-clock"]}>
-          <span className={styles["clock-dot"]} />
-
-          <Clock3 size={15} />
-
-          <span>
-            {time}
-          </span>
+      <div className={styles.right}>
+        <div className={styles.clock} title="Horário de Brasília">
+          <Clock3 size={14} strokeWidth={1.75} aria-hidden="true" />
+          <span>{clock.time || "—"}</span>
+          <span className={styles.date}>{clock.date}</span>
         </div>
-
-        <div className={styles["topbar-user"]}>
-          <div className={styles["user-avatar"]}>
-            {userInitial}
-          </div>
-
-          <div className={styles["user-info"]}>
-            <span>
-              {greeting}
-            </span>
-
-            <strong>
-              {userName}
-            </strong>
+        <div className={styles.user} title={userName}>
+          <div className={styles.avatar} aria-hidden="true">{userInitial}</div>
+          <div className={styles.userInfo}>
+            <span>{clock.greeting}</span>
+            <strong>{userName}</strong>
           </div>
         </div>
       </div>

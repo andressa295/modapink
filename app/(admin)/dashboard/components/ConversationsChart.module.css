@@ -17,19 +17,19 @@
 .summaryDetail > span { display: block; font-size: 11px; color: #756e80; }
 .summaryDetail strong { display: block; margin-top: 5px; color: #645b70; font-size: 12px; font-weight: 500; }
 .graph { position: relative; height: 201px; margin-top: 13px; }
-.svg { width: 100%; height: 180px; overflow: visible; }
+.svg { display: block; width: 100%; height: 180px; overflow: visible; }
 .gridLine { stroke: #f0edf3; stroke-width: 1; stroke-dasharray: 3 5; }
-.axisText { fill: #756e80; font-size: 10px; font-family: inherit; }
+.axisText { fill: #756e80; font-size: 11px; font-family: inherit; font-variant-numeric: tabular-nums; }
 .area { fill: #e70289; fill-opacity: .045; }
-.line { fill: none; stroke: #e70289; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.point { fill: #fff; stroke: #e70289; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.line { fill: none; stroke: #e70289; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.point { fill: #fff; stroke: #e70289; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .crosshair { stroke: #d7c6d3; stroke-dasharray: 3 4; }
 .xAxis { position: relative; height: 20px; margin-top: 3px; }
 .xAxis span { position: absolute; transform: translateX(-50%); font-size: 11px; color: #756e80; white-space: nowrap; }
-.hitAreas { position: absolute; display: grid; left: 6.1%; right: 2.3%; top: 0; height: 180px; }
-.hitAreas button { background: transparent; border: 0; min-width: 0; cursor: crosshair; border-radius: 4px; }
+.hitAreas { position: absolute; inset: 0 0 auto; height: 180px; }
+.hitAreas button { position: absolute; top: 0; height: 100%; padding: 0; background: transparent; border: 0; min-width: 0; cursor: crosshair; border-radius: 4px; }
 .hitAreas button:focus-visible { outline: 1px solid #e70289; background: #e7028905; }
-.tooltip { position: absolute; z-index: 2; pointer-events: none; top: 4px; transform: translateX(-50%); border: 1px solid #eeedf1; border-radius: 9px; background: #fff; box-shadow: 0 5px 20px #35203c0c; padding: 8px 11px; white-space: nowrap; }
+.tooltip { position: absolute; z-index: 2; pointer-events: none; top: 4px; transform: translateX(-50%); border: 1px solid #eeedf1; border-radius: 9px; background: #fff; box-shadow: 0 5px 20px #35203c0c; padding: 8px 11px; width: max-content; max-width: calc(100% - 16px); }
 .tooltip span, .tooltip strong { display: block; }
 .tooltip span { font-size: 11px; color: #756e80; }
 .tooltip strong { margin-top: 3px; font-size: 11px; font-weight: 500; }

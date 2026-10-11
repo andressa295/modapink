@@ -8,10 +8,15 @@ import {
   Search,
   SendHorizontal,
   Paperclip,
+  Headphones,
+  PauseCircle,
+  PlayCircle,
+  CircleCheck,
   X
 } from "lucide-react"
 
 import styles from "../styles/chat.module.css"
+import { getRequestedChatTab } from "@/lib/chat-navigation"
 
 import { createBrowserClient } from "@supabase/ssr"
 
@@ -646,6 +651,17 @@ function formatMessageTime(
   )
 }
 
+function formatMessageDay(value?: string | null) {
+  if (!value) return ""
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ""
+  return date.toLocaleDateString("pt-BR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  })
+}
+
 function truncate(
   value: string,
   max = 72
@@ -1262,6 +1278,8 @@ export default function Conversas() {
 
   const requestedConversationOpenedRef =
     useRef(false)
+
+  const requestedTabAppliedRef = useRef(false)
 
   const messagesLoadedForRef =
     useRef<string | null>(null)
@@ -1892,6 +1910,15 @@ export default function Conversas() {
   // ======================
 
   useEffect(() => {
+    if (!requestedTabAppliedRef.current) {
+      requestedTabAppliedRef.current = true
+      const requestedTab = getRequestedChatTab(window.location.search)
+      if (requestedTab !== activeTab) {
+        changeTab(requestedTab)
+        return
+      }
+    }
+
     activeTabRef.current =
       activeTab
 
@@ -3053,22 +3080,11 @@ export default function Conversas() {
           className={
             styles["message-audio-wrap"]
           }
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            minWidth: 280
-          }}
         >
           <audio
             controls
             preload="metadata"
             src={mediaUrl}
-            style={{
-              display: "block",
-              width: 280,
-              height: 42
-            }}
             className={
               styles["message-audio"]
             }
@@ -3089,7 +3105,8 @@ export default function Conversas() {
               styles["message-audio-link"]
             }
           >
-            🎧 Abrir áudio
+            <Headphones size={14} aria-hidden="true" />
+            Abrir áudio
           </a>
 
           {text && (
@@ -3112,13 +3129,13 @@ export default function Conversas() {
             styles["message-media-wrap"]
           }
         >
-          <img
-            src={mediaUrl}
-            alt={text || "Imagem"}
-            className={
-              styles["message-image"]
-            }
-          />
+          <a href={mediaUrl} target="_blank" rel="noopener noreferrer" className={styles["message-image-link"]} title="Ver imagem em tamanho completo">
+            <img
+              src={mediaUrl}
+              alt={text || "Imagem"}
+              className={styles["message-image"]}
+            />
+          </a>
 
           {text && (
             <p
@@ -3171,7 +3188,8 @@ export default function Conversas() {
             styles["message-document"]
           }
         >
-          📎 Abrir mídia
+          <Paperclip size={17} aria-hidden="true" />
+          Abrir mídia
         </a>
       )
     }
@@ -3189,6 +3207,7 @@ export default function Conversas() {
 
   return (
     <div
+      data-chat-workspace
       className={`
         ${styles["chat-app"]}
         ${
@@ -3220,14 +3239,13 @@ export default function Conversas() {
               </h2>
 
               <p>
-                {conversations.length} conversa(s) carregada(s)
+                Central de atendimento
               </p>
             </div>
           </div>
 
-          <span className={styles["sidebar-live"]}>
-            <i />
-            Ao vivo
+          <span className={styles["sidebar-count"]} title="Conversas carregadas neste filtro">
+            {loadingConversations ? "..." : conversations.length}
           </span>
         </div>
 
@@ -3244,10 +3262,16 @@ export default function Conversas() {
             placeholder="Buscar cliente, telefone ou mensagem"
             aria-label="Buscar conversas"
           />
+          {searchQuery && (
+            <button type="button" onClick={() => setSearchQuery("")} className={styles["search-clear"]} aria-label="Limpar busca">
+              <X size={14} aria-hidden="true" />
+            </button>
+          )}
         </label>
 
         {/* ABAS */}
         <div
+          aria-label="Filtrar por canal de atendimento"
           className={
             styles["vendedoras-tabs"]
           }
@@ -3272,18 +3296,20 @@ export default function Conversas() {
                 changeTab(tab.id)
               }
               type="button"
+              aria-pressed={activeTab === tab.id}
+              title={tab.nome}
             >
               <span>
                 {tab.short}
               </span>
 
-              <small>
-                {activeTab === tab.id
-                  ? conversations.length
-                  : ""}
-              </small>
             </button>
           ))}
+        </div>
+
+        <div className={styles["conversation-list-heading"]}>
+          <span>{chatTabs.find(tab => tab.id === activeTab)?.nome}</span>
+          <span>{loadingConversations ? "Carregando" : `${visibleConversations.length} exibidas`}</span>
         </div>
 
         {/* LIST */}
@@ -3360,6 +3386,7 @@ export default function Conversas() {
                     onClick={() =>
                       openConversation(c)
                     }
+                    aria-current={selected?.id === c.id ? "true" : undefined}
                   >
                   <Avatar
                     src={c.avatar_url}
@@ -3552,6 +3579,7 @@ export default function Conversas() {
                     }
                     title="Finalizar o SAC e enviar uma única mensagem de avaliação"
                   >
+                    <CircleCheck size={15} aria-hidden="true" />
                     {sendingReview
                       ? "Finalizando e enviando..."
                       : isSacReviewComplete(selected) && selected.review_status === "answered"
@@ -3572,6 +3600,7 @@ export default function Conversas() {
                     disabled={pausingHuman}
                     title="Pausar o bot e assumir esta conversa manualmente"
                   >
+                    <PauseCircle size={15} aria-hidden="true" />
                     {pausingHuman
                       ? "Pausando..."
                       : "Intervir no bot"}
@@ -3618,6 +3647,7 @@ export default function Conversas() {
                   onClick={resolveHumanIntervention}
                   disabled={resolvingHuman}
                 >
+                  <PlayCircle size={15} aria-hidden="true" />
                   {resolvingHuman
                     ? (
                         isSacConversation(selected)
@@ -3651,16 +3681,23 @@ export default function Conversas() {
                 </div>
               ) : null}
 
-              {messages.map((m) => {
+              {messages.map((m, index) => {
                 const isClient =
                   m.sender === "user"
 
                 const isSystem =
                   isHumanInterventionMessage(m)
 
+                const dayLabel = formatMessageDay(m.created_at)
+                const showDay = dayLabel && dayLabel !== formatMessageDay(messages[index - 1]?.created_at)
+
                 return (
                   <div
                     key={m.id}
+                    className={styles["message-group"]}
+                  >
+                    {showDay && <div className={styles["message-day"]}><span>{dayLabel}</span></div>}
+                  <div
                     className={`
                       ${styles["message-row"]}
                       ${
@@ -3699,16 +3736,17 @@ export default function Conversas() {
                       </span>
                     </div>
                   </div>
+                  </div>
                 )
               })}
             </div>
 
-            {readingImage && <div role="status" style={{ padding: "10px 16px", background: "#fff0f6" }}>Carregando imagem...</div>}
+            {readingImage && <div role="status" className={styles["attachment-status"]}>Carregando imagem...</div>}
             {imageAttachment && (
-              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: "#fff0f6" }}>
-                <img src={imageAttachment.dataUrl} alt="Imagem anexada" style={{ width: 64, height: 64, objectFit: "cover", borderRadius: 8 }} />
-                <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis" }}>{imageAttachment.name}</span>
-                <button type="button" aria-label="Remover imagem" onClick={() => setImageAttachment(null)} disabled={sending} style={{ background: "transparent", border: 0, cursor: "pointer" }}>
+              <div className={styles["attachment-preview"]}>
+                <img src={imageAttachment.dataUrl} alt="Imagem anexada" />
+                <div><strong>Imagem anexada</strong><span>{imageAttachment.name}</span></div>
+                <button type="button" aria-label="Remover imagem" onClick={() => setImageAttachment(null)} disabled={sending}>
                   <X size={18} />
                 </button>
               </div>
@@ -3733,7 +3771,7 @@ export default function Conversas() {
                 title="Anexar imagem"
                 disabled={sending || readingImage}
                 onClick={() => imageInputRef.current?.click()}
-                style={{ flexShrink: 0, width: 40, height: 40, display: "grid", placeItems: "center", background: "transparent", border: 0, cursor: "pointer", color: "#d90073" }}
+                className={styles["chat-attach-button"]}
               >
                 <Paperclip size={20} />
               </button>
@@ -3768,6 +3806,7 @@ export default function Conversas() {
                 }}
                 disabled={sending}
                 rows={1}
+                aria-label="Mensagem para a cliente"
               />
 
               <button
@@ -3781,12 +3820,14 @@ export default function Conversas() {
                   styles["chat-send-button"]
                 }
                 type="button"
+                aria-label={sending ? "Enviando mensagem" : "Enviar mensagem"}
               >
                 {sending
                   ? "..."
                   : <SendHorizontal size={18} />}
               </button>
             </div>
+            <div className={styles["composer-hint"]}><span>Enter para enviar · Shift + Enter para uma nova linha</span><span>{isHumanInterventionConversation(selected) ? "Atendimento manual" : getSessionLabel(String(getConversationSession(selected)))}</span></div>
           </>
         ) : (
           <div
@@ -3803,12 +3844,16 @@ export default function Conversas() {
             </div>
 
             <h3>
-              Selecione uma conversa
+              Seu próximo atendimento começa aqui
             </h3>
 
             <p>
-              Escolha um chat ao lado para visualizar as mensagens.
+              Escolha uma conversa para acompanhar o histórico e responder pelo mesmo número da cliente.
             </p>
+            <div className={styles["empty-tips"]}>
+              <span><Search size={15} aria-hidden="true" /> Busque por nome, telefone ou mensagem</span>
+              <span><MessageCircle size={15} aria-hidden="true" /> Filtre pelos canais de atendimento</span>
+            </div>
           </div>
         )}
       </div>
