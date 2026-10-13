@@ -2,6 +2,7 @@ import { requireDashboardAdmin } from "@/lib/dashboard-auth"
 
 import { createClient } from "@supabase/supabase-js"
 import { normalizePhone } from "../../../utils/phone"
+import { getOrderFulfillments, getOrderShippingTruth } from "@/lib/orders/order-fulfillment"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -77,7 +78,7 @@ async function fetchStoreOrders(
 
     try {
       const response = await fetch(
-        `https://api.nuvemshop.com.br/v1/${store.user_id}/orders?page=${page}&per_page=${PAGE_SIZE}`,
+        `https://api.nuvemshop.com.br/v1/${store.user_id}/orders?page=${page}&per_page=${PAGE_SIZE}&aggregates=fulfillment_orders`,
         {
           method: "GET",
           headers: {
@@ -146,6 +147,29 @@ function orderItems(order: any) {
       product.images?.[0]?.src ||
       null
   }))
+}
+
+function orderShippingMethod(order: any) {
+  const mode = getOrderShippingTruth(order).mode
+  const labels: Record<string, string> = {
+    correios: "Correios",
+    transportadora: "Transportadora",
+    excursao: "Ônibus de excursão",
+    retirada: "Retirada",
+    motoboy: "Motoboy",
+    peq: "P&Q"
+  }
+
+  if (mode === "motoboy") return labels[mode]
+
+  const fulfillment = getOrderFulfillments(order)[0]
+  return fulfillment?.shipping?.option?.name ||
+    fulfillment?.shipping?.carrier?.name ||
+    order.shipping_option ||
+    order.shipping_option_reference ||
+    order.shipping_method ||
+    labels[mode] ||
+    (order.shipping_address ? "Entrega" : "Retirada")
 }
 
 export async function GET(req: Request) {
@@ -281,6 +305,7 @@ export async function GET(req: Request) {
       const phone = orderPhone(order)
       const session = storeSession(sessions, store)
       const items = orderItems(order)
+      const shipping = getOrderShippingTruth(order)
 
       return {
         external_id: String(order.id),
@@ -301,17 +326,10 @@ export async function GET(req: Request) {
           order.payment_details?.method ||
           order.payment_method ||
           "unknown",
-        shipping_status: order.shipping_status || "pending",
-        shipping_method:
-          order.shipping_option ||
-          order.shipping_option_reference ||
-          order.shipping_method ||
-          (order.shipping_address ? "Entrega" : "Retirada"),
-        tracking_number:
-          order.shipping_tracking_number ||
-          order.tracking_number ||
-          null,
-        tracking_url: order.shipping_tracking_url || null,
+        shipping_status: shipping.stage,
+        shipping_method: orderShippingMethod(order),
+        tracking_number: shipping.tracking_number,
+        tracking_url: shipping.tracking_url,
         total: Number(order.total) || 0,
         subtotal: Number(order.subtotal) || 0,
         currency: order.currency || "BRL",
@@ -358,6 +376,7 @@ export async function GET(req: Request) {
     const responseRows = collected.map(({ store, order }) => {
       const phone = orderPhone(order)
       const session = storeSession(sessions, store)
+      const shipping = getOrderShippingTruth(order)
 
       return {
         id: order.number,
@@ -367,7 +386,9 @@ export async function GET(req: Request) {
           "Cliente",
         phone,
         status: order.payment_status || "pending",
-        shipping: order.shipping_status || "pending",
+        shipping: shipping.stage,
+        shipping_status: shipping.stage,
+        shipping_label: shipping.label,
         total: Number(order.total) || 0,
         subtotal: Number(order.subtotal) || 0,
         date: order.created_at || new Date().toISOString(),
@@ -375,11 +396,7 @@ export async function GET(req: Request) {
           order.gateway_name ||
           order.payment_details?.method ||
           "unknown",
-        shipping_method:
-          order.shipping_option ||
-          order.shipping_option_reference ||
-          order.shipping_method ||
-          (order.shipping_address ? "Entrega" : "Retirada"),
+        shipping_method: orderShippingMethod(order),
         whatsapp_number: session?.phone || null,
         items: orderItems(order)
       }

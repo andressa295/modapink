@@ -21,6 +21,7 @@ type Order = {
   status: string
   shipping_status?: string
   shipping_method?: string
+  shipping_label?: string
   total: number
   date: string
   payment_method?: string
@@ -257,8 +258,11 @@ function getStatus(
 
 function getShippingLabel(
   status?: string,
-  method?: string
+  method?: string,
+  label?: string
 ) {
+  if (label) return method ? `${label} · ${method}` : label
+
   const value =
     String(status || method || "")
       .trim()
@@ -933,7 +937,8 @@ export default function Pedidos() {
                   <div className={styles["muted-cell"]}>
                     {getShippingLabel(
                       order.shipping_status,
-                      order.shipping_method
+                      order.shipping_method,
+                      order.shipping_label
                     )}
                   </div>
 
