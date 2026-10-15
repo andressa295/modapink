@@ -60,6 +60,10 @@ const idsPermitidos: SessionOption[] = [
   {
     id: "automacoes",
     nome: "Automações"
+  },
+  {
+    id: "teste",
+    nome: "Teste · vendas com fotos"
   }
 ]
 
