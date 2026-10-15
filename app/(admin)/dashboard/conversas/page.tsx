@@ -45,6 +45,7 @@ type TabId =
   | "principal"
   | "vendedora_1"
   | "vendedora_2"
+  | "teste"
   | "sac"
   | "automacoes"
 
@@ -130,6 +131,11 @@ const chatTabs: ChatTab[] = [
     id: "vendedora_2",
     nome: "Vendedora",
     short: "Vendedora"
+  },
+  {
+    id: "teste",
+    nome: "Teste · vendas com fotos",
+    short: "Teste vendas"
   },
   {
     id: "sac",
