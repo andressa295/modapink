@@ -1,4 +1,4 @@
-export const chatTabIds = ["all", "human", "principal", "vendedora_1", "vendedora_2", "sac", "automacoes"] as const
+export const chatTabIds = ["all", "human", "principal", "vendedora_1", "vendedora_2", "sac", "automacoes", "teste"] as const
 
 export type ChatTabId = typeof chatTabIds[number]
 
