@@ -26,6 +26,11 @@ import {
   DEFAULT_STORE_SETTINGS
 } from "@/lib/store-settings"
 
+import {
+  buildWhatsAppCatalogOrderMessage,
+  buildWhatsAppCatalogOrderUrl
+} from "@/lib/catalog/whatsapp-order"
+
 import styles from "./catalog.module.css"
 
 type CartLine = {
@@ -363,9 +368,15 @@ export default function CatalogClient({
       return
     }
 
-    setCartOpen(false)
-    setCheckoutError("")
-    setCheckoutOpen(true)
+    const message = buildWhatsAppCatalogOrderMessage({
+      items: cart,
+      total: cartTotal,
+      sourceToken
+    })
+
+    window.location.assign(
+      buildWhatsAppCatalogOrderUrl(message)
+    )
   }
 
   async function submitCheckout(event: React.FormEvent<HTMLFormElement>) {
@@ -889,7 +900,9 @@ export default function CatalogClient({
                     <span>Total</span>
                     <strong>{money(cartTotal)}</strong>
                   </div>
-                  <small>Frete e forma de pagamento serão escolhidos no checkout.</small>
+                  <small>
+                    Ao finalizar, sua lista completa será enviada para o WhatsApp da Moda Pink.
+                  </small>
 
                   <button
                     type="button"
@@ -897,7 +910,7 @@ export default function CatalogClient({
                     onClick={openCheckout}
                     disabled={amountMissing > 0}
                   >
-                    Finalizar pedido
+                    Enviar pedido no WhatsApp
                   </button>
                   <button
                     type="button"
