@@ -1,4 +1,11 @@
 import { requireDashboardAdmin } from "@/lib/dashboard-auth"
+import {
+  forwardWhatsAppRequest,
+  getWhatsAppApiBaseUrl,
+  getWhatsAppInternalKey,
+  whatsAppConfigError,
+  whatsAppProxyError
+} from "@/lib/whatsapp-proxy.server"
 
 import {
   NextRequest,
@@ -6,20 +13,6 @@ import {
 } from "next/server"
 
 export const dynamic = "force-dynamic"
-
-const BOT_URL =
-  String(
-    process.env.WHATSAPP_API_INTERNAL_URL ||
-    process.env.WHATSAPP_API_URL ||
-    "http://127.0.0.1:3001"
-  ).replace(/\/+$/, "")
-
-const INTERNAL_API_KEY =
-  String(
-    process.env.WHATSAPP_API_INTERNAL_KEY ||
-    process.env.INTERNAL_API_KEY ||
-    ""
-  ).trim()
 
 type RouteContext = {
   params: Promise<{
@@ -116,115 +109,47 @@ async function proxyWhatsAppRequest(
     )
   }
 
-  const target =
-    new URL(`${BOT_URL}/${path}`)
-
-  const cacheBust =
-    request.nextUrl.searchParams.get("t")
-
-  if (cacheBust) {
-    target.searchParams.set(
-      "t",
-      cacheBust
-    )
+  const origin = request.headers.get("origin")
+  if (method !== "GET" && (
+    request.headers.get("sec-fetch-site") === "cross-site" ||
+    (origin && origin !== request.nextUrl.origin)
+  )) {
+    return whatsAppProxyError("Origem da operação não permitida.", 403)
   }
 
-  const headers =
-    new Headers({
-      Accept: "application/json"
+  let target: URL
+  let headers: Headers
+  try {
+    target = new URL(`${getWhatsAppApiBaseUrl()}/${path}`)
+    headers = new Headers({
+      Accept: "application/json",
+      "x-internal-api-key": getWhatsAppInternalKey()
     })
-
-  if (INTERNAL_API_KEY) {
-    headers.set(
-      "x-internal-api-key",
-      INTERNAL_API_KEY
-    )
+  } catch {
+    return whatsAppConfigError()
   }
+
+  const cacheBust = request.nextUrl.searchParams.get("t")
+  if (cacheBust) target.searchParams.set("t", cacheBust)
 
   let body: string | undefined
-
   if (method === "POST") {
-    body = await request.text()
-
-    headers.set(
-      "Content-Type",
-      request.headers.get("content-type") ||
-      "application/json"
-    )
+    if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
+      return whatsAppProxyError("Envie a operação em formato JSON.", 415)
+    }
+    try {
+      const payload = await request.json()
+      if (typeof payload?.sessionId !== "string" || !ALLOWED_SESSION_IDS.has(payload.sessionId)) {
+        return whatsAppProxyError("Sessão de WhatsApp não permitida.", 400)
+      }
+      body = JSON.stringify({ sessionId: payload.sessionId })
+    } catch {
+      return whatsAppProxyError("Operação de WhatsApp inválida.", 400)
+    }
+    headers.set("Content-Type", "application/json")
   }
 
-  const controller =
-    new AbortController()
-
-  const timeout =
-    setTimeout(
-      () => controller.abort(),
-      15000
-    )
-
-  try {
-    const response =
-      await fetch(
-        target,
-        {
-          method,
-          headers,
-          body,
-          cache: "no-store",
-          signal: controller.signal
-        }
-      )
-
-    const payload =
-      await response.text()
-
-    return new NextResponse(
-      payload || null,
-      {
-        status: response.status,
-        headers: {
-          "Content-Type":
-            response.headers.get(
-              "content-type"
-            ) || "application/json",
-          "Cache-Control":
-            "no-store, max-age=0"
-        }
-      }
-    )
-  } catch (error) {
-    const timedOut =
-      error instanceof Error &&
-      error.name === "AbortError"
-
-    console.error(
-      "❌ erro no proxy interno do WhatsApp:",
-      {
-        method,
-        path,
-        error:
-          error instanceof Error
-            ? error.message
-            : String(error)
-      }
-    )
-
-    return NextResponse.json(
-      {
-        error:
-          "Não foi possível comunicar com a API do WhatsApp."
-      },
-      {
-        status: timedOut ? 504 : 502,
-        headers: {
-          "Cache-Control":
-            "no-store, max-age=0"
-        }
-      }
-    )
-  } finally {
-    clearTimeout(timeout)
-  }
+  return forwardWhatsAppRequest(target, { method, headers, body })
 }
 
 export async function GET(
