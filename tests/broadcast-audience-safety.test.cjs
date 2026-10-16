@@ -100,7 +100,7 @@ test('stale dashboard requests cannot replace newer campaign and session data', 
   )
 })
 
-test('sender phone is shown and validated before a campaign starts', () => {
+test('sender phone is shown and validated before a campaign starts or resumes', () => {
   assert.match(source, /function formatSessionPhone/)
   assert.match(
     source,
@@ -117,6 +117,14 @@ test('sender phone is shown and validated before a campaign starts', () => {
     /getCampaignSenderDisplay\(campaign\)/
   )
   assert.match(source, /expected_sender_phone:\s*draftSenderPhone/)
+  assert.match(
+    source,
+    /action === "start" \|\| action === "resume"/
+  )
+  assert.match(
+    source,
+    /if \(expectedSenderPhone\.length < 10\)/
+  )
   assert.match(
     source,
     /expectedSenderPhone !== senderPhone/

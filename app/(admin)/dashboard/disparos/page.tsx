@@ -873,7 +873,7 @@ export default function DisparosPage() {
     campaign: Campaign,
     action: "start" | "pause" | "resume" | "cancel"
   ) {
-    if (action === "start") {
+    if (action === "start" || action === "resume") {
       const senderSession = getSession(campaign.session_key)
       const senderPhone = String(senderSession?.phone || "")
         .replace(/\D/g, "")
@@ -883,28 +883,34 @@ export default function DisparosPage() {
 
       if (!senderSession?.ready) {
         setError(
-          `O remetente ${getSessionLabel(campaign.session_key)} não está conectado. Reconecte o número antes de iniciar.`
+          `O remetente ${getSessionLabel(campaign.session_key)} não está conectado. Reconecte o número antes de iniciar ou retomar.`
         )
         return
       }
 
       if (senderPhone.length < 10) {
         setError(
-          `O telefone do remetente ${getSessionLabel(campaign.session_key)} não foi identificado. Atualize as sessões antes de iniciar.`
+          `O telefone do remetente ${getSessionLabel(campaign.session_key)} não foi identificado. Atualize as sessões antes de iniciar ou retomar.`
         )
         return
       }
 
-      if (
-        expectedSenderPhone &&
-        expectedSenderPhone !== senderPhone
-      ) {
+      if (expectedSenderPhone.length < 10) {
+        setError(
+          `Esta campanha não tem o telefone esperado do remetente salvo. Cancele-a e crie outro rascunho confirmando o número correto.`
+        )
+        return
+      }
+
+      if (expectedSenderPhone !== senderPhone) {
         setError(
           `O telefone conectado em ${getSessionLabel(campaign.session_key)} mudou desde a criação deste rascunho. Cancele-o e crie outro confirmando o remetente correto.`
         )
         return
       }
+    }
 
+    if (action === "start") {
       setLoading(true)
       setError("")
       setNotice("")
