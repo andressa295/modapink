@@ -12,15 +12,19 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock3,
+  FileSpreadsheet,
+  FolderOpen,
   ImagePlus,
   Megaphone,
   Pause,
+  Pencil,
   Play,
   RotateCcw,
   Save,
   Send,
   Square,
   Trash2,
+  Upload,
   Users,
   Video
 } from "lucide-react"
@@ -43,6 +47,7 @@ type Campaign = {
   name: string
   message: string
   session_key: string
+  expected_sender_phone?: string | null
   status: CampaignStatus
   total_count: number
   sent_count: number
@@ -52,6 +57,25 @@ type Campaign = {
   media_url?: string | null
   media_type?: "image" | "video" | null
   media_filename?: string | null
+  audience?: "previous_contacts" | "contact_lists"
+  audience_labels?: string[]
+  audience_list_ids?: string[]
+}
+type ContactList = {
+  id: string
+  name: string
+  status: "importing" | "ready" | "failed" | "archived"
+  source_filename?: string | null
+  contacts_count: number
+  total_rows: number
+  valid_count: number
+  duplicate_count: number
+  invalid_count: number
+  existing_count: number
+  new_count: number
+  last_error?: string | null
+  created_at: string
+  updated_at: string
 }
 
 type BroadcastSession = {
@@ -149,20 +173,45 @@ export default function DisparosPage() {
     useState<Campaign[]>([])
   const [contactsCount, setContactsCount] =
     useState<number | null>(null)
+  const [audienceCount, setAudienceCount] =
+    useState<number | null>(null)
   const [dailyLimit, setDailyLimit] =
     useState(70)
   const [availableSessions, setAvailableSessions] =
     useState<BroadcastSession[]>(FALLBACK_SESSIONS)
+  const [contactLists, setContactLists] =
+    useState<ContactList[]>([])
   const [name, setName] = useState("")
   const [message, setMessage] = useState("")
   const [sessionKey, setSessionKey] =
     useState("principal")
+  const [audienceListId, setAudienceListId] =
+    useState("unselected")
+  const [showContactLists, setShowContactLists] =
+    useState(false)
+  const [contactListName, setContactListName] =
+    useState("")
+  const [contactListFile, setContactListFile] =
+    useState<File | null>(null)
+  const [importingContacts, setImportingContacts] =
+    useState(false)
   const [mediaFile, setMediaFile] =
     useState<File | null>(null)
   const [mediaPreview, setMediaPreview] =
     useState("")
   const fileInputRef =
     useRef<HTMLInputElement | null>(null)
+  const contactFileInputRef =
+    useRef<HTMLInputElement | null>(null)
+  const contactListsRequestRef = useRef(0)
+  const loadDataRequestRef = useRef(0)
+  const audienceCountRequestRef = useRef(0)
+  const [contactListsLoading, setContactListsLoading] =
+    useState(true)
+  const [contactListsLoaded, setContactListsLoaded] =
+    useState(false)
+  const [contactListsError, setContactListsError] =
+    useState("")
   const [loading, setLoading] = useState(false)
   const [loadingList, setLoadingList] =
     useState(true)
@@ -182,13 +231,52 @@ export default function DisparosPage() {
     [campaigns, statusFilter]
   )
 
+  const loadContactLists = useCallback(async () => {
+    const requestId = ++contactListsRequestRef.current
+    setContactListsLoading(true)
+
+    try {
+      const listData = await apiRequest("/contact-lists")
+
+      if (requestId !== contactListsRequestRef.current) return
+
+      setContactLists(
+        Array.isArray(listData.lists)
+          ? listData.lists
+          : []
+      )
+      setContactListsLoaded(true)
+      setContactListsError("")
+    } catch (err) {
+      if (requestId !== contactListsRequestRef.current) return
+
+      // Mantém a última lista visível, mas bloqueia uma nova campanha até
+      // confirmar os IDs novamente. Assim uma falha nunca vira "Todos".
+      setContactListsLoaded(false)
+      setContactListsError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível carregar as carteiras."
+      )
+    } finally {
+      if (requestId === contactListsRequestRef.current) {
+        setContactListsLoading(false)
+      }
+    }
+  }, [])
+
   const loadData = useCallback(async () => {
+    const requestId = ++loadDataRequestRef.current
+    void loadContactLists()
+
     try {
       const [campaignData, sessionData] =
         await Promise.all([
           apiRequest("/"),
           apiRequest("/sessions")
         ])
+
+      if (requestId !== loadDataRequestRef.current) return
 
       setCampaigns(
         (campaignData.campaigns || []).filter(
@@ -209,27 +297,77 @@ export default function DisparosPage() {
           ? configuredDailyLimit
           : 70
       )
-      setError("")
     } catch (err) {
+      if (requestId !== loadDataRequestRef.current) return
+
       setError(
         err instanceof Error
           ? err.message
           : "Não foi possível carregar as campanhas."
       )
     } finally {
-      setLoadingList(false)
+      if (requestId === loadDataRequestRef.current) {
+        setLoadingList(false)
+      }
     }
 
     // A contagem não deve atrasar a lista nem bloquear o formulário.
     void apiRequest("/contacts/count")
       .then(countData => {
+        if (requestId !== loadDataRequestRef.current) return
         setContactsCount(countData.count || 0)
       })
       .catch(() => {
         // Mantém a contagem anterior quando o endpoint estiver lento
         // ou indisponível; campanhas e sessões continuam utilizáveis.
       })
-  }, [])
+  }, [loadContactLists])
+
+  useEffect(() => {
+    const requestId = ++audienceCountRequestRef.current
+
+    if (audienceListId === "unselected") {
+      setAudienceCount(null)
+      return
+    }
+
+    if (audienceListId === "all") {
+      setAudienceCount(contactsCount)
+      return
+    }
+
+    const selectedListExists = contactLists.some(
+      list =>
+        list.id === audienceListId &&
+        list.status === "ready"
+    )
+
+    if (!selectedListExists) {
+      setAudienceListId("unselected")
+      setAudienceCount(null)
+      setNotice(
+        "A carteira selecionada não está mais disponível. Escolha o público novamente antes de salvar a campanha."
+      )
+      return
+    }
+
+    setAudienceCount(null)
+
+    void apiRequest(
+      `/contacts/count?contact_list_ids=${encodeURIComponent(audienceListId)}`
+    )
+      .then(data => {
+        if (requestId !== audienceCountRequestRef.current) return
+        setAudienceCount(Number(data.count) || 0)
+      })
+      .catch(() => {
+        if (requestId !== audienceCountRequestRef.current) return
+        const selectedList = contactLists.find(
+          list => list.id === audienceListId
+        )
+        setAudienceCount(selectedList?.contacts_count ?? null)
+      })
+  }, [audienceListId, contactLists, contactsCount])
 
   useEffect(() => {
     void loadData()
@@ -319,13 +457,291 @@ export default function DisparosPage() {
     )
   }
 
+  function formatSessionPhone(phone?: string | null) {
+    const digits = String(phone || "").replace(/\D/g, "")
+
+    if (digits.length === 13 && digits.startsWith("55")) {
+      return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`
+    }
+
+    if (digits.length === 12 && digits.startsWith("55")) {
+      return `+55 (${digits.slice(2, 4)}) ${digits.slice(4, 8)}-${digits.slice(8)}`
+    }
+
+    return digits ? `+${digits}` : "Número não identificado"
+  }
+
+  function getSession(key: string) {
+    return availableSessions.find(item => item.key === key)
+  }
+
+  function getSessionDisplay(key: string) {
+    const session = getSession(key)
+    return `${getSessionLabel(key)} · ${formatSessionPhone(session?.phone)}`
+  }
+
+  function getCampaignSenderDisplay(campaign: Campaign) {
+    const expectedPhone =
+      campaign.expected_sender_phone ||
+      getSession(campaign.session_key)?.phone
+
+    return `${getSessionLabel(campaign.session_key)} · ${formatSessionPhone(expectedPhone)}`
+  }
+
+  function getAudienceLabel(campaign: Campaign) {
+    return campaign.audience_labels?.length
+      ? campaign.audience_labels.join(", ")
+      : "Todos os contatos elegíveis"
+  }
+
+  async function getEligibleAudienceEstimate(
+    campaign: Campaign
+  ) {
+    let path = "/contacts/count"
+
+    if (campaign.audience === "contact_lists") {
+      const listIds = Array.from(new Set(
+        (campaign.audience_list_ids || [])
+          .map(id => String(id || "").trim())
+          .filter(Boolean)
+      ))
+
+      if (listIds.length === 0) {
+        throw new Error(
+          "Esta campanha não tem os IDs das carteiras salvos. Crie um novo rascunho e escolha o público novamente."
+        )
+      }
+
+      if (!contactListsLoaded || contactListsError) {
+        throw new Error(
+          "Não foi possível confirmar as carteiras agora. Recarregue as carteiras antes de iniciar."
+        )
+      }
+
+      const readyListIds = new Set(
+        contactLists
+          .filter(list => list.status === "ready")
+          .map(list => list.id)
+      )
+
+      if (listIds.some(id => !readyListIds.has(id))) {
+        throw new Error(
+          "Uma das carteiras desta campanha não está mais disponível. Crie um novo rascunho e confira o público."
+        )
+      }
+
+      path +=
+        `?contact_list_ids=${encodeURIComponent(listIds.join(","))}`
+    }
+
+    const data = await apiRequest(path)
+    const count = Number(data.count)
+
+    if (!Number.isInteger(count) || count < 0) {
+      throw new Error(
+        "Não foi possível confirmar a quantidade de contatos elegíveis."
+      )
+    }
+
+    return count
+  }
+
+  function fileAsBase64(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader()
+
+      reader.onload = () => {
+        const result = String(reader.result || "")
+        resolve(result.split(",").pop() || "")
+      }
+
+      reader.onerror = () => reject(
+        new Error("Não foi possível ler a planilha.")
+      )
+
+      reader.readAsDataURL(file)
+    })
+  }
+
+  async function importContactList() {
+    if (!contactListName.trim() || !contactListFile) {
+      setError("Informe o nome da carteira e selecione a planilha.")
+      return
+    }
+
+    const extension = contactListFile.name
+      .split(".")
+      .pop()
+      ?.toLowerCase()
+
+    if (!["xlsx", "csv"].includes(extension || "")) {
+      setError("Use uma planilha XLSX ou CSV.")
+      return
+    }
+
+    if (contactListFile.size > 8 * 1024 * 1024) {
+      setError("A planilha pode ter no máximo 8 MB.")
+      return
+    }
+
+    try {
+      setImportingContacts(true)
+      setError("")
+      setNotice("")
+
+      const fileBase64 = await fileAsBase64(contactListFile)
+      const data = await apiRequest("/contact-lists/import", {
+        method: "POST",
+        body: JSON.stringify({
+          name: contactListName,
+          filename: contactListFile.name,
+          file_base64: fileBase64
+        })
+      })
+
+      const imported = data.list as ContactList
+
+      setContactListName("")
+      setContactListFile(null)
+      if (contactFileInputRef.current) {
+        contactFileInputRef.current.value = ""
+      }
+      // Atualiza o estado antes de selecionar. Assim, uma resposta antiga da
+      // listagem não consegue trocar silenciosamente a nova carteira por Todos.
+      contactListsRequestRef.current += 1
+      setContactLists(current => [
+        imported,
+        ...current.filter(list => list.id !== imported.id)
+      ])
+      setAudienceListId(imported.id)
+      setNotice(
+        `${imported.name} criada com ${imported.contacts_count.toLocaleString("pt-BR")} contatos. ${imported.duplicate_count.toLocaleString("pt-BR")} repetidos e ${imported.invalid_count.toLocaleString("pt-BR")} inválidos foram ignorados.`
+      )
+      await Promise.all([
+        loadData(),
+        loadContactLists()
+      ])
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível importar a planilha."
+      )
+    } finally {
+      setImportingContacts(false)
+    }
+  }
+
+  async function archiveContactList(list: ContactList) {
+    if (!window.confirm(
+      `Arquivar a carteira “${list.name}”? Campanhas finalizadas continuam preservadas. Se houver um rascunho usando essa carteira, o sistema pedirá para cancelá-lo primeiro.`
+    )) {
+      return
+    }
+
+    try {
+      setLoading(true)
+      setError("")
+
+      await apiRequest(`/contact-lists/${list.id}`, {
+        method: "DELETE"
+      })
+
+      if (audienceListId === list.id) {
+        setAudienceListId("unselected")
+      }
+
+      setNotice(`A carteira “${list.name}” foi arquivada.`)
+      await loadData()
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível arquivar a carteira."
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function renameContactList(list: ContactList) {
+    const nextName = window.prompt(
+      "Novo nome da carteira:",
+      list.name
+    )?.trim()
+
+    if (!nextName || nextName === list.name) return
+
+    try {
+      setLoading(true)
+      setError("")
+
+      await apiRequest(`/contact-lists/${list.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: nextName })
+      })
+
+      setNotice(`Carteira renomeada para “${nextName}”.`)
+      await loadData()
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Não foi possível renomear a carteira."
+      )
+    } finally {
+      setLoading(false)
+    }
+  }
+
   async function createDraft() {
+    if (!contactListsLoaded || contactListsError) {
+      setError(
+        "As carteiras ainda não foram confirmadas. Recarregue essa lista antes de salvar a campanha."
+      )
+      return
+    }
+
+    if (audienceListId === "unselected") {
+      setError(
+        "Escolha o público da campanha antes de salvar o rascunho."
+      )
+      return
+    }
+
+    if (
+      audienceListId !== "all" &&
+      !contactLists.some(
+        list =>
+          list.id === audienceListId &&
+          list.status === "ready"
+      )
+    ) {
+      setAudienceListId("unselected")
+      setError(
+        "A carteira escolhida não está mais disponível. Selecione o público novamente."
+      )
+      return
+    }
+
     if (
       !name.trim() ||
       (!message.trim() && !mediaFile)
     ) {
       setError(
         "Preencha o nome e adicione uma mensagem, imagem ou vídeo."
+      )
+      return
+    }
+
+    const draftSessionKey = sessionKey
+    const draftSenderPhone = String(
+      getSession(draftSessionKey)?.phone || ""
+    ).replace(/\D/g, "")
+
+    if (draftSenderPhone.length < 10) {
+      setError(
+        `O telefone real do remetente ${getSessionLabel(draftSessionKey)} não foi identificado. Atualize as sessões antes de salvar.`
       )
       return
     }
@@ -402,13 +818,23 @@ export default function DisparosPage() {
             name,
             message,
             session_key:
-              sessionKey,
+              draftSessionKey,
+            expected_sender_phone:
+              draftSenderPhone,
             media_url:
               mediaUrl,
             media_type:
               mediaType,
             media_filename:
-              mediaFile?.name || null
+              mediaFile?.name || null,
+            audience_mode:
+              audienceListId === "all"
+                ? "all_contacts"
+                : "selected_lists",
+            contact_list_ids:
+              audienceListId === "all"
+                ? []
+                : [audienceListId]
           })
         })
       } catch (err) {
@@ -426,6 +852,7 @@ export default function DisparosPage() {
 
       setName("")
       setMessage("")
+      setAudienceListId("unselected")
       removeMedia()
       setNotice(
         "Rascunho criado. Confira a mensagem e clique em Iniciar quando estiver pronta."
@@ -447,11 +874,72 @@ export default function DisparosPage() {
     action: "start" | "pause" | "resume" | "cancel"
   ) {
     if (action === "start") {
+      const senderSession = getSession(campaign.session_key)
+      const senderPhone = String(senderSession?.phone || "")
+        .replace(/\D/g, "")
+      const expectedSenderPhone = String(
+        campaign.expected_sender_phone || ""
+      ).replace(/\D/g, "")
+
+      if (!senderSession?.ready) {
+        setError(
+          `O remetente ${getSessionLabel(campaign.session_key)} não está conectado. Reconecte o número antes de iniciar.`
+        )
+        return
+      }
+
+      if (senderPhone.length < 10) {
+        setError(
+          `O telefone do remetente ${getSessionLabel(campaign.session_key)} não foi identificado. Atualize as sessões antes de iniciar.`
+        )
+        return
+      }
+
+      if (
+        expectedSenderPhone &&
+        expectedSenderPhone !== senderPhone
+      ) {
+        setError(
+          `O telefone conectado em ${getSessionLabel(campaign.session_key)} mudou desde a criação deste rascunho. Cancele-o e crie outro confirmando o remetente correto.`
+        )
+        return
+      }
+
+      setLoading(true)
+      setError("")
+      setNotice("")
+
+      let eligibleCount: number
+
+      try {
+        eligibleCount =
+          await getEligibleAudienceEstimate(campaign)
+      } catch (err) {
+        setLoading(false)
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Não foi possível conferir o público da campanha."
+        )
+        return
+      }
+
+      if (eligibleCount === 0) {
+        setLoading(false)
+        setError(
+          "Nenhum contato elegível foi encontrado neste público. Confira a carteira antes de iniciar."
+        )
+        return
+      }
+
       const confirmed = window.confirm(
-        `Iniciar “${campaign.name}” para ${contactsCount ?? "todos os"} contatos elegíveis? Os envios serão intercalados e respeitarão o limite diário.`
+        `Iniciar “${campaign.name}”?\n\nRemetente: ${getCampaignSenderDisplay(campaign)}\nPúblico: ${getAudienceLabel(campaign)}\nEstimativa atual: ${eligibleCount.toLocaleString("pt-BR")} contatos elegíveis\n\nAo confirmar, a fila será congelada sem duplicidade e o limite diário será respeitado.`
       )
 
-      if (!confirmed) return
+      if (!confirmed) {
+        setLoading(false)
+        return
+      }
     }
 
     if (
@@ -527,7 +1015,7 @@ export default function DisparosPage() {
             <strong>
               {contactsCount === null ? "—" : contactsCount.toLocaleString("pt-BR")}
             </strong>
-            <small>público disponível para campanha</small>
+            <small>{contactLists.filter(list => list.status === "ready").length} carteiras salvas · público geral</small>
           </div>
 
           <div className={styles.dailyLimitCard}>
@@ -558,6 +1046,151 @@ export default function DisparosPage() {
       {error && <div className={styles.error} role="alert">{error}</div>}
       {notice && <div className={styles.notice} role="status">{notice}</div>}
 
+      <section className={styles.audienceBar}>
+        <div>
+          <span className={styles.audienceIcon}><FolderOpen size={18} /></span>
+          <div>
+            <strong>Carteiras de clientes</strong>
+            <p>Importe planilhas, organize os contatos por mês ou campanha e escolha o público antes de disparar.</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowContactLists(value => !value)}
+          aria-expanded={showContactLists}
+          disabled={importingContacts}
+        >
+          <FileSpreadsheet size={16} />
+          {showContactLists ? "Fechar carteiras" : "Gerenciar carteiras"}
+        </button>
+      </section>
+
+      {showContactLists && (
+        <section className={styles.contactListManager}>
+          <div className={styles.importCard}>
+            <div className={styles.managerHeading}>
+              <span><Upload size={17} /></span>
+              <div>
+                <h2>Nova carteira</h2>
+                <p>Use uma planilha com uma coluna de nome e outra de celular.</p>
+              </div>
+            </div>
+
+            <label>
+              Nome da carteira
+              <input
+                value={contactListName}
+                onChange={event => setContactListName(event.target.value)}
+                maxLength={120}
+                placeholder="Ex.: Clientes de outubro"
+                disabled={importingContacts}
+              />
+            </label>
+
+            <label>
+              Planilha de clientes
+              <input
+                ref={contactFileInputRef}
+                type="file"
+                accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+                onChange={event => setContactListFile(event.target.files?.[0] || null)}
+                disabled={importingContacts}
+              />
+              <small>XLSX ou CSV, até 8 MB. Telefones repetidos e inválidos serão separados automaticamente.</small>
+            </label>
+
+            <button
+              type="button"
+              className={styles.importButton}
+              onClick={importContactList}
+              disabled={importingContacts}
+            >
+              <Upload size={16} />
+              {importingContacts ? "Importando e conferindo…" : "Criar carteira"}
+            </button>
+          </div>
+
+          <div className={styles.savedLists}>
+            <div className={styles.managerHeading}>
+              <span><Users size={17} /></span>
+              <div>
+                <h2>Carteiras salvas</h2>
+                <p>Essas opções aparecem no público de cada nova campanha.</p>
+              </div>
+            </div>
+
+            {contactListsError ? (
+              <div className={styles.listLoadError} role="alert">
+                <AlertTriangle size={20} />
+                <strong>Não foi possível confirmar as carteiras.</strong>
+                <p>{contactListsError}</p>
+                <button
+                  type="button"
+                  onClick={() => void loadContactLists()}
+                  disabled={contactListsLoading}
+                >
+                  <RotateCcw size={14} />
+                  {contactListsLoading ? "Tentando novamente…" : "Tentar novamente"}
+                </button>
+              </div>
+            ) : contactListsLoading && !contactListsLoaded ? (
+              <div className={styles.listEmpty} role="status">
+                <RotateCcw size={22} />
+                <p>Carregando carteiras…</p>
+              </div>
+            ) : contactLists.length === 0 ? (
+              <div className={styles.listEmpty}>
+                <FileSpreadsheet size={22} />
+                <p>Nenhuma carteira importada ainda.</p>
+              </div>
+            ) : (
+              <div className={styles.contactListGrid}>
+                {contactLists.map(list => (
+                  <article className={styles.contactListItem} key={list.id}>
+                    <div>
+                      <strong>{list.name}</strong>
+                      <span className={`${styles.listStatus} ${styles[`listStatus_${list.status}`]}`}>
+                        {list.status === "ready"
+                          ? "Pronta"
+                          : list.status === "failed"
+                            ? "Falhou"
+                            : "Importando"}
+                      </span>
+                    </div>
+                    <b>{list.contacts_count.toLocaleString("pt-BR")} contatos</b>
+                    <p>{list.source_filename || "Planilha sem nome"}</p>
+                    {list.status === "ready" && (
+                      <small>
+                        {list.duplicate_count.toLocaleString("pt-BR")} repetidos · {list.invalid_count.toLocaleString("pt-BR")} inválidos ignorados
+                      </small>
+                    )}
+                    {list.last_error && <small className={styles.listError}>{list.last_error}</small>}
+                    <div className={styles.listActions}>
+                      <button
+                        type="button"
+                        onClick={() => renameContactList(list)}
+                        disabled={loading || importingContacts}
+                        aria-label={`Renomear ${list.name}`}
+                      >
+                        <Pencil size={13} /> Renomear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => archiveContactList(list)}
+                        disabled={loading || importingContacts}
+                        aria-label={`Arquivar ${list.name}`}
+                      >
+                        <Trash2 size={13} /> Arquivar
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
       <div className={styles.columns}>
         <section className={styles.card}>
           <div className={styles.cardHeading}>
@@ -574,6 +1207,7 @@ export default function DisparosPage() {
               onChange={event => setName(event.target.value)}
               maxLength={120}
               placeholder="Ex.: Reposição de Baby Tee"
+              disabled={loading || importingContacts}
             />
           </label>
 
@@ -582,13 +1216,14 @@ export default function DisparosPage() {
             <select
               value={sessionKey}
               onChange={event => setSessionKey(event.target.value)}
+              disabled={loading || importingContacts}
             >
               {availableSessions.map(session => (
                 <option
                   value={session.key}
                   key={session.key}
                 >
-                  {session.label}
+                  {session.label} — {formatSessionPhone(session.phone)}
                   {session.ready
                     ? " — conectado"
                     : session.status === "unknown"
@@ -603,6 +1238,57 @@ export default function DisparosPage() {
           </label>
 
           <label>
+            Público da campanha
+            <select
+              value={audienceListId}
+              onChange={event => setAudienceListId(event.target.value)}
+              disabled={
+                loading ||
+                importingContacts ||
+                !contactListsLoaded ||
+                Boolean(contactListsError)
+              }
+            >
+              <option value="unselected" disabled>
+                Selecione o público antes de continuar
+              </option>
+              <option value="all">
+                Todos os contatos elegíveis{contactsCount === null ? "" : ` — ${contactsCount.toLocaleString("pt-BR")}`}
+              </option>
+              {contactLists
+                .filter(list => list.status === "ready")
+                .map(list => (
+                  <option value={list.id} key={list.id}>
+                    {list.name} — {list.contacts_count.toLocaleString("pt-BR")}
+                  </option>
+                ))}
+            </select>
+            <small>
+              {contactListsError
+                ? "Recarregue as carteiras para liberar a escolha do público. "
+                : contactListsLoading && !contactListsLoaded
+                  ? "Carregando carteiras e contatos elegíveis… "
+                  : audienceListId === "unselected"
+                ? "Escolha explicitamente a carteira ou o público geral. "
+                : audienceCount === null
+                  ? "Conferindo o público elegível…"
+                  : `${audienceCount.toLocaleString("pt-BR")} contatos elegíveis agora. `}
+              A carteira fica salva no rascunho; ao iniciar, a fila é congelada e cada telefone entra uma única vez.
+            </small>
+            {contactListsError && (
+              <button
+                type="button"
+                className={styles.audienceRetryButton}
+                onClick={() => void loadContactLists()}
+                disabled={contactListsLoading}
+              >
+                <RotateCcw size={13} />
+                {contactListsLoading ? "Recarregando…" : "Recarregar carteiras"}
+              </button>
+            )}
+          </label>
+
+          <label>
             Mensagem
             <textarea
               value={message}
@@ -610,6 +1296,7 @@ export default function DisparosPage() {
               maxLength={1500}
               rows={7}
               placeholder="Oi, {{nome}}! Chegaram novidades na Moda Pink 💗"
+              disabled={loading || importingContacts}
             />
             <small>
               Use <code>{"{{nome}}"}</code> para personalizar. <span className={styles.characterCount}>{message.length}/1500</span>
@@ -623,6 +1310,7 @@ export default function DisparosPage() {
               type="file"
               accept="image/jpeg,image/png,image/webp,video/mp4,video/webm"
               onChange={selectMedia}
+              disabled={loading || importingContacts}
             />
             <small>
               JPG, PNG, WEBP, MP4 ou WEBM. Máximo de 16 MB.
@@ -643,6 +1331,7 @@ export default function DisparosPage() {
                   type="button"
                   onClick={removeMedia}
                   aria-label="Remover mídia"
+                  disabled={loading || importingContacts}
                 >
                   <Trash2 size={15} />
                 </button>
@@ -681,7 +1370,12 @@ export default function DisparosPage() {
             className={styles.primaryButton}
             type="button"
             onClick={createDraft}
-            disabled={loading}
+            disabled={
+              loading ||
+              importingContacts ||
+              !contactListsLoaded ||
+              Boolean(contactListsError)
+            }
           >
             <Save size={16} /> {loading ? "Aguarde…" : "Salvar rascunho"}
           </button>
@@ -726,7 +1420,8 @@ export default function DisparosPage() {
                     <div className={styles.campaignTop}>
                       <div>
                         <h3>{campaign.name}</h3>
-                        <span className={styles.campaignChannel}><WhatsAppIcon size={13} aria-hidden="true" /> {getSessionLabel(campaign.session_key)}</span>
+                        <span className={styles.campaignChannel}><WhatsAppIcon size={13} aria-hidden="true" /> {getCampaignSenderDisplay(campaign)}</span>
+                        <span className={styles.campaignAudience}><Users size={13} aria-hidden="true" /> {getAudienceLabel(campaign)}</span>
                       </div>
                       <span className={`${styles.status} ${styles[campaign.status]}`}>
                         {STATUS_LABEL[campaign.status]}
