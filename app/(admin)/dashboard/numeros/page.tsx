@@ -38,7 +38,8 @@ type SessionOption = {
   nome: string
 }
 
-const API = process.env.NEXT_PUBLIC_API_URL!
+const WHATSAPP_RUNTIME_API =
+  "/api/whatsapp/runtime"
 
 const idsPermitidos: SessionOption[] = [
   {
@@ -421,6 +422,9 @@ export default function Numeros() {
   const [loading, setLoading] =
     useState(false)
 
+  const [finishingConnection, setFinishingConnection] =
+    useState(false)
+
   const [sessionsLoading, setSessionsLoading] =
     useState(true)
 
@@ -481,7 +485,7 @@ export default function Numeros() {
 
       const res =
         await fetch(
-          `${API}/sessions`,
+          `${WHATSAPP_RUNTIME_API}/sessions`,
           {
             cache: "no-store"
           }
@@ -659,6 +663,7 @@ export default function Numeros() {
     clearAllIntervals()
 
     setLoading(true)
+    setFinishingConnection(false)
 
     setQr(null)
     setErrorMessage("")
@@ -670,7 +675,7 @@ export default function Numeros() {
       // =========================
       const createResponse =
         await fetch(
-          `${API}/sessions/create`,
+          `${WHATSAPP_RUNTIME_API}/sessions/create`,
           {
             method: "POST",
 
@@ -709,7 +714,7 @@ export default function Numeros() {
 
             const res =
               await fetch(
-                `${API}/sessions/qr/${selectedSessionId}?t=${Date.now()}`,
+                `${WHATSAPP_RUNTIME_API}/sessions/qr/${selectedSessionId}?t=${Date.now()}`,
                 {
                   cache: "no-store"
                 }
@@ -723,6 +728,8 @@ export default function Numeros() {
               await res.json()
 
             if (data.qr) {
+              setFinishingConnection(false)
+
               setQr(currentQr =>
                 currentQr === data.qr
                   ? currentQr
@@ -753,7 +760,7 @@ export default function Numeros() {
 
             const res =
               await fetch(
-                `${API}/sessions/status/${selectedSessionId}?t=${Date.now()}`,
+                `${WHATSAPP_RUNTIME_API}/sessions/status/${selectedSessionId}?t=${Date.now()}`,
                 {
                   cache: "no-store"
                 }
@@ -772,7 +779,27 @@ export default function Numeros() {
               )
 
             if (
-              currentStatus === "authenticated" ||
+              currentStatus === "authenticated"
+            ) {
+              // O QR já foi aceito pelo celular, mas o WhatsApp Web ainda
+              // precisa terminar de carregar. Não feche o modal nem anuncie
+              // a conexão antes de a sessão realmente chegar em ready.
+              if (qrIntervalRef.current) {
+                clearInterval(
+                  qrIntervalRef.current
+                )
+
+                qrIntervalRef.current = null
+              }
+
+              setQr(null)
+              setLoading(true)
+              setFinishingConnection(true)
+
+              return false
+            }
+
+            if (
               currentStatus === "ready" ||
               currentStatus === "connected"
             ) {
@@ -790,10 +817,28 @@ export default function Numeros() {
               )
 
               setLoading(false)
+              setFinishingConnection(false)
 
               await loadSessions()
 
               return true
+            }
+
+            if (
+              currentStatus === "auth_failure" ||
+              currentStatus === "error"
+            ) {
+              clearAllIntervals()
+              setQr(null)
+              setLoading(false)
+              setFinishingConnection(false)
+              setErrorMessage(
+                currentStatus === "auth_failure"
+                  ? "O WhatsApp recusou esta autenticação. Gere um novo QR Code e tente novamente."
+                  : "A sessão não conseguiu concluir a conexão. Tente novamente."
+              )
+
+              return false
             }
 
           } catch {}
@@ -829,6 +874,7 @@ export default function Numeros() {
             clearAllIntervals()
             setQr(null)
             setLoading(false)
+            setFinishingConnection(false)
 
             setErrorMessage(
               "O QR Code expirou. Gerando um novo código..."
@@ -856,6 +902,7 @@ export default function Numeros() {
       )
 
       setLoading(false)
+      setFinishingConnection(false)
     }
   }
 
@@ -885,7 +932,7 @@ export default function Numeros() {
     try {
 
       await fetch(
-        `${API}/sessions/${deleteId}`,
+        `${WHATSAPP_RUNTIME_API}/sessions/${deleteId}`,
         {
           method: "DELETE"
         }
@@ -998,6 +1045,7 @@ export default function Numeros() {
             )
             setSessionId(nextSession?.id || "principal")
             setQr(null)
+            setFinishingConnection(false)
             setErrorMessage("")
             setShowModal(true)
           }}
@@ -1123,7 +1171,11 @@ export default function Numeros() {
                 {loading
                   ? <RefreshCw size={16} className={styles.spinner} aria-hidden="true" />
                   : <QrCode size={16} aria-hidden="true" />}
-                {loading ? "Preparando conexão..." : "Gerar QR Code"}
+                {loading
+                  ? finishingConnection
+                    ? "Autenticado, finalizando conexão..."
+                    : "Preparando conexão..."
+                  : "Gerar QR Code"}
               </button>
             )}
 
@@ -1151,6 +1203,7 @@ export default function Numeros() {
                 setShowModal(false)
                 setQr(null)
                 setLoading(false)
+                setFinishingConnection(false)
                 setSessionId("principal")
               }}
             >
