@@ -74,8 +74,8 @@ function campaign(h, method = 'GET', route = '', options = {}) {
   })
 }
 
-test('runtime rejects missing/malformed keys before fetch without exposing values', async () => {
-  for (const key of [undefined, '', ' ', '\nsecret', 'secret\r', 'secret\t', 'secret\0', 'secret\u007f', 'chave🔑', '[dotenv] loaded\nsecret']) {
+test('runtime rejects malformed configured keys before fetch without exposing values', async () => {
+  for (const key of [' ', '\nsecret', 'secret\r', 'secret\t', 'secret\0', 'secret\u007f', 'chave🔑', '[dotenv] loaded\nsecret']) {
     const h = harness({ env: { WHATSAPP_API_INTERNAL_KEY: key } })
     const response = await h.request('runtime', 'GET', 'sessions')
     assert.equal(response.status, 503)
@@ -325,4 +325,46 @@ test('campaign mutations get a longer bounded deadline than polling and runtime'
   assert.equal(h.timerMs(), 15000)
   await h.request('runtime', 'DELETE', 'sessions/teste')
   assert.equal(h.timerMs(), 15000)
+})
+
+
+test('authenticated runtime supports existing keyless API mode only on literal loopback URLs', async () => {
+  for (const url of ['http://127.0.0.1:3001', 'https://127.0.0.1', 'http://[::1]:3001', 'https://[::1]/api']) {
+    for (const key of [undefined, '']) {
+      const h = harness({ env: { WHATSAPP_API_INTERNAL_URL: url, WHATSAPP_API_INTERNAL_KEY: key, INTERNAL_API_KEY: key } })
+      const response = await h.request('runtime', 'GET', 'sessions')
+      assert.equal(response.status, 200, url)
+      assert.equal(h.authCalls(), 1)
+      assert.equal(h.calls.length, 1)
+      assert.equal(h.calls[0].headers.get('x-internal-api-key'), null)
+      assert.equal(h.calls[0].headers.get('authorization'), null)
+    }
+  }
+})
+
+test('missing keys cannot authorize remote, DNS, or normalized loopback aliases', async () => {
+  for (const url of ['https://api.example', 'http://localhost:3001', 'http://127.1:3001', 'http://2130706433:3001', 'http://0x7f000001:3001', 'http://127.000.000.001:3001', 'http://127.0.0.1.:3001', 'http://[0:0:0:0:0:0:0:1]:3001', 'http://127.0.0.1.example', 'http://10.0.0.1:3001']) {
+    const h = harness({ env: { WHATSAPP_API_INTERNAL_URL: url, WHATSAPP_API_INTERNAL_KEY: '', INTERNAL_API_KEY: '' } })
+    assert.equal((await h.request('runtime', 'GET', 'sessions')).status, 503, url)
+    assert.equal(h.calls.length, 0)
+  }
+})
+
+test('keyless loopback still requires dashboard admin and never uses a public URL fallback', async () => {
+  for (const status of [401, 403]) {
+    const h = harness({ denied: Response.json({ error: 'denied' }, { status }), env: { WHATSAPP_API_INTERNAL_KEY: '', INTERNAL_API_KEY: '' } })
+    assert.equal((await h.request('runtime', 'GET', 'sessions')).status, status)
+    assert.equal(h.calls.length, 0)
+  }
+  const h = harness({ env: { WHATSAPP_API_INTERNAL_URL: undefined, WHATSAPP_API_URL: undefined, NEXT_PUBLIC_API_URL: 'https://public.example', WHATSAPP_API_INTERNAL_KEY: '', INTERNAL_API_KEY: '' } })
+  assert.equal((await h.request('runtime', 'GET', 'sessions')).status, 200)
+  assert.equal(h.calls[0].target, 'http://127.0.0.1:3001/sessions')
+})
+
+test('a valid configured key remains unchanged for both local and remote APIs', async () => {
+  for (const url of ['http://127.0.0.1:3001', 'https://api.example']) {
+    const h = harness({ env: { WHATSAPP_API_INTERNAL_URL: url, WHATSAPP_API_INTERNAL_KEY: '', INTERNAL_API_KEY: SECRET } })
+    assert.equal((await h.request('runtime', 'GET', 'sessions')).status, 200)
+    assert.equal(h.calls[0].headers.get('x-internal-api-key'), SECRET)
+  }
 })

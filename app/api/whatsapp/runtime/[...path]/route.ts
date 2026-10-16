@@ -135,10 +135,9 @@ async function proxyWhatsAppRequest(
   let headers: Headers
   try {
     target = new URL(`${getWhatsAppApiBaseUrl()}/${path}`)
-    headers = new Headers({
-      Accept: "application/json",
-      "x-internal-api-key": getWhatsAppInternalKey()
-    })
+    const key = getWhatsAppInternalKey()
+    headers = new Headers({ Accept: "application/json" })
+    if (key) headers.set("x-internal-api-key", key)
   } catch {
     return whatsAppConfigError()
   }

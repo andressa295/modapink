@@ -15,11 +15,15 @@ export function whatsAppConfigError() {
   )
 }
 
+function configuredWhatsAppApiUrl() {
+  return process.env.WHATSAPP_API_INTERNAL_URL ??
+    process.env.WHATSAPP_API_URL ?? "http://127.0.0.1:3001"
+}
+
 export function getWhatsAppApiBaseUrl() {
   // These are server-only variables. An explicitly invalid override must fail
   // closed, rather than silently switching to a different/public API.
-  const value = process.env.WHATSAPP_API_INTERNAL_URL ??
-    process.env.WHATSAPP_API_URL ?? "http://127.0.0.1:3001"
+  const value = configuredWhatsAppApiUrl()
 
   if (!/^https?:\/\//i.test(value) || /[\s\\\u0000-\u001f\u007f]/.test(value)) {
     throw new Error("Invalid WhatsApp API URL configuration")
@@ -35,11 +39,22 @@ export function getWhatsAppApiBaseUrl() {
 }
 
 export function getWhatsAppInternalKey() {
-  const key = process.env.WHATSAPP_API_INTERNAL_KEY ?? process.env.INTERNAL_API_KEY
+  const key = process.env.WHATSAPP_API_INTERNAL_KEY || process.env.INTERNAL_API_KEY
+
+  if (!key) {
+    // Existing API installations may run without INTERNAL_API_KEY. Preserve
+    // that mode only on literal loopback URLs, behind the dashboard admin gate.
+    // Check the original text: URL parsing normalizes 127.1/2130706433 to
+    // 127.0.0.1, but those aliases and DNS names must not enable keyless access.
+    if (/^https?:\/\/(?:127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/i.test(configuredWhatsAppApiUrl())) {
+      return undefined
+    }
+    throw new Error("Missing WhatsApp internal key for a non-loopback API")
+  }
 
   // Validate the original value before any trimming. In particular, capturing
   // dotenv's stdout can prepend a log line and a newline to the actual key.
-  if (!key || !/^[\x21-\x7e]+$/.test(key)) {
+  if (!/^[\x21-\x7e]+$/.test(key)) {
     throw new Error("Invalid WhatsApp internal key configuration")
   }
 
