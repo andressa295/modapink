@@ -19,7 +19,6 @@ import {
 
 import styles from "../styles/chat.module.css"
 import { getRequestedChatTab } from "@/lib/chat-navigation"
-import { getConversationDisplaySignature } from "@/lib/chat-conversation-signature"
 
 import { createBrowserClient } from "@supabase/ssr"
 
@@ -45,9 +44,9 @@ type TabId =
   | "principal"
   | "vendedora_1"
   | "vendedora_2"
-  | "teste"
   | "sac"
   | "automacoes"
+  | "teste"
 
 type Conversation = {
   id: string
@@ -89,6 +88,7 @@ type Message = {
   caption?: string
   created_at?: string
   is_temp?: boolean
+  is_pending_confirmation?: boolean
   mode?: string | null
   state?: string | null
   intent?: string | null
@@ -133,11 +133,6 @@ const chatTabs: ChatTab[] = [
     short: "Vendedora"
   },
   {
-    id: "teste",
-    nome: "Teste · vendas com fotos",
-    short: "Teste vendas"
-  },
-  {
     id: "sac",
     nome: "SAC",
     short: "SAC"
@@ -146,6 +141,11 @@ const chatTabs: ChatTab[] = [
     id: "automacoes",
     nome: "Automações",
     short: "Automações"
+  },
+  {
+    id: "teste",
+    nome: "Teste · vendas com fotos",
+    short: "Teste vendas"
   }
 ]
 
@@ -1038,12 +1038,22 @@ function formatPreview(
 function getConversationsSignature(
   conversations: Conversation[]
 ) {
-  return getConversationDisplaySignature(
-    conversations.map(conversation => ({
-      ...conversation,
-      memory: parseMemory(conversation.memory)
-    }))
-  )
+  return conversations
+    .map(conversation =>
+      [
+        conversation.id,
+        conversation.last_message_at,
+        conversation.updated_at,
+        conversation.last_message,
+        conversation.mode,
+        conversation.state,
+        conversation.status,
+        JSON.stringify(
+          parseMemory(conversation.memory)
+        )
+      ].join("::")
+    )
+    .join("||")
 }
 
 function mergeConversationPages(
@@ -1166,9 +1176,11 @@ export default function Conversas() {
   const [imageAttachment, setImageAttachment] = useState<{ dataUrl: string; name: string } | null>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [readingImage, setReadingImage] = useState(false)
+  const [sendNotice, setSendNotice] = useState("")
 
   useEffect(() => {
     setImageAttachment(null)
+    setSendNotice("")
     if (imageInputRef.current) imageInputRef.current.value = ""
   }, [selected?.id])
 
@@ -2835,6 +2847,7 @@ export default function Conversas() {
 
     setInput("")
     setImageAttachment(null)
+    setSendNotice("")
     setSending(true)
     setMessages(prev => [
       ...prev,
@@ -2876,6 +2889,37 @@ export default function Conversas() {
         )
 
       const result = await response.json().catch(() => null)
+
+      const pendingConfirmation =
+        response.status === 202 ||
+        result?.status === "pending_confirmation" ||
+        result?.code === "pending_confirmation" ||
+        result?.outcome === "pending_confirmation"
+
+      if (pendingConfirmation) {
+        setMessages(prev =>
+          prev.map(message =>
+            message.id === tempMessage.id
+              ? {
+                  ...message,
+                  is_temp: false,
+                  is_pending_confirmation: true
+                }
+              : message
+          )
+        )
+
+        setSendNotice(
+          "Confirmação pendente — confira a conversa antes de reenviar. A mensagem pode já ter chegado à cliente."
+        )
+
+        await loadConversations({
+          silent: true
+        })
+
+        return
+      }
+
       if (!response.ok || result?.ok === false) {
         throw new Error(
           result?.error || "Falha ao enviar"
@@ -2907,6 +2951,7 @@ export default function Conversas() {
         setInput(textToSend)
         setImageAttachment(attachmentToSend)
       }
+      setSendNotice("")
       window.alert(err instanceof Error ? err.message : "Não consegui enviar. Tente novamente.")
 
       setMessages(prev =>
@@ -3709,6 +3754,8 @@ export default function Conversas() {
                       >
                         {m.is_temp
                           ? "enviando..."
+                          : m.is_pending_confirmation
+                            ? "confirmação pendente"
                           : formatMessageTime(
                               m.created_at
                             )}
@@ -3721,6 +3768,11 @@ export default function Conversas() {
             </div>
 
             {readingImage && <div role="status" className={styles["attachment-status"]}>Carregando imagem...</div>}
+            {sendNotice && (
+              <div role="status" className={styles["attachment-status"]}>
+                {sendNotice}
+              </div>
+            )}
             {imageAttachment && (
               <div className={styles["attachment-preview"]}>
                 <img src={imageAttachment.dataUrl} alt="Imagem anexada" />

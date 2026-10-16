@@ -86,6 +86,12 @@ type BroadcastSession = {
   ready: boolean
 }
 
+type CampaignActionState = {
+  campaignId: string
+  action: "start" | "pause" | "resume" | "cancel"
+  phase: "checking" | "submitting"
+}
+
 const FALLBACK_SESSIONS: BroadcastSession[] = [
   {
     key: "principal",
@@ -213,6 +219,10 @@ export default function DisparosPage() {
   const [contactListsError, setContactListsError] =
     useState("")
   const [loading, setLoading] = useState(false)
+  const [campaignAction, setCampaignAction] =
+    useState<CampaignActionState | null>(null)
+  const [campaignActionErrors, setCampaignActionErrors] =
+    useState<Record<string, string>>({})
   const [loadingList, setLoadingList] =
     useState(true)
   const [error, setError] = useState("")
@@ -497,8 +507,6 @@ export default function DisparosPage() {
   async function getEligibleAudienceEstimate(
     campaign: Campaign
   ) {
-    let path = "/contacts/count"
-
     if (campaign.audience === "contact_lists") {
       const listIds = Array.from(new Set(
         (campaign.audience_list_ids || [])
@@ -518,23 +526,36 @@ export default function DisparosPage() {
         )
       }
 
-      const readyListIds = new Set(
+      const readyListsById = new Map(
         contactLists
           .filter(list => list.status === "ready")
-          .map(list => list.id)
+          .map(list => [list.id, list] as const)
       )
 
-      if (listIds.some(id => !readyListIds.has(id))) {
+      if (listIds.some(id => !readyListsById.has(id))) {
         throw new Error(
           "Uma das carteiras desta campanha não está mais disponível. Crie um novo rascunho e confira o público."
         )
       }
 
-      path +=
-        `?contact_list_ids=${encodeURIComponent(listIds.join(","))}`
+      const count = listIds.reduce((total, id) => {
+        const listCount = Number(
+          readyListsById.get(id)?.contacts_count
+        )
+
+        return total + (
+          Number.isInteger(listCount) && listCount >= 0
+            ? listCount
+            : 0
+        )
+      }, 0)
+
+      // Esta é uma estimativa superior: uma pessoa pode constar em mais de
+      // uma carteira. O backend deduplica, aplica bloqueios e congela a fila.
+      return { count, isUpperBound: true }
     }
 
-    const data = await apiRequest(path)
+    const data = await apiRequest("/contacts/count")
     const count = Number(data.count)
 
     if (!Number.isInteger(count) || count < 0) {
@@ -543,7 +564,27 @@ export default function DisparosPage() {
       )
     }
 
-    return count
+    return { count, isUpperBound: false }
+  }
+
+  function setCampaignActionError(
+    campaignId: string,
+    message: string
+  ) {
+    setCampaignActionErrors(current => ({
+      ...current,
+      [campaignId]: message
+    }))
+  }
+
+  function clearCampaignActionError(campaignId: string) {
+    setCampaignActionErrors(current => {
+      if (!current[campaignId]) return current
+
+      const next = { ...current }
+      delete next[campaignId]
+      return next
+    })
   }
 
   function fileAsBase64(file: File) {
@@ -873,6 +914,8 @@ export default function DisparosPage() {
     campaign: Campaign,
     action: "start" | "pause" | "resume" | "cancel"
   ) {
+    clearCampaignActionError(campaign.id)
+
     if (action === "start" || action === "resume") {
       const senderSession = getSession(campaign.session_key)
       const senderPhone = String(senderSession?.phone || "")
@@ -882,28 +925,32 @@ export default function DisparosPage() {
       ).replace(/\D/g, "")
 
       if (!senderSession?.ready) {
-        setError(
+        setCampaignActionError(
+          campaign.id,
           `O remetente ${getSessionLabel(campaign.session_key)} não está conectado. Reconecte o número antes de iniciar ou retomar.`
         )
         return
       }
 
       if (senderPhone.length < 10) {
-        setError(
+        setCampaignActionError(
+          campaign.id,
           `O telefone do remetente ${getSessionLabel(campaign.session_key)} não foi identificado. Atualize as sessões antes de iniciar ou retomar.`
         )
         return
       }
 
       if (expectedSenderPhone.length < 10) {
-        setError(
+        setCampaignActionError(
+          campaign.id,
           `Esta campanha não tem o telefone esperado do remetente salvo. Cancele-a e crie outro rascunho confirmando o número correto.`
         )
         return
       }
 
       if (expectedSenderPhone !== senderPhone) {
-        setError(
+        setCampaignActionError(
+          campaign.id,
           `O telefone conectado em ${getSessionLabel(campaign.session_key)} mudou desde a criação deste rascunho. Cancele-o e crie outro confirmando o remetente correto.`
         )
         return
@@ -912,17 +959,27 @@ export default function DisparosPage() {
 
     if (action === "start") {
       setLoading(true)
+      setCampaignAction({
+        campaignId: campaign.id,
+        action,
+        phase: "checking"
+      })
       setError("")
       setNotice("")
 
-      let eligibleCount: number
+      let estimate: {
+        count: number
+        isUpperBound: boolean
+      }
 
       try {
-        eligibleCount =
+        estimate =
           await getEligibleAudienceEstimate(campaign)
       } catch (err) {
         setLoading(false)
-        setError(
+        setCampaignAction(null)
+        setCampaignActionError(
+          campaign.id,
           err instanceof Error
             ? err.message
             : "Não foi possível conferir o público da campanha."
@@ -930,22 +987,35 @@ export default function DisparosPage() {
         return
       }
 
-      if (eligibleCount === 0) {
+      if (estimate.count === 0) {
         setLoading(false)
-        setError(
+        setCampaignAction(null)
+        setCampaignActionError(
+          campaign.id,
           "Nenhum contato elegível foi encontrado neste público. Confira a carteira antes de iniciar."
         )
         return
       }
 
+      const estimateLabel = estimate.isUpperBound
+        ? `até ${estimate.count.toLocaleString("pt-BR")} contatos nas carteiras selecionadas`
+        : `${estimate.count.toLocaleString("pt-BR")} contatos elegíveis`
+
       const confirmed = window.confirm(
-        `Iniciar “${campaign.name}”?\n\nRemetente: ${getCampaignSenderDisplay(campaign)}\nPúblico: ${getAudienceLabel(campaign)}\nEstimativa atual: ${eligibleCount.toLocaleString("pt-BR")} contatos elegíveis\n\nAo confirmar, a fila será congelada sem duplicidade e o limite diário será respeitado.`
+        `Iniciar “${campaign.name}”?\n\nRemetente: ${getCampaignSenderDisplay(campaign)}\nPúblico: ${getAudienceLabel(campaign)}\nEstimativa atual: ${estimateLabel}\n\nAo confirmar, o sistema validará os contatos, removerá duplicidades e congelará a fila definitiva. O limite diário será respeitado.`
       )
 
       if (!confirmed) {
         setLoading(false)
+        setCampaignAction(null)
         return
       }
+
+      setCampaignAction({
+        campaignId: campaign.id,
+        action,
+        phase: "submitting"
+      })
     }
 
     if (
@@ -959,6 +1029,11 @@ export default function DisparosPage() {
 
     try {
       setLoading(true)
+      setCampaignAction(current => current || ({
+        campaignId: campaign.id,
+        action,
+        phase: "submitting"
+      }))
       setError("")
       setNotice("")
 
@@ -978,13 +1053,15 @@ export default function DisparosPage() {
       )
       await loadData()
     } catch (err) {
-      setError(
+      setCampaignActionError(
+        campaign.id,
         err instanceof Error
           ? err.message
           : "Não foi possível atualizar a campanha."
       )
     } finally {
       setLoading(false)
+      setCampaignAction(null)
     }
   }
 
@@ -1475,20 +1552,41 @@ export default function DisparosPage() {
                       <span><strong>{campaign.total_count || "—"}</strong> total</span>
                     </div>
 
+                    {campaignActionErrors[campaign.id] && (
+                      <p className={styles.campaignError} role="alert">
+                        <AlertTriangle size={14} aria-hidden="true" />
+                        <span>{campaignActionErrors[campaign.id]}</span>
+                      </p>
+                    )}
+
                     <div className={styles.actions}>
                       {campaign.status === "draft" && (
                         <button onClick={() => runAction(campaign, "start")} disabled={loading}>
-                          <Play size={15} /> Iniciar
+                          <Play size={15} />
+                          {campaignAction?.campaignId === campaign.id &&
+                          campaignAction.action === "start"
+                            ? campaignAction.phase === "checking"
+                              ? "Conferindo…"
+                              : "Iniciando…"
+                            : "Iniciar"}
                         </button>
                       )}
                       {campaign.status === "running" && (
                         <button onClick={() => runAction(campaign, "pause")} disabled={loading}>
-                          <Pause size={15} /> Pausar
+                          <Pause size={15} />
+                          {campaignAction?.campaignId === campaign.id &&
+                          campaignAction.action === "pause"
+                            ? "Pausando…"
+                            : "Pausar"}
                         </button>
                       )}
                       {campaign.status === "paused" && (
                         <button onClick={() => runAction(campaign, "resume")} disabled={loading}>
-                          <RotateCcw size={15} /> Retomar
+                          <RotateCcw size={15} />
+                          {campaignAction?.campaignId === campaign.id &&
+                          campaignAction.action === "resume"
+                            ? "Retomando…"
+                            : "Retomar"}
                         </button>
                       )}
                       {["draft", "running", "paused"].includes(campaign.status) && (
@@ -1497,7 +1595,11 @@ export default function DisparosPage() {
                           onClick={() => runAction(campaign, "cancel")}
                           disabled={loading}
                         >
-                          <Square size={14} /> Cancelar
+                          <Square size={14} />
+                          {campaignAction?.campaignId === campaign.id &&
+                          campaignAction.action === "cancel"
+                            ? "Cancelando…"
+                            : "Cancelar"}
                         </button>
                       )}
                       {campaign.status === "completed" && (
