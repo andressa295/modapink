@@ -19,6 +19,7 @@ import {
 
 import styles from "../styles/chat.module.css"
 import { getRequestedChatTab } from "@/lib/chat-navigation"
+import { getConversationDisplaySignature } from "@/lib/chat-conversation-signature"
 
 import { createBrowserClient } from "@supabase/ssr"
 
@@ -44,9 +45,9 @@ type TabId =
   | "principal"
   | "vendedora_1"
   | "vendedora_2"
+  | "teste"
   | "sac"
   | "automacoes"
-  | "teste"
 
 type Conversation = {
   id: string
@@ -133,6 +134,11 @@ const chatTabs: ChatTab[] = [
     short: "Vendedora"
   },
   {
+    id: "teste",
+    nome: "Teste · vendas com fotos",
+    short: "Teste vendas"
+  },
+  {
     id: "sac",
     nome: "SAC",
     short: "SAC"
@@ -141,11 +147,6 @@ const chatTabs: ChatTab[] = [
     id: "automacoes",
     nome: "Automações",
     short: "Automações"
-  },
-  {
-    id: "teste",
-    nome: "Teste · vendas com fotos",
-    short: "Teste vendas"
   }
 ]
 
@@ -1038,22 +1039,12 @@ function formatPreview(
 function getConversationsSignature(
   conversations: Conversation[]
 ) {
-  return conversations
-    .map(conversation =>
-      [
-        conversation.id,
-        conversation.last_message_at,
-        conversation.updated_at,
-        conversation.last_message,
-        conversation.mode,
-        conversation.state,
-        conversation.status,
-        JSON.stringify(
-          parseMemory(conversation.memory)
-        )
-      ].join("::")
-    )
-    .join("||")
+  return getConversationDisplaySignature(
+    conversations.map(conversation => ({
+      ...conversation,
+      memory: parseMemory(conversation.memory)
+    }))
+  )
 }
 
 function mergeConversationPages(
