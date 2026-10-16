@@ -33,7 +33,7 @@ import styles from "../styles/disparos.module.css"
 import { createClient } from "@/lib/supabase/client"
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 
-const API = process.env.NEXT_PUBLIC_API_URL!
+const BROADCASTS_API = "/api/whatsapp/broadcasts"
 
 type CampaignStatus =
   | "draft"
@@ -149,7 +149,7 @@ async function apiRequest(
   }
 
   const response = await fetch(
-    `${API}/broadcasts${path}`,
+    `${BROADCASTS_API}${path === "/" ? "" : path}`,
     {
       ...options,
       headers: {
@@ -161,13 +161,15 @@ async function apiRequest(
     }
   )
 
-  const data = await response.json()
+  const data = await response.json().catch(() => null)
 
   if (!response.ok || !data?.ok) {
     throw new Error(
       typeof data?.error === "string"
         ? data.error
-        : "Não foi possível concluir a operação."
+        : typeof data?.error?.message === "string"
+          ? data.error.message
+          : `Não foi possível concluir a operação (HTTP ${response.status}).`
     )
   }
 

@@ -86,13 +86,17 @@ test('authenticated keeps the modal open until the session is ready', () => {
   )
 })
 
+const transportSource = fs.readFileSync(
+  path.join(__dirname, '..', 'lib', 'whatsapp-proxy.server.ts'), 'utf8'
+)
+
 test('runtime proxy is admin-only, private and narrowly allowlisted', () => {
   assert.match(
     proxySource,
     /await requireDashboardAdmin\(\)/
   )
   assert.match(
-    proxySource,
+    transportSource,
     /process\.env\.INTERNAL_API_KEY/
   )
   assert.match(
@@ -121,11 +125,11 @@ test('runtime proxy is admin-only, private and narrowly allowlisted', () => {
     /method === "DELETE"/
   )
   assert.match(
-    proxySource,
+    transportSource,
     /"Cache-Control":\s*"no-store, max-age=0"/
   )
   assert.match(
-    proxySource,
-    /status: timedOut \? 504 : 502/
+    transportSource,
+    /timedOut \? 504 : 502/
   )
 })
