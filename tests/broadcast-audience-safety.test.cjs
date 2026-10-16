@@ -34,14 +34,14 @@ test('campaign audience always requires an explicit selection', () => {
   )
 })
 
-test('start confirmation checks and shows the current eligible audience', () => {
+test('start uses the loaded list count and leaves final validation to the backend', () => {
   assert.match(
     source,
     /await getEligibleAudienceEstimate\(campaign\)/
   )
   assert.match(
     source,
-    /Estimativa atual: \$\{eligibleCount\.toLocaleString\("pt-BR"\)\} contatos elegíveis/
+    /Estimativa atual: \$\{estimateLabel\}/
   )
   assert.match(
     source,
@@ -52,6 +52,18 @@ test('start confirmation checks and shows the current eligible audience', () => 
     /campaign\.audience_list_ids \|\| \[\]/
   )
   assert.match(
+    source,
+    /readyListsById\.get\(id\)\?\.contacts_count/
+  )
+  assert.match(
+    source,
+    /return \{ count, isUpperBound: true \}/
+  )
+  assert.match(
+    source,
+    /\? `até \$\{estimate\.count\.toLocaleString\("pt-BR"\)\} contatos nas carteiras selecionadas`/
+  )
+  assert.doesNotMatch(
     source,
     /contact_list_ids=\$\{encodeURIComponent\(listIds\.join\(","\)\)\}/
   )
