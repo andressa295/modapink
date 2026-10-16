@@ -38,6 +38,7 @@
 .card input::placeholder, .card textarea::placeholder { color: #747c8b; }
 .card textarea { resize: vertical; min-height: 150px; }
 .card input:focus, .card select:focus, .card textarea:focus { border-color: #d5479a; box-shadow: 0 0 0 3px #e7028910; }
+.card input:disabled, .card select:disabled, .card textarea:disabled, .importCard input:disabled { cursor: not-allowed; color: #8b8490; background: #f5f5f7; opacity: .78; }
 .card input[type="file"] { padding: 8px; color: var(--muted); font-size: 11px; background: #fafbfc; }
 .card input[type="file"]::file-selector-button { margin-right: 9px; padding: 7px 10px; border: 1px solid #e1e5eb; border-radius: 6px; background: #fff; color: #4c4653; font: inherit; cursor: pointer; }
 .card small { display: block; margin-top: 7px; color: var(--muted); font-size: 10px; font-weight: 400; line-height: 1.6; }
@@ -61,10 +62,56 @@
 .primaryButton { width: 100%; min-height: 42px; margin-top: 19px; padding: 11px 15px; background: var(--brand); color: #fff; }
 .primaryButton:hover { background: #c80075; }
 .primaryButton:disabled, .actions button:disabled { cursor: wait; opacity: .55; }
-.primaryButton:focus-visible, .actions button:focus-visible, .mediaPreviewTop button:focus-visible { outline: 3px solid #e7028980; outline-offset: 3px; }
+.primaryButton:focus-visible, .actions button:focus-visible, .mediaPreviewTop button:focus-visible, .audienceBar button:focus-visible, .importButton:focus-visible, .listActions button:focus-visible, .audienceRetryButton:focus-visible, .listLoadError button:focus-visible { outline: 3px solid #e7028980; outline-offset: 3px; }
 .error, .notice { margin-bottom: 16px; padding: 12px 14px; border: 1px solid; border-radius: 9px; font-size: 12px; line-height: 1.6; }
 .error { color: #9d263d; border-color: #f2d7df; background: #fff6f8; }
 .notice { color: #216345; border-color: #d9ebe2; background: #f2faf5; }
+.audienceBar { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-bottom: 18px; padding: 15px 17px; border: 1px solid #f0dce8; border-radius: 15px; background: linear-gradient(135deg, #fff 0%, #fdf6fa 100%); }
+.audienceBar > div { display: flex; min-width: 0; align-items: center; gap: 12px; }
+.audienceIcon { display: inline-grid; flex: none; place-items: center; width: 38px; height: 38px; border-radius: 11px; color: #b51c70; background: #fbe8f3; }
+.audienceBar strong { display: block; color: #3f3844; font-size: 13px; font-weight: 600; }
+.audienceBar p { margin: 4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
+.audienceBar > button, .importButton { display: inline-flex; flex: none; align-items: center; justify-content: center; gap: 7px; min-height: 37px; padding: 9px 12px; border: 1px solid #eccdde; border-radius: 9px; color: #a51b68; background: #fff; font: inherit; font-size: 11px; font-weight: 500; cursor: pointer; }
+.audienceBar > button:hover { background: #fff7fb; }
+.audienceBar > button:disabled { cursor: wait; opacity: .55; }
+.contactListManager { display: grid; grid-template-columns: minmax(280px, .75fr) minmax(0, 1.25fr); gap: 14px; margin: -4px 0 18px; }
+.importCard, .savedLists { min-width: 0; padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: #fff; }
+.managerHeading { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+.managerHeading > span { display: inline-grid; flex: none; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: #b11e6e; background: #fbecf4; }
+.managerHeading h2 { margin: 0; color: #3f3844; font-size: 14px; font-weight: 600; }
+.managerHeading p { margin: 3px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.importCard label { display: block; margin-top: 13px; color: #4c4653; font-size: 11px; font-weight: 500; }
+.importCard input { width: 100%; margin-top: 6px; padding: 10px 11px; border: 1px solid #e0e4ea; border-radius: 9px; outline: none; color: var(--ink); background: #fff; font: inherit; font-size: 12px; }
+.importCard input:focus { border-color: #d5479a; box-shadow: 0 0 0 3px #e7028910; }
+.importCard input[type="file"] { padding: 7px; color: var(--muted); font-size: 10px; background: #fafbfc; }
+.importCard input[type="file"]::file-selector-button { margin-right: 8px; padding: 7px 9px; border: 1px solid #e1e5eb; border-radius: 6px; color: #4c4653; background: #fff; font: inherit; cursor: pointer; }
+.importCard small { display: block; margin-top: 6px; color: var(--muted); font-size: 9px; font-weight: 400; line-height: 1.55; }
+.importButton { width: 100%; margin-top: 15px; border-color: #d62384; color: #fff; background: var(--brand); }
+.importButton:hover { background: #c80075; }
+.importButton:disabled { cursor: wait; opacity: .55; }
+.contactListGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; max-height: 300px; overflow: auto; padding-right: 3px; scrollbar-width: thin; }
+.contactListItem { min-width: 0; padding: 12px; border: 1px solid #eceef2; border-radius: 11px; background: #fcfcfd; }
+.contactListItem > div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.contactListItem strong { min-width: 0; overflow: hidden; color: #403a46; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.contactListItem b { display: block; margin-top: 10px; color: #b51c70; font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.contactListItem p { margin: 3px 0 0; overflow: hidden; color: var(--muted); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.contactListItem small { display: block; margin-top: 7px; color: #7a7180; font-size: 9px; line-height: 1.45; }
+.contactListItem .listError { color: #a53a50; }
+.listActions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+.listActions button { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; color: #9b4860; background: transparent; font: inherit; font-size: 9px; cursor: pointer; }
+.listActions button:disabled { cursor: wait; opacity: .5; }
+.listStatus { flex: none; padding: 4px 6px; border-radius: 6px; font-size: 8px; font-weight: 600; }
+.listStatus_ready { color: #2f674a; background: #eaf5ee; }
+.listStatus_importing { color: #826022; background: #fbf3df; }
+.listStatus_failed { color: #973d50; background: #faeaf0; }
+.listEmpty { display: grid; min-height: 130px; place-items: center; align-content: center; gap: 7px; color: #aa91a2; text-align: center; }
+.listEmpty p { margin: 0; color: var(--muted); font-size: 10px; }
+.listLoadError { display: grid; min-height: 150px; place-items: center; align-content: center; gap: 7px; padding: 16px; border: 1px solid #f0d5dd; border-radius: 11px; color: #a03c54; background: #fff8fa; text-align: center; }
+.listLoadError strong { color: #7f3145; font-size: 11px; font-weight: 600; }
+.listLoadError p { max-width: 360px; margin: 0; color: #8c6170; font-size: 9px; line-height: 1.55; }
+.listLoadError button, .audienceRetryButton { display: inline-flex; align-items: center; justify-content: center; gap: 6px; margin-top: 4px; padding: 7px 9px; border: 1px solid #ebcbd6; border-radius: 7px; color: #9c3459; background: #fff; font: inherit; font-size: 9px; font-weight: 500; cursor: pointer; }
+.listLoadError button:disabled, .audienceRetryButton:disabled { cursor: wait; opacity: .55; }
+.audienceRetryButton { margin-top: 8px; }
 .campaignList { display: grid; gap: 13px; max-height: 860px; overflow: auto; scrollbar-width: thin; scrollbar-color: #e1dce4 transparent; padding-right: 3px; }
 .campaign { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: #fff; }
 .campaignTop { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -72,6 +119,8 @@
 .campaignTop h3 { margin: 0 0 5px; color: var(--ink); font-size: 13px; font-weight: 600; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .campaignChannel { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .campaignChannel svg { flex: none; }
+.campaignAudience { display: flex; align-items: center; gap: 5px; margin-top: 3px; color: #8d5879; font-size: 10px; line-height: 1.5; }
+.campaignAudience svg { flex: none; }
 .status { flex: none; padding: 5px 8px; border-radius: 6px; font-size: 10px; line-height: 1.3; font-weight: 500; }
 .draft { color: #746274; background: #f3eff4; }
 .running { color: #a32270; background: #fceef6; }
@@ -99,7 +148,7 @@
 .disclaimer { max-width: 920px; margin: 18px auto 0; color: var(--muted); font-size: 10px; line-height: 1.7; text-align: center; }
 .srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 1150px) { .headerStats { gap: 10px; } .contactCounter, .dailyLimitCard { padding: 14px; } .columns { gap: 14px; } .card { padding: 18px; } .cardHeading { flex-wrap: wrap; } }
-@media (max-width: 1000px) { .columns { grid-template-columns: minmax(0, 1fr); } .headerStats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cardHeading { flex-wrap: nowrap; } .campaignList { max-height: none; } }
+@media (max-width: 1000px) { .columns { grid-template-columns: minmax(0, 1fr); } .headerStats { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cardHeading { flex-wrap: nowrap; } .campaignList { max-height: none; } .contactListManager { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 600px) {
   .page { padding-bottom: 12px; }
   .header { flex-direction: column; align-items: flex-start; gap: 14px; margin-bottom: 17px; }
@@ -114,6 +163,10 @@
   .contactCounter small, .dailyLimitCard small { font-size: 10px; }
   .safetyGrid { gap: 10px; margin-bottom: 17px; }
   .safetyGrid > div { width: 100%; font-size: 10px; }
+  .audienceBar { align-items: flex-start; flex-direction: column; gap: 12px; padding: 14px; }
+  .audienceBar > button { width: 100%; }
+  .contactListGrid { grid-template-columns: minmax(0, 1fr); max-height: none; }
+  .importCard input { font-size: 16px; }
   .card { padding: 16px; border-radius: 13px; }
   .cardHeading { flex-wrap: wrap; gap: 12px; }
   .card input, .card textarea, .card select { font-size: 16px; }
