@@ -241,13 +241,87 @@ function getStatusText(
 function formatPhone(
   phone?: string | null
 ) {
-  if (!phone) {
+  const value =
+    getSessionPhone(phone)
+
+  if (!value) {
     return "Número não identificado"
   }
 
-  return String(phone)
-    .replace("@c.us", "")
-    .replace("@lid", "")
+  if (
+    value.startsWith("55") &&
+    value.length === 13
+  ) {
+    return `+55 (${value.slice(2, 4)}) ${value.slice(4, 9)}-${value.slice(9)}`
+  }
+
+  if (
+    value.startsWith("55") &&
+    value.length === 12
+  ) {
+    return `+55 (${value.slice(2, 4)}) ${value.slice(4, 8)}-${value.slice(8)}`
+  }
+
+  return `+${value}`
+}
+
+function getSessionPhone(
+  value: any
+): string | null {
+  const candidates =
+    value && typeof value === "object"
+      ? [
+          value.phone,
+          value.phone_number,
+          value.phoneNumber,
+          value.number,
+          value.wid,
+          value.me,
+          value.info?.wid,
+          value.info?.me
+        ]
+      : [value]
+
+  for (const candidate of candidates) {
+    const serialized =
+      typeof candidate === "object" && candidate
+        ? (
+            candidate._serialized ||
+            candidate.$1 ||
+            (
+              candidate.user && candidate.server
+                ? `${candidate.user}@${candidate.server}`
+                : candidate.user
+            )
+          )
+        : candidate
+
+    const raw =
+      String(serialized || "")
+        .trim()
+
+    if (
+      !raw ||
+      /@lid(?:$|:)/i.test(raw)
+    ) {
+      continue
+    }
+
+    const digits =
+      raw
+        .split("@")[0]
+        .split(":")[0]
+        .replace(/\D+/g, "")
+
+    if (
+      digits.length >= 10 &&
+      digits.length <= 15
+    ) {
+      return digits
+    }
+  }
+
+  return null
 }
 
 function normalizeSessions(
@@ -270,7 +344,7 @@ function normalizeSessions(
       status:
         normalizeStatus(item?.status),
       phone:
-        item?.phone || null
+        getSessionPhone(item)
     }
 
     const existing =
@@ -291,9 +365,24 @@ function normalizeSessions(
         Boolean(session.phone)
       )
 
-    if (shouldReplace) {
-      map.set(id, session)
-    }
+    map.set(
+      id,
+      {
+        id,
+        rawId:
+          shouldReplace
+            ? session.rawId
+            : existing.rawId,
+        status:
+          shouldReplace
+            ? session.status
+            : existing.status,
+        phone:
+          session.phone ||
+          existing.phone ||
+          null
+      }
+    )
   })
 
   const ordered =
@@ -382,6 +471,14 @@ export default function Numeros() {
 
     try {
 
+      const savedSessionsRequest =
+        fetch(
+          "/api/whatsapp/session",
+          {
+            cache: "no-store"
+          }
+        ).catch(() => null)
+
       const res =
         await fetch(
           `${API}/sessions`,
@@ -405,8 +502,58 @@ export default function Numeros() {
         )
       }
 
+      const savedSessionsResponse =
+        await savedSessionsRequest
+
+      const savedSessions =
+        savedSessionsResponse?.ok
+          ? await savedSessionsResponse
+              .json()
+              .catch(() => [])
+          : []
+
+      const savedPhones =
+        new Map<string, string>()
+
+      if (Array.isArray(savedSessions)) {
+        savedSessions.forEach((item: any) => {
+          const id =
+            normalizeSessionId(
+              item?.session_key ||
+              item?.session_id ||
+              item?.id
+            )
+
+          const phone =
+            getSessionPhone(item)
+
+          if (id && phone) {
+            savedPhones.set(id, phone)
+          }
+        })
+      }
+
+      const enrichedSessions =
+        data.map((item: any) => {
+          const id =
+            normalizeSessionId(
+              item?.id ||
+              item?.session_key
+            )
+
+          return {
+            ...item,
+            phone:
+              getSessionPhone(item) ||
+              savedPhones.get(id) ||
+              null
+          }
+        })
+
       setSessions(
-        normalizeSessions(data)
+        normalizeSessions(
+          enrichedSessions
+        )
       )
 
       setLastSyncAt(
