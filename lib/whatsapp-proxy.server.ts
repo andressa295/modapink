@@ -1,5 +1,5 @@
 // Server-side transport shared only by the WhatsApp route handlers.
-import { NextResponse } from "next/server"
+import { NextResponse, type NextRequest } from "next/server"
 
 const NO_STORE = { "Cache-Control": "no-store, max-age=0" }
 
@@ -43,7 +43,7 @@ export function getWhatsAppInternalKey() {
 
   if (!key) {
     // Existing API installations may run without INTERNAL_API_KEY. Preserve
-    // that mode only on literal loopback URLs, behind the dashboard admin gate.
+    // that mode only on literal loopback URLs, behind authenticated dashboard gates.
     // Check the original text: URL parsing normalizes 127.1/2130706433 to
     // 127.0.0.1, but those aliases and DNS names must not enable keyless access.
     if (/^https?:\/\/(?:127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/|$)/i.test(configuredWhatsAppApiUrl())) {
@@ -59,6 +59,26 @@ export function getWhatsAppInternalKey() {
   }
 
   return key
+}
+
+export function rejectCrossOriginWhatsAppMutation(request: NextRequest) {
+  const site = request.headers.get("sec-fetch-site")
+  const origin = request.headers.get("origin")
+  // Next may use an internal URL behind a TLS-terminating reverse proxy.
+  const host = request.headers.get("x-forwarded-host")?.split(",")[0].trim() ||
+    request.headers.get("host") || request.nextUrl.host
+  let wrongOrigin = false
+  if (origin) {
+    try {
+      const parsed = new URL(origin)
+      wrongOrigin = !/^https?:$/.test(parsed.protocol) || parsed.host.toLowerCase() !== host.toLowerCase()
+    } catch {
+      wrongOrigin = true
+    }
+  }
+  return site === "cross-site" || site === "same-site" || wrongOrigin
+    ? whatsAppProxyError("Origem da operação não permitida.", 403)
+    : null
 }
 
 // Enforce the API's input limit at this boundary too, before forwarding any

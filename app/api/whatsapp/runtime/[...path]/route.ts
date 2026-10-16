@@ -4,6 +4,7 @@ import {
   getWhatsAppApiBaseUrl,
   getWhatsAppInternalKey,
   readLimitedWhatsAppBody,
+  rejectCrossOriginWhatsAppMutation,
   whatsAppConfigError,
   whatsAppProxyError
 } from "@/lib/whatsapp-proxy.server"
@@ -111,24 +112,8 @@ async function proxyWhatsAppRequest(
   }
 
   if (method !== "GET") {
-    const site = request.headers.get("sec-fetch-site")
-    const origin = request.headers.get("origin")
-    // Next may use an internal URL behind TLS-terminating reverse proxies.
-    // Match the public host as Next's own Server Actions CSRF check does.
-    const host = request.headers.get("x-forwarded-host")?.split(",")[0].trim() ||
-      request.headers.get("host") || request.nextUrl.host
-    let wrongOrigin = false
-    if (origin) {
-      try {
-        const parsed = new URL(origin)
-        wrongOrigin = !/^https?:$/.test(parsed.protocol) || parsed.host.toLowerCase() !== host.toLowerCase()
-      } catch {
-        wrongOrigin = true
-      }
-    }
-    if (site === "cross-site" || site === "same-site" || wrongOrigin) {
-      return whatsAppProxyError("Origem da operação não permitida.", 403)
-    }
+    const deniedOrigin = rejectCrossOriginWhatsAppMutation(request)
+    if (deniedOrigin) return deniedOrigin
   }
 
   let target: URL

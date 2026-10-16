@@ -26,6 +26,8 @@ import { createBrowserClient } from "@supabase/ssr"
 const API =
   process.env.NEXT_PUBLIC_API_URL!
 
+const CONVERSATIONS_API = "/api/whatsapp/conversations"
+
 const CONVERSATIONS_PAGE_SIZE =
   50
 
@@ -2242,10 +2244,10 @@ export default function Conversas() {
         botIsPaused
           ? (
               sacConversation
-                ? `${API}/conversations/${currentSelected.id}/resolve-human`
-                : `${API}/conversations/${currentSelected.id}/resume-bot`
+                ? `${CONVERSATIONS_API}/${currentSelected.id}/resolve-human`
+                : `${CONVERSATIONS_API}/${currentSelected.id}/resume-bot`
             )
-          : `${API}/conversations/${currentSelected.id}/request-human`
+          : `${CONVERSATIONS_API}/${currentSelected.id}/request-human`
 
       const requestBody =
         botIsPaused
@@ -2298,7 +2300,7 @@ export default function Conversas() {
       ) {
         response =
           await fetch(
-            `${API}/conversations/${currentSelected.id}/resolve-human`,
+            `${CONVERSATIONS_API}/${currentSelected.id}/resolve-human`,
             {
               method: "POST",
               headers: {
@@ -2492,8 +2494,8 @@ export default function Conversas() {
 
       const endpoint =
         sacConversation
-          ? `${API}/conversations/${currentSelected.id}/resolve-human`
-          : `${API}/conversations/${currentSelected.id}/resume-bot`
+          ? `${CONVERSATIONS_API}/${currentSelected.id}/resolve-human`
+          : `${CONVERSATIONS_API}/${currentSelected.id}/resume-bot`
 
       console.log(
         sacConversation
@@ -2526,7 +2528,7 @@ export default function Conversas() {
       ) {
         response =
           await fetch(
-            `${API}/conversations/${currentSelected.id}/resolve-human`,
+            `${CONVERSATIONS_API}/${currentSelected.id}/resolve-human`,
             {
               method: "POST",
               headers: {
@@ -2689,7 +2691,7 @@ export default function Conversas() {
     try {
       const response =
         await fetch(
-          `${API}/conversations/${currentSelected.id}/send-review`,
+          `${CONVERSATIONS_API}/${currentSelected.id}/send-review`,
           {
             method: "POST",
             headers: {
