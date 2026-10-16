@@ -16,6 +16,7 @@ const SECRET = 'server-only-test-key'
 function harness({ env = {}, denied = null, upstream, fail, timeout = false } = {}) {
   const calls = []
   const logs = []
+  let timerMs
   let timerCallback
   let cleared = 0
   let authCalls = 0
@@ -37,9 +38,9 @@ function harness({ env = {}, denied = null, upstream, fail, timeout = false } = 
     const loadedModule = { exports: {} }
     vm.runInNewContext(compiled, {
       module: loadedModule, exports: loadedModule.exports, process: { env: config },
-      Response, Headers, URL, AbortController,
+      Response, Headers, URL, AbortController, TextDecoder,
       console: { error: (...args) => logs.push(args) },
-      setTimeout: callback => { timerCallback = callback; return 1 },
+      setTimeout: (callback, delay) => { timerCallback = callback; timerMs = delay; return 1 },
       clearTimeout: () => { cleared++ },
       fetch: async (target, options) => {
         calls.push({ target: String(target), ...options })
@@ -57,14 +58,14 @@ function harness({ env = {}, denied = null, upstream, fail, timeout = false } = 
   dependencies['@/lib/whatsapp-proxy.server'] = load(TRANSPORT)
   const runtime = load(RUNTIME)
   const broadcasts = load(BROADCASTS)
-  async function request(kind, method, route, { body, headers = {}, query = '' } = {}) {
-    const url = new URL(`https://panel.example/api/whatsapp/${kind}/${route}${query}`)
+  async function request(kind, method, route, { body, headers = {}, query = '', requestOrigin = 'https://panel.example' } = {}) {
+    const url = new URL(`${requestOrigin}/api/whatsapp/${kind}/${route}${query}`)
     const req = new Request(url, { method, body, headers })
     req.nextUrl = url
     const context = { params: Promise.resolve({ path: route ? route.split('/') : undefined }) }
     return (kind === 'runtime' ? runtime : broadcasts)[method](req, context)
   }
-  return { request, calls, logs, authCalls: () => authCalls, cleared: () => cleared }
+  return { request, calls, logs, authCalls: () => authCalls, cleared: () => cleared, timerMs: () => timerMs }
 }
 
 function campaign(h, method = 'GET', route = '', options = {}) {
@@ -274,4 +275,54 @@ test('browser campaign calls use same-origin proxy and retain Bearer authenticat
   assert.match(source, /const BROADCASTS_API = "\/api\/whatsapp\/broadcasts"/)
   assert.match(source, /Bearer \$\{session.access_token\}/)
   assert.match(source, /typeof data\?\.error\?\.message === "string"/)
+})
+
+
+test('runtime mutation accepts a public origin behind a TLS reverse proxy, rejects foreign origins', async () => {
+  const h = harness()
+  for (const headers of [
+    { Host: 'panel.example', 'X-Forwarded-Proto': 'https' },
+    { Host: '127.0.0.1:3000', 'X-Forwarded-Host': 'panel.example', 'X-Forwarded-Proto': 'https' }
+  ]) {
+    const response = await h.request('runtime', 'DELETE', 'sessions/teste', {
+      requestOrigin: 'http://127.0.0.1:3000',
+      headers: { ...headers, Origin: 'https://panel.example', 'Sec-Fetch-Site': 'same-origin' }
+    })
+    assert.equal(response.status, 200)
+  }
+  for (const origin of ['https://evil.example', 'null']) {
+    assert.equal((await h.request('runtime', 'DELETE', 'sessions/teste', {
+      requestOrigin: 'http://127.0.0.1:3000',
+      headers: { Host: 'panel.example', Origin: origin }
+    })).status, 403)
+  }
+  assert.equal(h.calls.length, 2)
+})
+
+test('request bodies are bounded even without an accurate Content-Length', async () => {
+  for (const lengthHeader of [undefined, '1', String(16 * 1024 * 1024)]) {
+    const h = harness()
+    const headers = { 'Content-Type': 'application/json' }
+    if (lengthHeader !== undefined) headers['Content-Length'] = lengthHeader
+    const response = await campaign(h, 'POST', 'contact-lists/import', {
+      body: 'x'.repeat(15 * 1024 * 1024 + 1), headers
+    })
+    assert.equal(response.status, 413)
+    assert.equal(h.calls.length, 0)
+  }
+  const h = harness()
+  assert.equal((await h.request('runtime', 'POST', 'sessions/create', {
+    body: 'x'.repeat(1025), headers: { 'Content-Type': 'application/json' }
+  })).status, 413)
+  assert.equal(h.calls.length, 0)
+})
+
+test('campaign mutations get a longer bounded deadline than polling and runtime', async () => {
+  const h = harness()
+  await campaign(h, 'POST', 'contact-lists/import')
+  assert.equal(h.timerMs(), 60000)
+  await campaign(h, 'GET', 'sessions')
+  assert.equal(h.timerMs(), 15000)
+  await h.request('runtime', 'DELETE', 'sessions/teste')
+  assert.equal(h.timerMs(), 15000)
 })

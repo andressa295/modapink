@@ -3,6 +3,7 @@ import {
   forwardWhatsAppRequest,
   getWhatsAppApiBaseUrl,
   getWhatsAppInternalKey,
+  readLimitedWhatsAppBody,
   whatsAppConfigError,
   whatsAppProxyError
 } from "@/lib/whatsapp-proxy.server"
@@ -109,12 +110,25 @@ async function proxyWhatsAppRequest(
     )
   }
 
-  const origin = request.headers.get("origin")
-  if (method !== "GET" && (
-    request.headers.get("sec-fetch-site") === "cross-site" ||
-    (origin && origin !== request.nextUrl.origin)
-  )) {
-    return whatsAppProxyError("Origem da operação não permitida.", 403)
+  if (method !== "GET") {
+    const site = request.headers.get("sec-fetch-site")
+    const origin = request.headers.get("origin")
+    // Next may use an internal URL behind TLS-terminating reverse proxies.
+    // Match the public host as Next's own Server Actions CSRF check does.
+    const host = request.headers.get("x-forwarded-host")?.split(",")[0].trim() ||
+      request.headers.get("host") || request.nextUrl.host
+    let wrongOrigin = false
+    if (origin) {
+      try {
+        const parsed = new URL(origin)
+        wrongOrigin = !/^https?:$/.test(parsed.protocol) || parsed.host.toLowerCase() !== host.toLowerCase()
+      } catch {
+        wrongOrigin = true
+      }
+    }
+    if (site === "cross-site" || site === "same-site" || wrongOrigin) {
+      return whatsAppProxyError("Origem da operação não permitida.", 403)
+    }
   }
 
   let target: URL
@@ -137,8 +151,10 @@ async function proxyWhatsAppRequest(
     if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
       return whatsAppProxyError("Envie a operação em formato JSON.", 415)
     }
+    const input = await readLimitedWhatsAppBody(request, 1024)
+    if (typeof input !== "string") return input
     try {
-      const payload = await request.json()
+      const payload = JSON.parse(input)
       if (typeof payload?.sessionId !== "string" || !ALLOWED_SESSION_IDS.has(payload.sessionId)) {
         return whatsAppProxyError("Sessão de WhatsApp não permitida.", 400)
       }

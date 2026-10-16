@@ -46,12 +46,43 @@ export function getWhatsAppInternalKey() {
   return key
 }
 
+// Enforce the API's input limit at this boundary too, before forwarding any
+// unverified Bearer. Content-Length alone can be missing or inaccurate.
+export async function readLimitedWhatsAppBody(request: Request, limit: number) {
+  if (Number(request.headers.get("content-length")) > limit) {
+    return whatsAppProxyError("O conteúdo enviado excede o limite permitido.", 413)
+  }
+  if (!request.body) return ""
+  const reader = request.body.getReader()
+  const decoder = new TextDecoder()
+  let bytes = 0
+  let text = ""
+  try {
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      bytes += value.byteLength
+      if (bytes > limit) {
+        await reader.cancel()
+        return whatsAppProxyError("O conteúdo enviado excede o limite permitido.", 413)
+      }
+      text += decoder.decode(value, { stream: true })
+    }
+    return text + decoder.decode()
+  } catch {
+    return whatsAppProxyError("Não foi possível ler o conteúdo da operação.", 400)
+  } finally {
+    reader.releaseLock()
+  }
+}
+
 export async function forwardWhatsAppRequest(
   target: URL,
-  options: Pick<RequestInit, "method" | "headers" | "body">
+  options: Pick<RequestInit, "method" | "headers" | "body">,
+  timeoutMs = 15000
 ) {
   const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 15000)
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
     // One attempt only, including mutations. Never follow a redirect with an

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import {
   forwardWhatsAppRequest,
   getWhatsAppApiBaseUrl,
+  readLimitedWhatsAppBody,
   whatsAppConfigError,
   whatsAppProxyError
 } from "@/lib/whatsapp-proxy.server"
@@ -58,11 +59,9 @@ async function proxyBroadcastRequest(request: NextRequest, context: RouteContext
 
   let body: string | undefined
   if (method === "POST" || method === "PATCH") {
-    try {
-      body = await request.text()
-    } catch {
-      return whatsAppProxyError("Não foi possível ler a operação de campanha.", 400)
-    }
+    const input = await readLimitedWhatsAppBody(request, 15 * 1024 * 1024)
+    if (typeof input !== "string") return input
+    body = input
     if (body) {
       if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
         return whatsAppProxyError("Envie a operação em formato JSON.", 415)
@@ -76,7 +75,9 @@ async function proxyBroadcastRequest(request: NextRequest, context: RouteContext
     }
   }
 
-  return forwardWhatsAppRequest(target, { method, headers, body })
+  // Imports and campaign creation can perform sequential database operations.
+  // Keep a bounded deadline without reducing them to the short polling timeout.
+  return forwardWhatsAppRequest(target, { method, headers, body }, method === "GET" ? 15000 : 60000)
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {

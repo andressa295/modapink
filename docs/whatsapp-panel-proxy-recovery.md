@@ -35,7 +35,7 @@ mostra somente se a configuração do processo `painel` é válida:
 node <<'NODE'
 const { execFileSync } = require('node:child_process')
 try {
-  const list = JSON.parse(execFileSync('pm2', ['jlist'], { encoding: 'utf8' }))
+  const list = JSON.parse(execFileSync('pm2', ['jlist'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }))
   const panel = list.find(p => p.name === 'painel')
   if (!panel) throw new Error('missing process')
   const env = panel.pm2_env || {}
@@ -73,7 +73,8 @@ em `/root/whatsapp-api`. Se os caminhos/processos mudaram, confirme-os primeiro.
 
 O bloco abaixo usa `dotenv.parse`, que não imprime logs nem muda a chave da API.
 Ele só copia a chave existente para o ambiente do painel depois de um `GET`
-autenticado e bem-sucedido. Não mostra nem grava a chave em outro arquivo.
+autenticado e bem-sucedido. Não mostra a chave no terminal e não altera arquivos `.env`. O PM2 recebe a chave
+no ambiente do processo; o salvamento persistente é explicado separadamente abaixo.
 Execute o bloco inteiro em Bash, sem `set -x`. Se houver falha, pare e investigue;
 não substitua por uma chave vazia nem remova a autenticação.
 
@@ -101,12 +102,14 @@ NODE
 )" &&
 export WHATSAPP_API_INTERNAL_URL='http://127.0.0.1:3001' &&
 export WHATSAPP_API_INTERNAL_KEY="$PANEL_INTERNAL_KEY" &&
-pm2 restart painel --update-env &&
-pm2 save
+pm2 restart painel --update-env
 unset PANEL_INTERNAL_KEY WHATSAPP_API_INTERNAL_KEY WHATSAPP_API_INTERNAL_URL
 ```
 
-Reexecute a verificação segura anterior. Não execute `pm2 restart all`, nem
+Reexecute a verificação segura anterior. Se quiser manter a configuração após
+reboot, `pm2 save` grava o estado de **todos** os processos e suas variáveis,
+incluindo credenciais, no arquivo de dump do PM2. Faça isso somente com autorização
+para esse salvamento; não compartilhe nem publique esse arquivo. Não execute `pm2 restart all`, nem
 `pm2 restart whatsapp-api`. Um futuro deploy/restart da API exige primeiro o
 procedimento de migração dos marcadores de sessões prontas do PR 98 da API;
 esse procedimento está fora deste ajuste do painel.
