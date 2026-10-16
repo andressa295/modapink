@@ -227,6 +227,7 @@ export default function DisparosPage() {
     useState<Record<string, string>>({})
   const [loadingList, setLoadingList] =
     useState(true)
+  const [listError, setListError] = useState("")
   const [error, setError] = useState("")
   const [notice, setNotice] = useState("")
   const [statusFilter, setStatusFilter] =
@@ -309,10 +310,11 @@ export default function DisparosPage() {
           ? configuredDailyLimit
           : 70
       )
+      setListError("")
     } catch (err) {
       if (requestId !== loadDataRequestRef.current) return
 
-      setError(
+      setListError(
         err instanceof Error
           ? err.message
           : "Não foi possível carregar as campanhas."
@@ -1128,6 +1130,7 @@ export default function DisparosPage() {
         </div>
       </section>
 
+      {listError && <div className={styles.error} role="alert">{listError}</div>}
       {error && <div className={styles.error} role="alert">{error}</div>}
       {notice && <div className={styles.notice} role="status">{notice}</div>}
 
