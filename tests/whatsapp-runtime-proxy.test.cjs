@@ -105,8 +105,16 @@ test('runtime proxy is admin-only, private and narrowly allowlisted', () => {
   )
   assert.ok(
     proxySource.includes(
-      '^sessions\\/(?:qr|status)\\/'
+      '^sessions\\/(?:qr|status)\\/([a-z0-9_-]+)$'
     )
+  )
+  assert.match(
+    proxySource,
+    /const ALLOWED_SESSION_IDS =/
+  )
+  assert.match(
+    proxySource,
+    /ALLOWED_SESSION_IDS\.has/
   )
   assert.match(
     proxySource,
