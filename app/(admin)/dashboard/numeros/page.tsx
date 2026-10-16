@@ -550,11 +550,30 @@ export default function Numeros() {
           }
         })
 
-      setSessions(
+      const normalizedSessions =
         normalizeSessions(
           enrichedSessions
         )
-      )
+
+      setSessions(currentSessions => {
+        const currentPhones =
+          new Map(
+            currentSessions
+              .filter(item => item.phone)
+              .map(item => [
+                item.id,
+                item.phone as string
+              ])
+          )
+
+        return normalizedSessions.map(item => ({
+          ...item,
+          phone:
+            item.phone ||
+            currentPhones.get(item.id) ||
+            null
+        }))
+      })
 
       setLastSyncAt(
         new Date()
