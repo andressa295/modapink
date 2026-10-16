@@ -27,6 +27,16 @@ type RouteContext = {
   }>
 }
 
+const ALLOWED_SESSION_IDS =
+  new Set([
+    "principal",
+    "vendedora_1",
+    "vendedora_2",
+    "sac",
+    "automacoes",
+    "teste"
+  ])
+
 function isAllowedRequest(
   method: string,
   path: string
@@ -45,16 +55,31 @@ function isAllowedRequest(
     return true
   }
 
+  const statusMatch =
+    path.match(
+      /^sessions\/(?:qr|status)\/([a-z0-9_-]+)$/i
+    )
+
   if (
     method === "GET" &&
-    /^sessions\/(?:qr|status)\/[a-z0-9_-]+$/i.test(path)
+    statusMatch
   ) {
-    return true
+    return ALLOWED_SESSION_IDS.has(
+      statusMatch[1].toLowerCase()
+    )
   }
 
-  return (
+  const deleteMatch =
+    path.match(
+      /^sessions\/([a-z0-9_-]+)$/i
+    )
+
+  return Boolean(
     method === "DELETE" &&
-    /^sessions\/[a-z0-9_-]+$/i.test(path)
+    deleteMatch &&
+    ALLOWED_SESSION_IDS.has(
+      deleteMatch[1].toLowerCase()
+    )
   )
 }
 
