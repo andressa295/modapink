@@ -5,6 +5,7 @@
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
 
 import {
+  Fragment,
   useEffect,
   useRef,
   useState
@@ -12,7 +13,6 @@ import {
 
 import {
   Clock3,
-  ReceiptText,
   Star
 } from "lucide-react"
 
@@ -21,7 +21,9 @@ import {
 } from "@/lib/supabase/client"
 
 import styles from "../styles/dashboard.module.css"
-import { getDateRange, isCheckoutSignal, type MessageRow } from "@/lib/dashboard-activity"
+import { getDateRange, type MessageRow } from "@/lib/dashboard-activity"
+
+import ConfirmedSalesMetric from "./ConfirmedSalesMetric"
 
 type Metrics = {
   conversationsToday: number
@@ -30,7 +32,6 @@ type Metrics = {
   averageTimeTrend: string
   rating: string
   ratingTrend: string
-  checkoutsCreated: number
 }
 
 type ConversationMetricRow = {
@@ -108,35 +109,6 @@ function getFirstDate(
   return Math.min(...dates)
 }
 
-async function loadMessagesWithText(
-  supabase: ReturnType<typeof createClient>,
-  todayISO: string,
-  endISO: string
-) {
-  const selects = [
-    "id, conversation_id, sender, created_at, text, content, body, message, caption, intent, flow, step",
-    "id, conversation_id, sender, created_at, text, content, caption, intent, flow, step",
-    "id, conversation_id, sender, created_at, content, intent, flow, step",
-    "id, conversation_id, sender, created_at, text, content",
-    "id, conversation_id, sender, created_at, content",
-    "id, conversation_id, sender, created_at, text",
-  ]
-
-  for (const select of selects) {
-    const rows: MessageRow[] = []
-    for (let offset = 0; ; offset += 500) {
-      const { data, error } = await supabase.from("messages").select(select)
-        .gte("created_at", todayISO).lt("created_at", endISO)
-        .order("created_at", { ascending: true }).order("id", { ascending: true })
-        .range(offset, offset + 499)
-      if (error) break
-      rows.push(...((data || []) as unknown as MessageRow[]))
-      if (!data || data.length < 500) return rows
-    }
-  }
-  return null
-}
-
 export default function DashboardMetrics() {
   const requestInFlightRef =
     useRef(false)
@@ -155,13 +127,11 @@ export default function DashboardMetrics() {
     averageTime: "—",
     averageTimeTrend: "",
     rating: "—",
-    ratingTrend: "",
-    checkoutsCreated: 0
+    ratingTrend: ""
   })
 
   const [error, setError] = useState(false)
   const [hasData, setHasData] = useState(false)
-  const [messagesAvailable, setMessagesAvailable] = useState(false)
   const [reviewsAvailable, setReviewsAvailable] = useState(false)
 
   useEffect(() => {
@@ -442,18 +412,12 @@ export default function DashboardMetrics() {
             )
         }
 
-        const messageResult = await loadMessagesWithText(supabase, todayISO, new Date(today.getTime() + 86400000).toISOString())
-        const messagesToday = messageResult || []
-
-        const checkoutsCreated = messagesToday.filter(isCheckoutSignal).length
-
         if (!active) {
           return
         }
 
         setError(false)
         setHasData(true)
-        setMessagesAvailable(messageResult !== null)
         setReviewsAvailable(!reviewsError)
         setMetrics({
           conversationsToday,
@@ -477,9 +441,7 @@ export default function DashboardMetrics() {
           ratingTrend:
             ratingsCount
               ? `${ratingsCount} avaliação(ões)`
-              : "",
-
-          checkoutsCreated
+              : ""
         })
       } catch (error) {
         console.warn("Não foi possível atualizar o resumo da dashboard:", error)
@@ -521,13 +483,6 @@ export default function DashboardMetrics() {
       className: styles.metricPink,
     },
     {
-      title: "Mensagens de checkout",
-      value: unavailable || !messagesAvailable ? "—" : metrics.checkoutsCreated,
-      description: loading ? "Atividade de hoje" : messagesAvailable ? "Identificadas no chat hoje" : "Dados do chat indisponíveis",
-      icon: ReceiptText,
-      className: styles.metricViolet,
-    },
-    {
       title: "Primeira resposta",
       value: unavailable ? "—" : metrics.averageTime,
       description: metrics.averageTimeTrend ? `Média de ${metrics.averageTimeTrend}` : "Conversas novas de hoje",
@@ -547,7 +502,8 @@ export default function DashboardMetrics() {
     <section aria-label="Atendimento hoje e avaliação geral" className={styles.metricsSection} aria-busy={loading}>
       {error && <p className={styles.dataNotice} role="status">{hasData ? "Não foi possível atualizar o resumo. Exibindo a última consulta." : "Não foi possível carregar o resumo de atendimento."}</p>}
       <div className={styles.metricsGrid}>
-        {cards.map(({ title, value, description, icon: Icon, className }) => (
+        {cards.map(({ title, value, description, icon: Icon, className }, index) => (
+          <Fragment key={title}>
           <article className={styles.summaryCard} key={title}>
             <div className={styles.summaryTop}>
               <span>{title}</span>
@@ -556,6 +512,8 @@ export default function DashboardMetrics() {
             <strong className={styles.summaryValue}>{value}{title === "Avaliação do SAC" && value !== "—" && <small>/ 5</small>}</strong>
             <p>{description}</p>
           </article>
+          {index === 0 && <ConfirmedSalesMetric />}
+          </Fragment>
         ))}
       </div>
     </section>
