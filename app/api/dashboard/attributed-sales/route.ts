@@ -16,7 +16,7 @@ async function verifySales(cursor: string): Promise<VerifiedSales> {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!url || !key) throw new Error("configuration_unavailable")
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
-    const storesResult = await db.from("stores").select("id,user_id,store_id,access_token")
+    const storesResult = await db.from("stores").select("id,user_id,store_id,access_token").abortSignal(AbortSignal.timeout(5000))
     if (storesResult.error) throw new Error("stores_unavailable")
     const stores = new Map<string, { id: string; user_id: string; access_token: string }>()
     for (const store of storesResult.data || []) {
@@ -59,7 +59,7 @@ async function verifySales(cursor: string): Promise<VerifiedSales> {
       const r = await query.abortSignal(AbortSignal.timeout(Math.max(1, scanDeadline - Date.now())))
       if (r.error) throw new Error("catalog_records_unavailable")
       const ids = [...new Set((r.data || []).map(row => row.conversation_id).filter((id): id is string => typeof id === "string"))]
-      const cr = ids.length ? await db.from("conversations").select("id,store_id").in("id", ids) : { data: [], error: null }
+      const cr = ids.length ? await db.from("conversations").select("id,store_id").in("id", ids).abortSignal(AbortSignal.timeout(Math.max(1, scanDeadline - Date.now()))) : { data: [], error: null }
       if (cr.error) throw new Error("attribution_unavailable")
       const mapping = new Map((cr.data || []).map(row => [row.id, row.store_id]))
       for (const row of r.data || []) {
@@ -85,11 +85,11 @@ async function verifySales(cursor: string): Promise<VerifiedSales> {
       checkedAt: new Date().toISOString(), coverage: "recorded_links_only" }
     const deadline = Date.now() + 40000
     let index = 0
-    let stop = false
+    const stoppedStores = new Set<string>()
     async function worker() {
       while (index < selected.length) {
         const link = selected[index++]
-        if (stop || Date.now() >= deadline) { result.unresolved++; continue }
+        if (stoppedStores.has(link.storeId) || Date.now() >= deadline) { result.unresolved++; continue }
         const store = stores.get(link.storeId)!
         try {
           const wait = Math.max(0, (nextRequestAt.get(store.user_id) || 0) - Date.now())
@@ -106,7 +106,7 @@ async function verifySales(cursor: string): Promise<VerifiedSales> {
             const seconds = Number(response.headers.get("retry-after"))
             nextRequestAt.set(store.user_id, Date.now() + (Number.isFinite(seconds) && seconds > 0 ? Math.max(5000, Math.min(60000, seconds * 1000)) : 60000))
           }
-          if (response.status === 429 || response.status === 401 || response.status === 403) stop = true
+          if (response.status === 429 || response.status === 401 || response.status === 403) stoppedStores.add(link.storeId)
           if (!response.ok) throw new Error("order_check_unavailable")
           const value = paidOrderValue(await response.json(), link.orderId, store.user_id)
           result.checked++
