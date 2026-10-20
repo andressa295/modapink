@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js"
 import { requireDashboardAdmin } from "@/lib/dashboard-auth"
-import { numericId, salesLinkPage, resolveLinkStore, paidOrderValue, uniqueSalesLinks, type SalesLink, type VerifiedSales } from "@/lib/attributed-sales"
+import { numericId, storeIdentityAliases, salesLinkPage, resolveLinkStore, paidOrderValue, uniqueSalesLinks, type SalesLink, type VerifiedSales } from "@/lib/attributed-sales"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,7 +16,7 @@ async function verifySales(cursor: string): Promise<VerifiedSales> {
     const key = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!url || !key) throw new Error("configuration_unavailable")
     const db = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } })
-    const storesResult = await db.from("stores").select("id,user_id,access_token")
+    const storesResult = await db.from("stores").select("id,user_id,store_id,access_token")
     if (storesResult.error) throw new Error("stores_unavailable")
     const stores = new Map<string, { id: string; user_id: string; access_token: string }>()
     for (const store of storesResult.data || []) {
@@ -27,27 +27,36 @@ async function verifySales(cursor: string): Promise<VerifiedSales> {
     const links: SalesLink[] = []
     const unscoped = new Set<string>()
     const storeIds = [...stores.keys()]
+    const aliases = storeIdentityAliases((storesResult.data || []).filter(row => stores.has(row.id)))
+    const scanDeadline = Date.now() + 10000
     // These records are historical evidence of a generated link, NOT payment proof.
-    for (let offset = 0; ; offset += 500) {
-      if (offset >= 10000) throw new Error("record_scan_incomplete")
-      const r = await db.from("conversations").select("id,store_id,checkout")
-        .not("checkout->data->>id", "is", null).order("id").range(offset, offset + 499)
+    for (let after = ""; ;) {
+      if (Date.now() >= scanDeadline) throw new Error("record_scan_timeout")
+      let query = db.from("conversations").select("id,store_id,checkout")
+        .not("checkout->data->>id", "is", null).order("id").range(0, 499)
+      if (after) query = query.gt("id", after)
+      const r = await query.abortSignal(AbortSignal.timeout(Math.max(1, scanDeadline - Date.now())))
       if (r.error) throw new Error("checkout_records_unavailable")
       for (const row of r.data || []) {
         const orderId = numericId(row.checkout?.data?.id)
         if (orderId && row.checkout?.status === "generated") {
-          const storeId = resolveLinkStore(row.store_id, storeIds)
+          const storeId = resolveLinkStore(row.store_id, storeIds, aliases)
           if (storeId) links.push({ storeId, orderId })
           else unscoped.add(orderId)
         }
       }
       if (!r.data || r.data.length < 500) break
+      const lastId = r.data[r.data.length - 1].id
+      if (!lastId || lastId === after) throw new Error("record_cursor_stalled")
+      after = lastId
     }
-    for (let offset = 0; ; offset += 500) {
-      if (offset >= 10000) throw new Error("record_scan_incomplete")
-      const r = await db.from("events").select("id,type,conversation_id,payload")
+    for (let after = ""; ;) {
+      if (Date.now() >= scanDeadline) throw new Error("record_scan_timeout")
+      let query = db.from("events").select("id,type,conversation_id,payload")
         .in("type", ["catalog_checkout_created", "whatsapp_checkout_created"])
-        .order("id").range(offset, offset + 499)
+        .order("id").range(0, 499)
+      if (after) query = query.gt("id", after)
+      const r = await query.abortSignal(AbortSignal.timeout(Math.max(1, scanDeadline - Date.now())))
       if (r.error) throw new Error("catalog_records_unavailable")
       const ids = [...new Set((r.data || []).map(row => row.conversation_id).filter((id): id is string => typeof id === "string"))]
       const cr = ids.length ? await db.from("conversations").select("id,store_id").in("id", ids) : { data: [], error: null }
@@ -58,11 +67,14 @@ async function verifySales(cursor: string): Promise<VerifiedSales> {
         if (!orderId) continue
         // Old public catalog events without a conversation do not prove attendance origin.
         if (row.type !== "whatsapp_checkout_created" && !row.conversation_id) continue
-        const storeId = resolveLinkStore(row.payload?.store_id ?? mapping.get(row.conversation_id), storeIds)
+        const storeId = resolveLinkStore(row.payload?.store_id ?? mapping.get(row.conversation_id), storeIds, aliases)
         if (storeId) links.push({ storeId, orderId })
         else unscoped.add(orderId)
       }
       if (!r.data || r.data.length < 500) break
+      const lastId = r.data[r.data.length - 1].id
+      if (!lastId || lastId === after) throw new Error("record_cursor_stalled")
+      after = lastId
     }
     const candidates = uniqueSalesLinks(links)
     // Bound API load, and make any incomplete verification explicit rather than zero.

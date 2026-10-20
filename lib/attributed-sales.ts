@@ -44,7 +44,21 @@ export function paidOrderValue(order: Record<string, unknown> | null, expectedId
 
 // Legacy rows omit store_id. Only one connected store can resolve that case;
 // the official response still has to prove the same numeric store identity.
-export function resolveLinkStore(storeId: unknown, storeIds: string[]): string | null {
+export function storeIdentityAliases(rows: { id: string; user_id?: unknown; store_id?: unknown }[]) {
+  const aliases = new Map<string, string | null>()
+  for (const row of rows) for (const key of [row.id, numericId(row.user_id), numericId(row.store_id)]) {
+    if (!key) continue
+    if (aliases.has(key) && aliases.get(key) !== row.id) aliases.set(key, null)
+    else aliases.set(key, row.id)
+  }
+  return aliases
+}
+
+export function resolveLinkStore(storeId: unknown, storeIds: string[], aliases?: Map<string, string | null>): string | null {
+  if (storeId !== null && storeId !== undefined && aliases) {
+    const key = typeof storeId === "string" ? storeId : numericId(storeId)
+    return key ? aliases.get(key) || null : null
+  }
   if (typeof storeId === "string" && storeIds.includes(storeId)) return storeId
   if ((storeId === null || storeId === undefined) && storeIds.length === 1) return storeIds[0]
   return null
