@@ -66,7 +66,7 @@ async function verifySales(cursor: string): Promise<VerifiedSales> {
         const orderId = numericId(row.payload?.draft_order_id)
         if (!orderId) continue
         // Old public catalog events without a conversation do not prove attendance origin.
-        if (row.type !== "whatsapp_checkout_created" && !row.conversation_id) continue
+        if (row.type !== "whatsapp_checkout_created" && (!row.conversation_id || !mapping.has(row.conversation_id))) continue
         const storeId = resolveLinkStore(row.payload?.store_id ?? mapping.get(row.conversation_id), storeIds, aliases)
         if (storeId) links.push({ storeId, orderId })
         else unscoped.add(orderId)
