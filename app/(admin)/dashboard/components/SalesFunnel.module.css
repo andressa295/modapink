@@ -23,7 +23,7 @@
 .label { display: flex; align-items: center; gap: 7px; color: #73707c; font-size: 10px; line-height: 1.5; }
 .label svg { flex-shrink: 0; color: #96919b; }
 .metric strong { display: block; margin: 6px 0 4px; font-size: clamp(25px, 2.15vw, 30px); line-height: 1.1; font-weight: 600; letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
-.featured strong { color: #e70289; }
+.featured strong { color: #e70289; overflow-wrap: anywhere; }
 .featured .label svg { color: #e70289; }
 .metric small { display: block; max-width: 230px; color: #79717f; font-size: 10px; line-height: 1.4; }
 .footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 20px; padding: 8px 24px; border-top: 1px solid #f0eef1; background: #fdfcfd; }
@@ -54,9 +54,18 @@
   .metrics { padding-right: 18px; padding-left: 18px; }
   .metric { padding-left: 12px; padding-right: 12px; }
   .metric strong { font-size: 25px; }
+  .featured strong { font-size: 20px; }
   .label { align-items: flex-start; }
   .label svg { margin-top: 1px; }
   .footer { padding-right: 18px; padding-left: 18px; }
   .notice { padding-right: 18px; padding-left: 18px; }
 }
 @media (prefers-reduced-motion: reduce) { .track div { transition: none; } }
+
+
+.window { margin: 0; padding: 0 24px 18px; color: #79717f; font-size: 11px; line-height: 1.5; }
+.pending { padding: 12px 24px; border-top: 1px solid #efedf0; background: #faf9fb; color: #726777; font-size: 12px; line-height: 1.5; }
+.pending strong { color: #57465e; font-weight: 600; }
+.pending p { margin: 4px 0 0; }
+@media (max-width: 750px) { .header { align-items: flex-start; flex-wrap: wrap; } }
+@media (max-width: 420px) { .window, .pending { padding-right: 18px; padding-left: 18px; } }
