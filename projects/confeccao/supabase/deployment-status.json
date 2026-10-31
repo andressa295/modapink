@@ -10,9 +10,8 @@
   "auth_accounts_provisioned": 0,
   "pending": [
     "verified_admin_email",
-    "disable_public_signup",
-    "auth_site_url_and_redirects",
-    "auth_email_delivery",
+    "smtp_configuration_and_email_delivery_test",
+    "first_auth_admin_account",
     "authenticated_end_to_end_test"
   ],
   "hardening_migration": {
@@ -32,7 +31,23 @@
     "anonymous_rpc_status": 401,
     "anonymous_rpc_error": "42501",
     "auth_settings_endpoint": 200,
-    "auth_public_signup_currently_enabled": true,
-    "authenticated_flow_verified": false
+    "auth_public_signup_currently_enabled": false,
+    "authenticated_flow_verified": false,
+    "auth_site_url_and_redirects_saved": true,
+    "auth_disable_signup": true,
+    "auth_external_email_enabled": true,
+    "custom_smtp_enabled": false,
+    "email_delivery_verified": false
+  },
+  "auth_configuration": {
+    "site_url": "https://modapink-confeccao.phandstudio.chatgpt.site",
+    "redirect_allow_list": [
+      "https://modapink-confeccao.phandstudio.chatgpt.site/auth/recovery"
+    ],
+    "disable_signup": true,
+    "external_email_enabled": true,
+    "custom_smtp_enabled": false,
+    "auth_accounts_provisioned": 0,
+    "email_delivery_verified": false
   }
 }

@@ -6,12 +6,23 @@ Base preparada para um projeto Supabase dedicado à confecção. **Estrutura apl
 
 A instalação e a auditoria foram concluídas pelas migrações registradas em `deployment-status.json`. O schema `mf_private` permanece fora do Data API, o bucket é privado e o aplicativo publicado recebe somente URL e chave publicável. Chaves administrativas/`service_role` nunca entram no navegador.
 
-1. Configurar o Auth com e-mail/senha, cadastro público desativado e URLs exatas de login/recuperação da publicação. Configurar envio de e-mail antes de depender de convite/recuperação.
-2. Criar a primeira identidade Auth com o e-mail confirmado pela responsável. Sem inferir identidades da agência ou da equipe.
-3. Após a confirmação do e-mail da identidade, provisionar o primeiro perfil administrador executando `bootstrap-admin.psql` como operador do projeto. O script solicita e-mail e nome de exibição e não gera, altera ou revela senha.
-4. Validar login, expiração, recuperação, negação para usuário sem perfil, permissões de cada área e upload/leitura privada no serviço real.
+O Auth por e-mail/senha já foi configurado no painel:
 
-A criação de identidades Auth adicionais exige fluxo administrativo no servidor ou execução verificada no painel Supabase. O RPC de perfis gerencia somente perfis já provisionados. A interface não oferece cadastro e não promove automaticamente o primeiro visitante a administrador. O endpoint de cadastro do Supabase ainda está habilitado e precisa ser desativado no Auth; identidades sem perfil ativo não têm acesso aos dados da confecção.
+- Site URL: `https://modapink-confeccao.phandstudio.chatgpt.site`.
+- Redirect autorizado exato: `https://modapink-confeccao.phandstudio.chatgpt.site/auth/recovery`.
+- Cadastro público desligado: `/auth/v1/settings` confirmou `disable_signup: true`.
+- Provedor de e-mail habilitado: o mesmo endpoint confirmou `external.email: true`.
+- SMTP personalizado desativado. O envio para destinatários reais ainda não foi validado.
+
+Pendências de ativação:
+
+1. Confirmar com a responsável o e-mail da primeira administradora. Nenhuma conta Auth foi criada.
+2. Configurar o envio de e-mail/SMTP e testar a entrega para um destinatário real antes de depender de convite ou recuperação.
+3. Criar a primeira identidade Auth com o e-mail confirmado pela responsável, sem inferir identidades da agência ou da equipe.
+4. Após a confirmação do e-mail da identidade, provisionar o primeiro perfil administrador executando `bootstrap-admin.psql` como operador do projeto. O script solicita e-mail e nome de exibição e não gera, altera ou revela senha.
+5. Validar login, expiração, recuperação, negação para usuário sem perfil, permissões de cada área e upload/leitura privada no serviço real.
+
+A criação de identidades Auth adicionais exige fluxo administrativo no servidor ou execução verificada no painel Supabase. O RPC de perfis gerencia somente perfis já provisionados. A interface não oferece cadastro e não promove automaticamente o primeiro visitante a administrador. O endpoint de cadastro do Supabase já está desativado. Identidades sem perfil ativo não têm acesso aos dados da confecção.
 
 ## Objetos
 

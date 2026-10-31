@@ -6,7 +6,9 @@ Aplicação independente em Next.js App Router, TypeScript e Tailwind CSS 4. Ide
 
 Banco instalado no projeto `ragyjbrbhfataoiosgqy` (Confeccção), organização Confeccção Moda Pink. Migrações aplicadas: estrutura operacional e restrição de execução de um helper privilegiado da plataforma. Todas as tabelas da aplicação usam RLS, e as imagens ficam no bucket privado `confeccao-images`.
 
-A aplicação usa configuração pública do projeto na hospedagem, sem chaves administrativas no cliente. A ativação de usuários ainda depende dos e-mails individuais confirmados pela responsável; nenhum usuário, senha padrão ou convite foi inventado. Configuração de URLs do Auth/envio de e-mail e testes com uma conta real continuam pendentes da administração do Auth.
+A aplicação usa configuração pública do projeto na hospedagem, sem chaves administrativas no cliente. O Auth por e-mail/senha está configurado: Site URL `https://modapink-confeccao.phandstudio.chatgpt.site`, redirect exato `https://modapink-confeccao.phandstudio.chatgpt.site/auth/recovery` e cadastro público desativado. O endpoint de configurações confirmou `disable_signup: true` e `external.email: true`.
+
+Nenhuma conta Auth foi criada: falta confirmar o e-mail da primeira administradora com a responsável. O SMTP personalizado está desativado. Permanecem pendentes a configuração de envio, o teste de entrega para um destinatário real e o fluxo completo com a primeira conta autorizada. Nenhum usuário, senha padrão ou convite foi inventado.
 
 ![Referência visual da dashboard](docs/preview-dashboard.jpg)
 
@@ -58,7 +60,7 @@ Os testes SQL usam PostgreSQL embarcado com Auth/Storage sintéticos, sem conex�
 
 ## Ativação no projeto correto
 
-Consulte [supabase/README.md](supabase/README.md) para inspecionar o projeto, aplicar `schema.sql`, executar advisors e configurar o Auth. Cadastro público deve permanecer desativado; contas são individuais, com e-mails fornecidos e confirmados pela responsável. O bootstrap não promove o primeiro visitante nem cria senhas padrão.
+Consulte [supabase/README.md](supabase/README.md) para os registros da instalação e as etapas restantes de ativação. O banco já foi aplicado; não executar `schema.sql` novamente sobre a estrutura existente. O cadastro público já está desativado e deve permanecer assim. As contas serão individuais, com e-mails fornecidos e confirmados pela responsável. O bootstrap não promove o primeiro visitante nem cria senhas padrão.
 
 As configurações da interface administram perfis já provisionados. A criação de identidades Auth e os convites exigem o fluxo administrativo verificado no Supabase. Os nomes dos perfis de permissão não são logins compartilhados.
 
