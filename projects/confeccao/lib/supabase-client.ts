@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { callbackAuthFlow } from "./auth-link";
 type PublicConfig = { url: string; publishableKey: string };
 let configured: PublicConfig | null = null;
 let client: SupabaseClient | null = null;
@@ -15,6 +16,6 @@ export function isSupabaseConfigured() {
 }
 export function getSupabase(): SupabaseClient {
   if (!isSupabaseConfigured()) throw new Error("A conexão com o banco da confecção ainda não foi configurada. Procure a administração.");
-  if (!client) { const c = config(); client = createClient(c.url, c.publishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: "pkce", storageKey: "modapink-confeccao-auth" } }); }
+  if (!client) { const c = config(); client = createClient(c.url, c.publishableKey, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: typeof window === "undefined" ? "pkce" : callbackAuthFlow(new URL(window.location.href)), storageKey: "modapink-confeccao-auth" } }); }
   return client;
 }
