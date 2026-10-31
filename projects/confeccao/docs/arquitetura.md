@@ -20,6 +20,9 @@ As imagens são gravadas em `confeccao-images`, privado. O banco persiste soment
 
 Custos não são enviados a produção/qualidade; a interface também oculta esses controles. Revogação de perfil é consultada no banco em cada operação, independentemente da validade do JWT.
 
-## Ativação pendente
+## Banco aplicado e ativação de contas pendente
 
-O destino informado é o projeto `ragyjbrbhfataoiosgqy`. O conector retornou sem permissão para consultá-lo. Por isso nenhuma tabela, bucket ou conta foi alterada remotamente, e a publicação operacional permanece pendente. Após liberar acesso: inspecionar o projeto e a organização, aplicar SQL, executar advisors, provisionar identidades verificadas, configurar URLs e envio de e-mail e validar o fluxo completo no serviço real.
+O projeto `ragyjbrbhfataoiosgqy`, da organização Confeccção Moda Pink, recebeu a estrutura operacional e o bucket privado. Foi restringido o EXECUTE público do helper de event trigger da plataforma, preservando sua função interna. As leituras e escritas operacionais exigem identidade autenticada com perfil ativo.
+
+Ainda não existem contas provisionadas: faltam e-mails individuais confirmados. Site URL, redirects de recuperação e entrega de e-mail precisam ser configurados no Auth antes da verificação completa com usuários reais. O navegador remoto disponível está desconectado do painel Supabase; o conector atual não oferece alteração dessas configurações de Auth nem criação de identidades.
+

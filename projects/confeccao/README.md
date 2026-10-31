@@ -4,9 +4,9 @@ Aplicação independente em Next.js App Router, TypeScript e Tailwind CSS 4. Ide
 
 ## Situação da integração
 
-O código de autenticação, persistência compartilhada, perfis e imagens está preparado. A estrutura SQL foi validada em PostgreSQL local, **não foi aplicada ao banco remoto**. O projeto indicado pela responsável é `ragyjbrbhfataoiosgqy`; a conexão disponível retornou falta de permissão ao consultar seus metadados. Não foi usado outro projeto como substituto.
+Banco instalado no projeto `ragyjbrbhfataoiosgqy` (Confeccção), organização Confeccção Moda Pink. Migrações aplicadas: estrutura operacional e restrição de execução de um helper privilegiado da plataforma. Todas as tabelas da aplicação usam RLS, e as imagens ficam no bucket privado `confeccao-images`.
 
-A publicação existente ainda é a demonstração anterior. Esta atualização deve ser ativada após liberar a organização/projeto, aplicar e revisar o banco, provisionar identidades verificadas e testar o serviço real. Nenhum usuário, senha ou convite foi criado nesta etapa.
+A aplicação usa configuração pública do projeto na hospedagem, sem chaves administrativas no cliente. A ativação de usuários ainda depende dos e-mails individuais confirmados pela responsável; nenhum usuário, senha padrão ou convite foi inventado. Configuração de URLs do Auth/envio de e-mail e testes com uma conta real continuam pendentes da administração do Auth.
 
 ![Referência visual da dashboard](docs/preview-dashboard.jpg)
 

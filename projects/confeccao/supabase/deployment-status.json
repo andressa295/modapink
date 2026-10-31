@@ -1,0 +1,38 @@
+{
+  "project_ref": "ragyjbrbhfataoiosgqy",
+  "organization_id": "mqpwhlweafmusshqflay",
+  "core_migration": {
+    "version": "20261031230022",
+    "name": "create_confeccao_operational_core"
+  },
+  "storage_bucket": "confeccao-images",
+  "storage_public": false,
+  "auth_accounts_provisioned": 0,
+  "pending": [
+    "verified_admin_email",
+    "disable_public_signup",
+    "auth_site_url_and_redirects",
+    "auth_email_delivery",
+    "authenticated_end_to_end_test"
+  ],
+  "hardening_migration": {
+    "version": "20261031230133",
+    "name": "restrict_platform_rls_trigger_execution"
+  },
+  "site": {
+    "url": "https://modapink-confeccao.phandstudio.chatgpt.site",
+    "source_commit": "fbfdb2e197289a5796f806d97e50f23cd7014b06",
+    "deployment_id": "appgdep_6ae673f1e5508191af26aa6ba2e33859",
+    "status": "succeeded",
+    "environment_revision": 1
+  },
+  "verification": {
+    "all_application_tables_rls": true,
+    "private_image_bucket": true,
+    "anonymous_rpc_status": 401,
+    "anonymous_rpc_error": "42501",
+    "auth_settings_endpoint": 200,
+    "auth_public_signup_currently_enabled": true,
+    "authenticated_flow_verified": false
+  }
+}
