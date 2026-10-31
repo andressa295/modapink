@@ -45,3 +45,10 @@ test("o custo realizado usa o consumo efetivo e o preço do tecido na ordem", ()
   const newState = { ...state, materials: state.materials.map(m => ({ ...m, price: 999 })) };
   assert.equal(directCost(newState, order, true), directCost(state, order, true));
 });
+test("a ordem preserva custos e consumo da ficha capturada na abertura", () => {
+  const seed = makeSeed(); const original = seed.models.find(m => m.id === 'babylook');
+  const order = { ...seed.orders.find(o => o.id === 'OP-1024'), consumptionPerPiece: original.consumption, modelSnapshot: { consumption: original.consumption, notionsCost: original.notionsCost, sewingCost: original.sewingCost, finishingCost: original.finishingCost } };
+  const before = directCost(seed, order, true);
+  const changed = { ...seed, models: seed.models.map(m => m.id === original.id ? { ...m, consumption: 99, sewingCost: 999 } : m) };
+  assert.equal(directCost(changed, order, true), before);
+});

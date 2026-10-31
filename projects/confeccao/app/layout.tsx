@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { SupabaseConfiguration } from "../components/supabase-configuration";
 import { DemoProvider } from "../lib/demo-store";
 import "./globals.css";
 
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
   },
 };
 
+export const dynamic = "force-dynamic";
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -27,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={poppins.variable}><DemoProvider>{children}</DemoProvider></body>
+      <body className={poppins.variable}><SupabaseConfiguration url={process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? ""} publishableKey={(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY ?? "").startsWith("sb_publishable_") ? (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY ?? "") : ""}><DemoProvider>{children}</DemoProvider></SupabaseConfiguration></body>
     </html>
   );
 }

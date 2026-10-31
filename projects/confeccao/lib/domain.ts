@@ -3,10 +3,10 @@ export type Stage = (typeof stages)[number];
 export type Unit = "kg" | "m" | "un";
 export interface Material { id: string; name: string; category: "Tecido" | "Aviamento"; color: string; hex: string; lot: string; supplier: string; quantity: number; reserved: number; minimum: number; unit: Unit; price: number; }
 export interface Model { id: string; name: string; reference: string; materialId: string; consumption: number; sizes: string[]; notionsCost: number; sewingCost: number; finishingCost: number; notes: string; image?: string; }
-export interface Order { id: string; modelId: string; materialId: string; quantity: number; variants: { size: string; quantity: number }[]; stage: Stage; due: string; team: string; priority: "Normal" | "Alta"; reserved: number; actualConsumption: number | null; materialPrice: number; approved: number; rework: number; lost: number; created: string; }
+export interface Order { consumptionPerPiece?: number; modelSnapshot?: { consumption: number; notionsCost: number; sewingCost: number; finishingCost: number }; id: string; modelId: string; materialId: string; quantity: number; variants: { size: string; quantity: number }[]; stage: Stage; due: string; team: string; priority: "Normal" | "Alta"; reserved: number; actualConsumption: number | null; materialPrice: number; approved: number; rework: number; lost: number; created: string; }
 export interface Inspection { id: string; orderId: string; quantity: number; result: "Aprovadas" | "Retrabalho" | "Perda"; reason: string; notes: string; image?: string; date: string; resolved: boolean; }
 export interface Activity { id: string; title: string; detail: string; date: string; }
-export interface DemoState { version: 1; materials: Material[]; models: Model[]; orders: Order[]; inspections: Inspection[]; activity: Activity[]; }
+export interface DemoState { version: 1; materials: Material[]; models: Model[]; orders: Order[]; inspections: Inspection[]; activity: Activity[]; dailyApprovals?: {date: string; quantity: number}[]; }
 export const today = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
 export const uid = (prefix: string) => `${prefix}-${Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join("")}`;
 export const round = (n: number) => Math.round((n + Number.EPSILON) * 1000) / 1000;
@@ -76,8 +76,9 @@ export function moveMaterial(state: DemoState, id: string, amount: number, kind:
   return log({ ...state, materials: state.materials.map(m => m.id === id ? { ...m, quantity: round(m.quantity + (kind === "Entrada" ? amount : -amount)) } : m) }, `${kind} de material`, `${material.name} · ${amount.toLocaleString("pt-BR")} ${material.unit} · ${note.trim()}`);
 }
 export function directCost(state: DemoState, order: Order, actual = false): number {
-  const model = state.models.find(m => m.id === order.modelId)!;
-  const consumption = actual ? (order.actualConsumption ?? order.quantity * model.consumption) : order.quantity * model.consumption;
+  const model = order.modelSnapshot ?? state.models.find(m => m.id === order.modelId)!;
+  const expected = order.quantity * (order.consumptionPerPiece ?? model.consumption);
+  const consumption = actual ? (order.actualConsumption ?? expected) : expected;
   return consumption * order.materialPrice + order.quantity * (model.notionsCost + model.sewingCost + model.finishingCost);
 }
 export const formatNumber = (n: number, max = 1) => n.toLocaleString("pt-BR", { maximumFractionDigits: max });
