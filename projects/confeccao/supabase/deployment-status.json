@@ -7,12 +7,8 @@
   },
   "storage_bucket": "confeccao-images",
   "storage_public": false,
-  "auth_accounts_provisioned": 0,
+  "auth_accounts_provisioned": 1,
   "pending": [
-    "smtp_configuration_and_email_delivery_test",
-    "admin_invitation_send",
-    "admin_email_confirmation",
-    "admin_profile_bootstrap",
     "authenticated_end_to_end_test"
   ],
   "hardening_migration": {
@@ -37,11 +33,16 @@
     "auth_settings_endpoint": 200,
     "auth_public_signup_currently_enabled": false,
     "authenticated_flow_verified": false,
+    "admin_bootstrap_guarded": true,
+    "admin_profile_role": "admin",
+    "admin_profile_active": true,
+    "active_admins": 1,
     "auth_site_url_and_redirects_saved": true,
     "auth_disable_signup": true,
     "auth_external_email_enabled": true,
-    "custom_smtp_enabled": false,
-    "email_delivery_verified": false,
+    "custom_smtp_enabled": true,
+    "smtp_configuration_persisted_verified": true,
+    "email_delivery_verified": true,
     "invite_callback_implemented": true,
     "domain_tests_passed": 15,
     "final_security_patch_deployment_verified": true,
@@ -57,7 +58,8 @@
     "local_sql_tests_passed": true,
     "runtime_error_log_entries": 0,
     "expired_link_rejected_in_browser": true,
-    "public_login_ui_verified": true
+    "public_login_ui_verified": true,
+    "admin_login_user_reported": true
   },
   "auth_configuration": {
     "site_url": "https://modapink-confeccao.vercel.app",
@@ -67,9 +69,19 @@
     ],
     "disable_signup": true,
     "external_email_enabled": true,
-    "custom_smtp_enabled": false,
-    "auth_accounts_provisioned": 0,
-    "email_delivery_verified": false,
+    "custom_smtp_enabled": true,
+    "smtp_provider": "resend",
+    "smtp_host": "smtp.resend.com",
+    "smtp_port": 465,
+    "smtp_sender_name": "Confecção Moda Pink",
+    "auth_accounts_provisioned": 1,
+    "application_profiles_provisioned": 1,
+    "email_delivery_verified": true,
+    "invite_template": {
+      "locale": "pt-BR",
+      "source_file": "supabase/email-templates/invite.html",
+      "link_variable": "{{ .ConfirmationURL }}"
+    },
     "legacy_chatgpt_callback_removed": true
   },
   "legacy_chatgpt_site": {
@@ -81,6 +93,15 @@
     "deleted": true
   },
   "admin_email_provided": true,
-  "admin_invitation_sent": false,
-  "admin_profile_bootstrapped": false
+  "admin_invitation_sent": true,
+  "admin_invitation_delivery": {
+    "provider": "resend",
+    "status": "delivered",
+    "provider_email_id": "01a1945b-f5c4-77f2-a2eb-3b9f952a1e28",
+    "subject": "Crie sua senha — Confecção Moda Pink",
+    "sent_at": "2026-10-31T23:46:57.288Z"
+  },
+  "admin_email_confirmed": true,
+  "admin_password_set": true,
+  "admin_profile_bootstrapped": true
 }

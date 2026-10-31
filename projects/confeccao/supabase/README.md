@@ -1,6 +1,6 @@
 # Banco da Confecção Moda Pink
 
-Base preparada para um projeto Supabase dedicado à confecção. **Estrutura aplicada** no projeto `ragyjbrbhfataoiosgqy`, organização Confeccção Moda Pink. As migrações remotas registram a instalação. Não executar o schema novamente sobre a estrutura existente. Os testes adicionais locais usam PostgreSQL embarcado e identidades sintéticas. O e-mail da primeira administradora já foi fornecido pela responsável e não é salvo no repositório. Nenhuma conta Auth foi criada e nenhum convite foi enviado.
+Base preparada para um projeto Supabase dedicado à confecção. **Estrutura aplicada** no projeto `ragyjbrbhfataoiosgqy`, organização Confeccção Moda Pink. As migrações remotas registram a instalação. Não executar o schema novamente sobre a estrutura existente. Os testes adicionais locais usam PostgreSQL embarcado e identidades sintéticas. Há uma identidade Auth criada por convite, com e-mail confirmado e senha pessoal definida, e um perfil administrador ativo. O endereço da destinatária e seu UUID Auth não são salvos no repositório.
 
 ## Instalação e próximos passos
 
@@ -13,16 +13,15 @@ O Auth por e-mail/senha já foi configurado no painel:
 - Callback anterior do ChatGPT removido da lista autorizada.
 - Cadastro público desligado: `/auth/v1/settings` confirmou `disable_signup: true`.
 - Provedor de e-mail habilitado: o mesmo endpoint confirmou `external.email: true`.
-- SMTP personalizado desativado. O envio para destinatários reais ainda não foi validado.
+- SMTP personalizado Resend habilitado: host `smtp.resend.com`, porta `465`, nome de remetente “Confecção Moda Pink”. A configuração persistiu após recarregar o painel; credenciais não são gravadas no repositório.
+- Convite enviado; o envio ocorreu em `2026-10-31T23:46:57.288Z`, com status `delivered` confirmado pelo Resend, com recibo sem destinatário em `deployment-status.json`.
+- Template de convite do Supabase em português, assunto “Crie sua senha — Confecção Moda Pink”, usando `{{ .ConfirmationURL }}`; cópia em [email-templates/invite.html](email-templates/invite.html).
 
-Pendências de ativação:
+O bootstrap da primeira administradora já foi executado por operador, com bloqueio da fábrica, rejeição de administrador ativo existente e exigência de e-mail confirmado e senha definida. Foram verificados `role = 'admin'`, `active = true`, e-mail confirmado, senha definida e exatamente um administrador ativo. A revisão da fábrica foi incrementada. **Não repetir o bootstrap**, inclusive o arquivo de referência `bootstrap-admin.psql`; nenhuma senha foi gerada, alterada ou revelada pelo procedimento.
 
-1. Configurar o envio de e-mail/SMTP e verificar entrega para a destinatária já informada. O SMTP personalizado permanece desativado.
-2. Enviar o convite para o e-mail fornecido pela responsável. Essa ação ainda não foi executada e não há conta Auth criada.
-3. Aguardar a confirmação do e-mail e a definição de senha pessoal pela destinatária. O callback `/auth/confirm` já está implementado; a validação real permanece pendente.
-4. Após a confirmação do e-mail da identidade, provisionar o primeiro perfil administrador executando `bootstrap-admin.psql` como operador do projeto. O script solicita e-mail e nome de exibição e não gera, altera ou revela senha.
-5. Validar login, expiração, recuperação, negação para usuário sem perfil, permissões de cada área e upload/leitura privada no serviço real.
-A publicação Vercel corrigida está READY, com recibo em `deployment-status.json`; o Site anterior no ChatGPT foi excluído. A verificação do fluxo autenticado depende das etapas acima.
+Única pendência de validação: testar o fluxo completo da aplicação no navegador com sessão autenticada, incluindo login, expiração, recuperação, negação para usuário sem perfil, permissões de cada área e upload/leitura privada no serviço real. Esses fluxos ainda não foram verificados de ponta a ponta com a conta provisionada.
+
+A publicação Vercel corrigida está READY, com recibo em `deployment-status.json`; o Site anterior no ChatGPT foi excluído. A verificação do fluxo autenticado permanece pendente.
 
 A criação de identidades Auth adicionais exige fluxo administrativo no servidor ou execução verificada no painel Supabase. O RPC de perfis gerencia somente perfis já provisionados. A interface não oferece cadastro e não promove automaticamente o primeiro visitante a administrador. O endpoint de cadastro do Supabase já está desativado. Identidades sem perfil ativo não têm acesso aos dados da confecção.
 
@@ -93,7 +92,7 @@ Bucket `confeccao-images`, **privado**, com limite de 5 MB e MIME JPEG/PNG/WebP.
 
 Membros ativos leem as imagens da fábrica. Produção/gestão/admin enviam fotos de modelos; qualidade/gestão/admin enviam fotos de conferência. Alterações e exclusões ficam limitadas ao autor do upload ou à gestão/admin. O banco verifica que o objeto existe antes de gravar a referência.
 
-As URLs assinadas são geradas na leitura e não são armazenadas no banco. A configuração do serviço e as políticas precisam de um teste real de upload/download após o provisionamento da primeira conta; o teste local verifica somente o contrato SQL e as políticas PostgreSQL.
+As URLs assinadas são geradas na leitura e não são armazenadas no banco. A configuração do serviço e as políticas ainda precisam de um teste real de upload/download com a conta já provisionada; o teste local verifica somente o contrato SQL e as políticas PostgreSQL.
 
 ## Testes locais
 
