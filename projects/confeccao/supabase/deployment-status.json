@@ -9,9 +9,10 @@
   "storage_public": false,
   "auth_accounts_provisioned": 0,
   "pending": [
-    "verified_admin_email",
     "smtp_configuration_and_email_delivery_test",
-    "first_auth_admin_account",
+    "admin_invitation_send",
+    "admin_email_confirmation",
+    "admin_profile_bootstrap",
     "authenticated_end_to_end_test"
   ],
   "hardening_migration": {
@@ -19,11 +20,14 @@
     "name": "restrict_platform_rls_trigger_execution"
   },
   "site": {
-    "url": "https://modapink-confeccao.phandstudio.chatgpt.site",
-    "source_commit": "fbfdb2e197289a5796f806d97e50f23cd7014b06",
-    "deployment_id": "appgdep_6ae673f1e5508191af26aa6ba2e33859",
-    "status": "succeeded",
-    "environment_revision": 1
+    "provider": "vercel",
+    "url": "https://modapink-confeccao.vercel.app",
+    "project_id": "prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW",
+    "team_id": "team_eGmQjmQ95Bd8nTTnOwOy2Rxj",
+    "status": "READY",
+    "source_commit": "e09e23d50a3f4ae6cbca83e83a12630b6edcf3d4",
+    "deployment_id": "dpl_29ua1j39JPBmzbXVMqZH1uZeuFCR",
+    "final_receipt_pending": false
   },
   "verification": {
     "all_application_tables_rls": true,
@@ -37,17 +41,46 @@
     "auth_disable_signup": true,
     "auth_external_email_enabled": true,
     "custom_smtp_enabled": false,
-    "email_delivery_verified": false
+    "email_delivery_verified": false,
+    "invite_callback_implemented": true,
+    "domain_tests_passed": 15,
+    "final_security_patch_deployment_verified": true,
+    "vercel_login_http_status": 200,
+    "vercel_correct_supabase_project": true,
+    "vercel_server_error": false,
+    "unauthenticated_dashboard_redirect_verified": true,
+    "npm_audit_vulnerabilities": 0,
+    "next_version": "16.4.3",
+    "zod_version": "4.6.7",
+    "typescript_passed": true,
+    "build_passed": true,
+    "local_sql_tests_passed": true,
+    "runtime_error_log_entries": 0,
+    "expired_link_rejected_in_browser": true,
+    "public_login_ui_verified": true
   },
   "auth_configuration": {
-    "site_url": "https://modapink-confeccao.phandstudio.chatgpt.site",
+    "site_url": "https://modapink-confeccao.vercel.app",
     "redirect_allow_list": [
-      "https://modapink-confeccao.phandstudio.chatgpt.site/auth/recovery"
+      "https://modapink-confeccao.vercel.app/auth/recovery",
+      "https://modapink-confeccao.vercel.app/auth/confirm"
     ],
     "disable_signup": true,
     "external_email_enabled": true,
     "custom_smtp_enabled": false,
     "auth_accounts_provisioned": 0,
-    "email_delivery_verified": false
-  }
+    "email_delivery_verified": false,
+    "legacy_chatgpt_callback_removed": true
+  },
+  "legacy_chatgpt_site": {
+    "url": "https://modapink-confeccao.phandstudio.chatgpt.site",
+    "source_commit": "fbfdb2e197289a5796f806d97e50f23cd7014b06",
+    "deployment_id": "appgdep_6ae673f1e5508191af26aa6ba2e33859",
+    "status": "deleted",
+    "environment_revision": 1,
+    "deleted": true
+  },
+  "admin_email_provided": true,
+  "admin_invitation_sent": false,
+  "admin_profile_bootstrapped": false
 }

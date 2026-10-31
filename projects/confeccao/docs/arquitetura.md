@@ -20,11 +20,13 @@ As imagens são gravadas em `confeccao-images`, privado. O banco persiste soment
 
 Custos não são enviados a produção/qualidade; a interface também oculta esses controles. Revogação de perfil é consultada no banco em cada operação, independentemente da validade do JWT.
 
-## Banco aplicado, Auth configurado e contas pendentes
+## Vercel, banco aplicado e ativação pendente
 
 O projeto `ragyjbrbhfataoiosgqy`, da organização Confeccção Moda Pink, recebeu a estrutura operacional e o bucket privado. Foi restringido o EXECUTE público do helper de event trigger da plataforma, preservando sua função interna. As leituras e escritas operacionais exigem identidade autenticada com perfil ativo.
 
-O Auth foi configurado no painel Supabase com Site URL `https://modapink-confeccao.phandstudio.chatgpt.site` e redirect de recuperação exato `https://modapink-confeccao.phandstudio.chatgpt.site/auth/recovery`. O cadastro público foi desligado; o endpoint `/auth/v1/settings` confirmou `disable_signup: true` e `external.email: true`.
+O endereço oficial é `https://modapink-confeccao.vercel.app`, no projeto Vercel `prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW`, equipe `team_eGmQjmQ95Bd8nTTnOwOy2Rxj`. A publicação de produção `dpl_29ua1j39JPBmzbXVMqZH1uZeuFCR`, commit `e09e23d50a3f4ae6cbca83e83a12630b6edcf3d4`, está READY. O Site anterior no ChatGPT foi excluído; o código permanece no GitHub.
 
-Ainda não existem contas Auth provisionadas: falta confirmar o e-mail da primeira administradora. O SMTP personalizado permanece desativado. É necessário configurar o envio de e-mail e verificar a entrega para um destinatário real, provisionar a primeira identidade/perfil autorizado e testar login, recuperação, permissões e imagens com essa conta. A configuração de Auth concluída não equivale à verificação do fluxo autenticado.
+O Auth foi configurado no painel Supabase com Site URL `https://modapink-confeccao.vercel.app` e redirects exatos `https://modapink-confeccao.vercel.app/auth/recovery` e `https://modapink-confeccao.vercel.app/auth/confirm`. O callback antigo do ChatGPT foi retirado da lista autorizada. O cadastro público permanece desligado; o endpoint `/auth/v1/settings` confirmou `disable_signup: true` e `external.email: true`. O callback de convite está implementado no aplicativo, com validação real ainda pendente.
+
+O e-mail da primeira administradora já foi fornecido, sem ser gravado no repositório. Ainda não existem contas Auth provisionadas e nenhum convite foi enviado. O SMTP personalizado permanece desativado. As próximas etapas são configurar envio/SMTP, enviar o convite, confirmar o e-mail da destinatária, provisionar o perfil administrador e testar login, recuperação, permissões e imagens com a conta real. TypeScript, build, 15 testes de domínio/callback e testes SQL com validação do envelope RPC passaram. Next.js 16.4.3 e Zod 4.6.7 corrigem os advisories encontrados; npm audit não retornou vulnerabilidades. O login publicado carregou corretamente e o painel sem sessão retornou ao login. Isso não substitui o teste autenticado com a conta real.
 

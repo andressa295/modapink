@@ -1,6 +1,6 @@
 # Banco da Confecção Moda Pink
 
-Base preparada para um projeto Supabase dedicado à confecção. **Estrutura aplicada** no projeto `ragyjbrbhfataoiosgqy`, organização Confeccção Moda Pink. As migrações remotas registram a instalação. Não executar o schema novamente sobre a estrutura existente. Os testes adicionais locais usam PostgreSQL embarcado e identidades sintéticas. As contas Auth reais ainda aguardam e-mails confirmados.
+Base preparada para um projeto Supabase dedicado à confecção. **Estrutura aplicada** no projeto `ragyjbrbhfataoiosgqy`, organização Confeccção Moda Pink. As migrações remotas registram a instalação. Não executar o schema novamente sobre a estrutura existente. Os testes adicionais locais usam PostgreSQL embarcado e identidades sintéticas. O e-mail da primeira administradora já foi fornecido pela responsável e não é salvo no repositório. Nenhuma conta Auth foi criada e nenhum convite foi enviado.
 
 ## Instalação e próximos passos
 
@@ -8,19 +8,21 @@ A instalação e a auditoria foram concluídas pelas migrações registradas em 
 
 O Auth por e-mail/senha já foi configurado no painel:
 
-- Site URL: `https://modapink-confeccao.phandstudio.chatgpt.site`.
-- Redirect autorizado exato: `https://modapink-confeccao.phandstudio.chatgpt.site/auth/recovery`.
+- Site URL oficial: `https://modapink-confeccao.vercel.app`.
+- Redirects autorizados exatos: `https://modapink-confeccao.vercel.app/auth/recovery` e `https://modapink-confeccao.vercel.app/auth/confirm`.
+- Callback anterior do ChatGPT removido da lista autorizada.
 - Cadastro público desligado: `/auth/v1/settings` confirmou `disable_signup: true`.
 - Provedor de e-mail habilitado: o mesmo endpoint confirmou `external.email: true`.
 - SMTP personalizado desativado. O envio para destinatários reais ainda não foi validado.
 
 Pendências de ativação:
 
-1. Confirmar com a responsável o e-mail da primeira administradora. Nenhuma conta Auth foi criada.
-2. Configurar o envio de e-mail/SMTP e testar a entrega para um destinatário real antes de depender de convite ou recuperação.
-3. Criar a primeira identidade Auth com o e-mail confirmado pela responsável, sem inferir identidades da agência ou da equipe.
+1. Configurar o envio de e-mail/SMTP e verificar entrega para a destinatária já informada. O SMTP personalizado permanece desativado.
+2. Enviar o convite para o e-mail fornecido pela responsável. Essa ação ainda não foi executada e não há conta Auth criada.
+3. Aguardar a confirmação do e-mail e a definição de senha pessoal pela destinatária. O callback `/auth/confirm` já está implementado; a validação real permanece pendente.
 4. Após a confirmação do e-mail da identidade, provisionar o primeiro perfil administrador executando `bootstrap-admin.psql` como operador do projeto. O script solicita e-mail e nome de exibição e não gera, altera ou revela senha.
 5. Validar login, expiração, recuperação, negação para usuário sem perfil, permissões de cada área e upload/leitura privada no serviço real.
+A publicação Vercel corrigida está READY, com recibo em `deployment-status.json`; o Site anterior no ChatGPT foi excluído. A verificação do fluxo autenticado depende das etapas acima.
 
 A criação de identidades Auth adicionais exige fluxo administrativo no servidor ou execução verificada no painel Supabase. O RPC de perfis gerencia somente perfis já provisionados. A interface não oferece cadastro e não promove automaticamente o primeiro visitante a administrador. O endpoint de cadastro do Supabase já está desativado. Identidades sem perfil ativo não têm acesso aos dados da confecção.
 
