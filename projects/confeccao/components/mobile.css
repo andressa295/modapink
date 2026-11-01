@@ -221,6 +221,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .recovery-page .login-content { margin-top: 8px; gap: 24px; }
   .recovery-page .login-eyebrow { margin-bottom: 9px; font-size: 10px; }
   .recovery-page .login-story h1 { font-size: 28px; line-height: 1.3; }
+  .recovery-page .login-story h1 em { display: block; margin-top: 4px; }
   .recovery-page .login-story > p { font-size: 12px; line-height: 1.9; max-width: 310px; margin: 12px auto 0; }
   .recovery-page .login-card { padding: 27px 22px; border-radius: 18px; }
   .recovery-page .login-card-top { gap: 12px; margin-bottom: 22px; }
