@@ -23,8 +23,8 @@
     "project_id": "prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW",
     "team_id": "team_eGmQjmQ95Bd8nTTnOwOy2Rxj",
     "status": "READY",
-    "source_commit": "bb68beb370c6c7592469b0a4b9df6cf1796bfe79",
-    "deployment_id": "dpl_9uKeKmJYuzxv8tK3PzxVBSQPFiLN",
+    "source_commit": "d4221245c44a17b87a8616408521a32a3ba1e5a9",
+    "deployment_id": "dpl_8MknBzeE59p9nTULyRcfZXHJGncB",
     "final_receipt_pending": false
   },
   "verification": {
@@ -109,6 +109,16 @@
       "subject": "Defina sua senha — Confecção Moda Pink",
       "brand_logo": true,
       "premium_design_saved": true
+    },
+    "premium_email_verification": {
+      "templates_persistence_verified": true,
+      "logo_public_http_status": 200,
+      "logo_public_content_type": "image/png",
+      "provider_preview_logo_loaded": false,
+      "preview_logo_failure_cause": "undetermined",
+      "live_test_emails_sent": 0,
+      "new_design_mail_client_rendering_verified": false,
+      "proof_file": "docs/email-modelo-salvo.jpg"
     }
   },
   "legacy_chatgpt_site": {
@@ -221,6 +231,11 @@
     "quality_review_before_submit": true,
     "costs_scope_explained": true,
     "pink_costs_panel_without_circles": true,
-    "deployment_pending": true
+    "deployment_pending": false,
+    "frontend_status": "READY",
+    "application_tests_passed": 56,
+    "typescript_passed": true,
+    "build_passed": true,
+    "authenticated_visual_walkthrough_verified": false
   }
 }
