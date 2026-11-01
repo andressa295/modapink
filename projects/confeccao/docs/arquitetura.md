@@ -76,3 +76,11 @@ GETs, métricas, consultas do portal e regras de imagem filtram os removidos. Ma
 Verificação: 52 testes de aplicação, TypeScript, build e cinco suítes PostgreSQL passaram. No projeto real, a projeção operacional e o perfil administrativo permaneceram válidos, RPC de exclusão não foi liberado a anônimos e a migração não removeu nenhum registro existente. Nenhum cadastro real foi excluído para provar a interface.
 
 A versão com exclusões e correção do portal foi confirmada READY na Vercel. O login foi conferido no navegador e contém exatamente uma imagem de logo Moda Pink, em destaque. A imagem em `docs/login-marca.jpg` foi atualizada. A chamada anônima real de `mf_remove_record` respondeu HTTP 401/42501. As validações autenticadas de remoção usam o PostgreSQL local; nenhum cadastro da cliente foi excluído para teste.
+
+## Refinamento operacional e e-mails
+
+Alteração de interface sem migração: menu na sequência material → ficha → OP → parceira → qualidade → custos; lixeiras compactas com aria-label/title e confirmações preservadas. Custos mantém snapshots e autorização, sincroniza filtro/busca/exportação, distingue previsão de tecido apurado mais tarifas da ficha e apresenta aproveitamento apenas dos concluídos. A área pink não tem círculos decorativos nem o slogan anterior.
+
+A qualidade mantém um único `inspect_order` por envio, com resultado e quantidades explícitos, motivo/foto/notas, resumo do efeito nos contadores e verificação de alterações do lote durante a revisão. O mesmo payload é preservado em tentativas sem confirmação. Foto preparada após troca de lote não é anexada a outro lote. Quatro testes novos verificam quantidades e revisão.
+
+Os dois modelos de e-mail foram salvos pela interface do Supabase; usam a mesma variável `{{ .ConfirmationURL }}` e o logo PNG absoluto já disponível na Vercel. O arquivo público respondeu HTTP 200/image/png. Não foram criadas contas ou disparados e-mails reais para validar a aparência. A checagem automática de aplicação soma 56 testes, além de TypeScript e build.

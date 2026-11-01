@@ -76,7 +76,7 @@ npm run test:db
 npm run build
 ```
 
-TypeScript, build, 52 testes locais de domínio/callback/portal/equipe/materiais e os testes PostgreSQL passaram. Next.js 16.4.3 e Zod 4.6.7 estão fixados; a auditoria npm não encontrou vulnerabilidades em produção ou desenvolvimento. A publicação Vercel está READY e o login respondeu HTTP 200 com a configuração pública do Supabase correto. O painel redireciona visitantes sem sessão ao login. A confirmação do e-mail, a definição da senha e o perfil administrador ativo foram verificados no banco; o teste completo no navegador com sessão autenticada e upload/leitura privada permanece pendente.
+TypeScript, build, 56 testes locais de domínio/callback/portal/equipe/materiais/qualidade e os testes PostgreSQL passaram. Next.js 16.4.3 e Zod 4.6.7 estão fixados; a auditoria npm não encontrou vulnerabilidades em produção ou desenvolvimento. A publicação Vercel está READY e o login respondeu HTTP 200 com a configuração pública do Supabase correto. O painel redireciona visitantes sem sessão ao login. A confirmação do e-mail, a definição da senha e o perfil administrador ativo foram verificados no banco; o teste completo no navegador com sessão autenticada e upload/leitura privada permanece pendente.
 
 Os testes SQL usam PostgreSQL embarcado com Auth/Storage sintéticos, sem conexão à operação da cliente. Verificam atomicidade, reservas, concorrência, replay, qualidade, snapshots, contrato de retorno, RLS e permissões. Não substituem os testes reais de Auth, entrega de e-mail e upload/download após liberar o projeto.
 
@@ -105,3 +105,13 @@ Cadastros removidos podem ser refeitos com a mesma identificação. Para e-mail 
 Materiais mostram a unidade dos saldos, custo com R$ e exemplo de vírgula decimal. Os ícones de informação funcionam por mouse, foco e toque. Saldo inicial é o que já existe no lote; saldo mínimo é o limite de reposição, descontadas as reservas.
 
 O portal passou a autorizar a operação de metadados necessária ao download privado. Falha em uma foto gera aviso separado após revalidar o acesso, sem derrubar o lote autorizado. Revogação ou falha de autorização continuam bloqueando a consulta.
+
+## Navegação, custos e qualidade
+
+O menu segue a preparação da operação: visão geral, materiais, fichas, ordens de produção, confecções parceiras, qualidade e custos. As ações de exclusão nas listas e cartões usam somente a lixeira, com identificação acessível; a confirmação continua explícita.
+
+Custos mostra previsto, tecido apurado mais serviços da ficha, diferenças entre os mesmos lotes e custo por peça aprovada. Filtro e busca acompanham indicadores, tabela e CSV; os lotes sem consumo ficam aguardando apuração. O destaque pink mostra aproveitamento real dos concluídos, sem efeitos circulares. Não calcula preço de venda ou lucro.
+
+Registrar conferência segue três passos: escolher o lote, informar um resultado e revisar antes de gravar. Mostra grade e contadores, explica aprovadas/conserto/perda, exige quantidade inteira disponível e descrição para Outro. Uma confirmação salva um único resultado. A reconferência confirma as peças antes de liberar o retrabalho.
+
+Os templates de convite e recuperação foram atualizados no Supabase com logo PNG público, cabeçalho escuro, botão pink e identidade Moda Pink. HTML em português com tabelas, estilos inline, texto alternativo e link de confirmação preservado. Nenhum novo e-mail real foi enviado durante a preparação do visual.

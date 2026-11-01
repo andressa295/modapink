@@ -46,7 +46,7 @@
     "smtp_configuration_persisted_verified": true,
     "email_delivery_verified": true,
     "invite_callback_implemented": true,
-    "domain_tests_passed": 52,
+    "domain_tests_passed": 56,
     "final_security_patch_deployment_verified": true,
     "vercel_login_http_status": 200,
     "vercel_correct_supabase_project": true,
@@ -97,9 +97,19 @@
     "invite_template": {
       "locale": "pt-BR",
       "source_file": "supabase/email-templates/invite.html",
-      "link_variable": "{{ .ConfirmationURL }}"
+      "link_variable": "{{ .ConfirmationURL }}",
+      "subject": "Seu convite — Confecção Moda Pink",
+      "brand_logo": true,
+      "premium_design_saved": true
     },
-    "legacy_chatgpt_callback_removed": true
+    "legacy_chatgpt_callback_removed": true,
+    "recovery_template": {
+      "locale": "pt-BR",
+      "source_file": "supabase/email-templates/recovery.html",
+      "subject": "Defina sua senha — Confecção Moda Pink",
+      "brand_logo": true,
+      "premium_design_saved": true
+    }
   },
   "legacy_chatgpt_site": {
     "url": "https://modapink-confeccao.phandstudio.chatgpt.site",
@@ -196,5 +206,21 @@
     "anonymous_remove_denied": true,
     "deployment_pending": false,
     "frontend_status": "READY"
+  },
+  "ui_refinement": {
+    "icon_only_removal_actions": true,
+    "menu_order": [
+      "dashboard",
+      "materiais",
+      "modelos",
+      "producao",
+      "confeccoes",
+      "qualidade",
+      "custos"
+    ],
+    "quality_review_before_submit": true,
+    "costs_scope_explained": true,
+    "pink_costs_panel_without_circles": true,
+    "deployment_pending": true
   }
 }
