@@ -23,8 +23,8 @@
     "project_id": "prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW",
     "team_id": "team_eGmQjmQ95Bd8nTTnOwOy2Rxj",
     "status": "READY",
-    "source_commit": "7bdaa409a63d6fc51b86b0badd84bd8aa4836b3f",
-    "deployment_id": "dpl_FN1XnxaEDHtH5avjNEsedt4wKPGZ",
+    "source_commit": "bb68beb370c6c7592469b0a4b9df6cf1796bfe79",
+    "deployment_id": "dpl_9uKeKmJYuzxv8tK3PzxVBSQPFiLN",
     "final_receipt_pending": false
   },
   "verification": {
@@ -74,7 +74,9 @@
     "team_invitation_ui_implemented": true,
     "local_sql_suites_passed": 5,
     "portal_metadata_download_policy_verified_with_rollback": true,
-    "portal_media_failure_preserves_scope_after_revalidation": true
+    "portal_media_failure_preserves_scope_after_revalidation": true,
+    "login_single_logo_verified": true,
+    "anonymous_remove_http_status": 401
   },
   "auth_configuration": {
     "site_url": "https://modapink-confeccao.vercel.app",
@@ -192,6 +194,7 @@
     "live_records_removed_in_development": 0,
     "live_projection_verified": true,
     "anonymous_remove_denied": true,
-    "deployment_pending": true
+    "deployment_pending": false,
+    "frontend_status": "READY"
   }
 }
