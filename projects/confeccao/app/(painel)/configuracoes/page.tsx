@@ -42,6 +42,7 @@ export default function Settings() {
   const [invite, setInvite] = useState(emptyInvite);
   const [accessError, setAccessError] = useState("");
   const [sending, setSending] = useState(false);
+  const [endingAttempt, setEndingAttempt] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<TeamAccessRequest | null>(null);
   const sendingRef = useRef(false);
   const pendingRef = useRef<TeamAccessRequest | null>(null);
@@ -63,15 +64,22 @@ export default function Settings() {
   useEffect(() => { void loadMembers(); return () => { loadSequence.current += 1; }; }, [loadMembers]);
   function openAccess(next: AccessDialog) {
     if (!canManage || pendingRef.current || sendingRef.current) return;
-    setNotice(""); setAccessError(""); setInvite(emptyInvite); setDialog(next); dialogRef.current = next;
+    setNotice(""); setAccessError(""); setEndingAttempt(false); setInvite(emptyInvite); setDialog(next); dialogRef.current = next;
   }
   function closeAccess() {
     if (sendingRef.current) return;
-    setDialog(null);
+    setDialog(null); setEndingAttempt(false);
     if (pendingRef.current) setNotice("Há um envio aguardando confirmação. Retome a solicitação para verificar o resultado antes de cadastrar outra pessoa.");
     else { setAccessError(""); dialogRef.current = null; }
   }
   function resumeAccess() { if (pendingRef.current && dialogRef.current) { setDialog(dialogRef.current); setNotice(""); } }
+  async function endAttempt() {
+    if (sendingRef.current || !pendingRef.current || !endingAttempt) return;
+    pendingRef.current = null; setPendingRequest(null); dialogRef.current = null;
+    setDialog(null); setEndingAttempt(false); setAccessError(""); setInvite(emptyInvite);
+    setNotice("Tentativa encerrada neste navegador. O e-mail pode já ter sido enviado. Confira a lista antes de solicitar outro envio.");
+    await loadMembers();
+  }
   async function submitAccess(event: React.FormEvent) {
     event.preventDefault(); if (!canManage || !dialog || sendingRef.current) return;
     let request = pendingRef.current;
@@ -81,7 +89,7 @@ export default function Settings() {
       if (!parsed.success) { setAccessError(parsed.error.issues[0]?.message ?? "Confira os dados da pessoa."); return; }
       request = parsed.data; pendingRef.current = request; setPendingRequest(request);
     }
-    sendingRef.current = true; setSending(true); setAccessError("");
+    sendingRef.current = true; setSending(true); setAccessError(""); setEndingAttempt(false);
     try {
       const result = await sendTeamAccess(request);
       const sentEmail = dialog.kind === "invite" ? (request.action === "invite" ? request.email : invite.email) : dialog.member.email;
@@ -133,6 +141,7 @@ export default function Settings() {
       {dialog.kind === "invite" ? <fieldset disabled={sending || pending}><label>Nome da pessoa<input autoComplete="name" required maxLength={100} placeholder="Como a pessoa se chama?" value={invite.fullName} onChange={event => setInvite({ ...invite, fullName: event.target.value })} /></label><label>E-mail de acesso<input autoComplete="email" type="email" required maxLength={254} placeholder="pessoa@exemplo.com" value={invite.email} onChange={event => setInvite({ ...invite, email: event.target.value })} /><small>Confira o endereço. É nele que ela receberá o link.</small></label><label>Perfil de acesso<select value={invite.role} onChange={event => setInvite({ ...invite, role: event.target.value as AccessRole })}>{Object.entries(roleNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><small>{roleHelp[invite.role]}</small></label></fieldset> : <div className="team-recipient"><span><Mail size={20} /></span><div><strong>{dialog.member.full_name}</strong><p>{dialog.member.email}</p><small>{dialog.kind === "resend" ? "Ela receberá um novo convite para definir a própria senha." : "Ela receberá um link para escolher uma nova senha."}</small></div></div>}
       <div className="team-form-note"><ShieldCheck size={17} /><p>{pending ? "Este envio aguarda confirmação. Os dados estão preservados; reconfirmar consulta a mesma solicitação, sem iniciar outro convite." : "A senha é pessoal e será escolhida no link recebido. O cadastro público continua fechado."}</p></div>
       {accessError && <div className="team-form-error" role="alert"><TriangleAlert size={16} /><p>{accessError}</p></div>}
+      {pending && accessError && !sending && <div className="team-end-attempt">{endingAttempt ? <><p>O e-mail pode já ter sido enviado. Confira a lista antes de solicitar outro envio. Encerrar limpa apenas esta tentativa no navegador.</p><div><button type="button" onClick={() => setEndingAttempt(false)}>Continuar verificando</button><button type="button" onClick={() => void endAttempt()}>Encerrar e atualizar lista</button></div></> : <button type="button" onClick={() => setEndingAttempt(true)}>Encerrar tentativa</button>}</div>}
       <div className="form-footer"><button type="button" className="button secondary" onClick={closeAccess} disabled={sending}>{pending ? "Fechar e retomar depois" : "Cancelar"}</button><button className="button primary" disabled={sending} type="submit">{sending ? "Enviando…" : pending ? "Reconfirmar envio" : dialog.kind === "recovery" ? "Enviar recuperação" : "Enviar convite"}{sending ? <RefreshCw size={15} className="team-spinning" /> : <Send size={15} />}</button></div>
     </form></Modal>}
   </>;
