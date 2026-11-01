@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { Download, Wallet, Coins, Info, Search, ArrowLeftRight, Layers, Scissors, CircleCheck, ChevronRight } from "lucide-react";
 import { useDemo } from "../../../lib/demo-store";
 import { directCost, formatNumber, money, type Order } from "../../../lib/domain";
@@ -70,7 +71,7 @@ export default function Costs() {
 
   return <div className="costs-page">
     <PageHeading eyebrow="CUSTOS E RESULTADOS" title="O custo de cada produção." description="Compare a previsão com o custo direto calculado e veja como as peças aprovadas compõem o resultado do lote.">
-      <button className="button secondary" onClick={download} disabled={!rows.length}><Download size={16} /> Exportar esta visão</button>
+      <Link className="button primary" href="/precificacao">Formar preço de venda <ChevronRight size={15} /></Link><button className="button secondary" onClick={download} disabled={!rows.length}><Download size={16} /> Exportar esta visão</button>
     </PageHeading>
 
     <section className="costs-view-bar" aria-label="Filtros dos custos">

@@ -140,3 +140,7 @@ Aplicadas uma vez: `portal-image-fix.sql` (`20261101003900`) e `record-removal.s
 Materiais/modelos históricos ainda referenciados recebem `archived:true` no estado e ficam fora de listas, métricas e seletores. OPs removidas e seus apontamentos/conferências saem das projeções. A leitura de imagens do portal também exige OP não removida. Os clones anteriores de validação são privados e têm EXECUTE revogado, preservando as regras originais dentro dos novos wrappers.
 
 Um novo convite pode restaurar membro previamente removido mediante autorização explícita e snapshot exato da remoção. Perfis existentes não removidos continuam sem alteração automática pelo convite. A função `team-access` versão 2 foi publicada com verificação JWT. Os testes locais agora incluem cinco suites; testes de moeda e de resiliência usam os parsers/adaptadores reais com serviços simulados.
+
+### Formação de preço
+
+Aplicar `migrations/20261101020350_create_pricing_sheets.sql` depois das seis alterações anteriores, em especial `record-removal.sql`. A tabela privada `pricing_sheets` usa RLS e acesso exclusivamente por RPCs financeiros guardados. Não expor `mf_private` na Data API. A migração não insere dados de demonstração nem altera as OPs. Verificar com `npm --prefix supabase/tests run test:pricing`.

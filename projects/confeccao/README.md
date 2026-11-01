@@ -115,3 +115,11 @@ Custos mostra previsto, tecido apurado mais serviços da ficha, diferenças entr
 Registrar conferência segue três passos: escolher o lote, informar um resultado e revisar antes de gravar. Mostra grade e contadores, explica aprovadas/conserto/perda, exige quantidade inteira disponível e descrição para Outro. Uma confirmação salva um único resultado. A reconferência confirma as peças antes de liberar o retrabalho.
 
 Os templates de convite e recuperação foram atualizados no Supabase com logo PNG público, cabeçalho escuro, botão pink e identidade Moda Pink. HTML em português com tabelas, estilos inline, texto alternativo e link de confirmação preservado. Nenhum novo e-mail real foi enviado durante a preparação do visual.
+
+## Formação de preço
+
+A aba `/precificacao`, exclusiva para administração e gestão, cria e salva simulações independentes. Importa uma cópia da ficha ou OP (com snapshot das tarifas e consumo real, quando disponível) e aceita custos por peça produzida, por lote ou mensais. Despesas mensais são rateadas pelo volume mensal de peças vendáveis. A quantidade vendável absorve as perdas do lote sem acrescentá-las novamente. Os grupos incluem materiais, desenvolvimento, produção, logística e estrutura; há gastos extras editáveis e oito tipos de taxas percentuais sobre a venda.
+
+O preço calculado usa custo por peça dividido por `1 − taxas − margem`. Também mostra o mínimo para os custos informados, o efeito do preço de atacado praticado e a revenda calculada com margem, despesas percentuais e gasto adicional da lojista. Não preenche alíquotas fiscais ou margens comerciais como recomendações. A exportação CSV preserva as premissas. Simulações podem ser abertas, editadas e excluídas com confirmação; o banco protege versões concorrentes e tentativas repetidas e não reativa registros removidos. Nenhuma ação muda estoque, ficha ou OP.
+
+Instalação: após `supabase/record-removal.sql`, aplicar `supabase/migrations/20261101020350_create_pricing_sheets.sql`. A tabela fica privada com RLS, sem acesso direto; os três RPCs revalidam perfil financeiro ativo. A nova suíte `npm --prefix supabase/tests run test:pricing` usa PostgreSQL local com dados sintéticos.

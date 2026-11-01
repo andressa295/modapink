@@ -46,7 +46,7 @@
     "smtp_configuration_persisted_verified": true,
     "email_delivery_verified": true,
     "invite_callback_implemented": true,
-    "domain_tests_passed": 56,
+    "domain_tests_passed": 64,
     "final_security_patch_deployment_verified": true,
     "vercel_login_http_status": 200,
     "vercel_correct_supabase_project": true,
@@ -72,7 +72,7 @@
     "old_login_headline_removed": true,
     "production_next_step_ui_implemented": true,
     "team_invitation_ui_implemented": true,
-    "local_sql_suites_passed": 5,
+    "local_sql_suites_passed": 6,
     "portal_metadata_download_policy_verified_with_rollback": true,
     "portal_media_failure_preserves_scope_after_revalidation": true,
     "login_single_logo_verified": true,
@@ -237,5 +237,40 @@
     "typescript_passed": true,
     "build_passed": true,
     "authenticated_visual_walkthrough_verified": false
+  },
+  "pricing": {
+    "route": "/precificacao",
+    "migration_version": "20261101020350",
+    "migration_name": "create_pricing_sheets",
+    "table": "mf_private.pricing_sheets",
+    "application_tables": 18,
+    "database_installed": true,
+    "admin_and_management_only": true,
+    "raw_table_access": false,
+    "rls": true,
+    "optimistic_revision": true,
+    "same_document_retry_idempotent": true,
+    "archived_cannot_resurrect": true,
+    "cost_groups": [
+      "Materiais",
+      "Desenvolvimento",
+      "Produção",
+      "Logística",
+      "Estrutura"
+    ],
+    "cost_basis": [
+      "piece",
+      "batch",
+      "month"
+    ],
+    "csv_export": true,
+    "saved_simulations_crud": true,
+    "tax_and_margin_defaults_zero": true,
+    "tests_application": 64,
+    "local_sql_suite_passed": true,
+    "live_transactional_crud_rolled_back": true,
+    "permanent_synthetic_records": 0,
+    "authenticated_browser_flow_verified": false,
+    "deployment_pending": true
   }
 }
