@@ -23,8 +23,8 @@
     "project_id": "prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW",
     "team_id": "team_eGmQjmQ95Bd8nTTnOwOy2Rxj",
     "status": "READY",
-    "source_commit": "c9841a2fe818e8fe8d182baa4fba91292f1944b4",
-    "deployment_id": "dpl_9RQQuGP88J3wD2GGvAurtVLCSNdB",
+    "source_commit": "8fb9ba4e50142c64d45de9d6405c6940067c8269",
+    "deployment_id": "dpl_Eg3dZTbq2CbrKMx4trkfLCfGvxH7",
     "final_receipt_pending": false
   },
   "verification": {
@@ -278,5 +278,29 @@
     "runtime_error_logs": 0,
     "cost_catalog_count": 48,
     "sales_rate_count": 8
+  },
+  "agency_branding": {
+    "portfolio_url": "https://www.phand.com.br/",
+    "original_logo_blob": "79d7b5cedee7f2036ade528268cca47b65fcd73c",
+    "local_asset": "/phand-logo.png",
+    "dark_background_white": true,
+    "light_background_original_pink": true,
+    "credits": [
+      "login",
+      "recovery",
+      "dashboard_shell",
+      "partner_portal",
+      "invite_email",
+      "recovery_email"
+    ],
+    "live_asset_status": 200,
+    "live_asset_matches_original": true,
+    "login_loaded_white_filter_verified": true,
+    "portal_loaded_no_filter_verified": true,
+    "email_templates_saved": true,
+    "new_live_emails_sent": 0,
+    "build_passed": true,
+    "runtime_error_logs": 0,
+    "status": "READY"
   }
 }
