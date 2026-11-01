@@ -38,3 +38,6 @@
 .modal{margin:auto}.modal.drawer{margin:0}.modal-feedback{padding:13px 15px;margin:0 25px 22px;border-radius:8px;background:#fff0f7;border:1px solid #ecc8de;color:#a45587;font-size:11px;line-height:1.8}.modal-feedback:empty{display:none}
 .data-table th{position:relative}
 @media(max-width:820px){.sidebar{visibility:hidden;pointer-events:none}.sidebar.mobile-open{visibility:visible;pointer-events:auto}}
+
+/* Poppins consistente em textos, tabelas e campos do sistema. */
+html,body{font-family:var(--font-poppins),Arial,sans-serif}button,input,select,textarea,table{font-family:inherit}

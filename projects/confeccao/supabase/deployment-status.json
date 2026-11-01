@@ -10,7 +10,8 @@
   "auth_accounts_provisioned": 1,
   "pending": [
     "authenticated_end_to_end_test",
-    "partner_portal_real_photo_roundtrip"
+    "partner_portal_real_photo_roundtrip",
+    "team_positive_live_invitation_roundtrip"
   ],
   "hardening_migration": {
     "version": "20261031230133",
@@ -45,7 +46,7 @@
     "smtp_configuration_persisted_verified": true,
     "email_delivery_verified": true,
     "invite_callback_implemented": true,
-    "domain_tests_passed": 22,
+    "domain_tests_passed": 30,
     "final_security_patch_deployment_verified": true,
     "vercel_login_http_status": 200,
     "vercel_correct_supabase_project": true,
@@ -64,7 +65,9 @@
     "partner_portal_sql_tests_passed": true,
     "partner_portal_anonymous_owner_denied": true,
     "partner_portal_invalid_token_denied": true,
-    "partner_portal_storage_cors_verified": true
+    "partner_portal_storage_cors_verified": true,
+    "team_sql_tests_passed": true,
+    "team_handler_and_rest_adapter_tests_passed": true
   },
   "auth_configuration": {
     "site_url": "https://modapink-confeccao.vercel.app",
@@ -130,5 +133,26 @@
     "public_route_http_status": 200,
     "invalid_link_denied_in_browser": true,
     "unauthenticated_owner_redirect_verified": true
+  },
+  "team_migration": {
+    "version": "20261101002614",
+    "name": "enable_admin_team_invitations"
+  },
+  "team_access": {
+    "edge_function": "team-access",
+    "version": 1,
+    "status": "ACTIVE",
+    "verify_jwt": true,
+    "server_admin_guard": true,
+    "service_key_runtime_only": true,
+    "public_signup_disabled": true,
+    "per_request_idempotency": true,
+    "rate_per_admin_per_hour": 20,
+    "recipient_cooldown_seconds": 60,
+    "application_tables": 17,
+    "real_invitations_sent_by_this_change": 0,
+    "positive_live_invitation_roundtrip_verified": false,
+    "recovery_template_pt_br_saved": true,
+    "deployment_pending": true
   }
 }

@@ -23,7 +23,7 @@ O bootstrap da primeira administradora já foi executado por operador, com bloqu
 
 A publicação Vercel corrigida está READY, com recibo em `deployment-status.json`; o Site anterior no ChatGPT foi excluído. A verificação do fluxo autenticado permanece pendente.
 
-A criação de identidades Auth adicionais exige fluxo administrativo no servidor ou execução verificada no painel Supabase. O RPC de perfis gerencia somente perfis já provisionados. A interface não oferece cadastro e não promove automaticamente o primeiro visitante a administrador. O endpoint de cadastro do Supabase já está desativado. Identidades sem perfil ativo não têm acesso aos dados da confecção.
+A criação de identidades Auth adicionais está disponível pela administração em Configurações, usando a Edge Function `team-access`. O RPC de edição de perfis continua gerenciando somente perfis já provisionados. A interface não oferece cadastro e não promove automaticamente o primeiro visitante a administrador. O endpoint de cadastro do Supabase já está desativado. Identidades sem perfil ativo não têm acesso aos dados da confecção.
 
 ## Objetos
 
@@ -120,3 +120,13 @@ As funções `mf_portal_owner_state` e `mf_portal_manage` exigem perfil ativo; o
 Os testes PostgreSQL locais cobrem isolamento, revogação/expiração/rotação, replay, imutabilidade, contagens, atribuições, OP concluída e políticas de imagens. O serviço real rejeitou RPC interno sem sessão e token inválido; o preflight Storage permitiu o cabeçalho adicional. Upload/download positivo com dados reais permanece pendente. Não há parceiras, links nem OPs de teste inseridos pelo desenvolvimento na produção.
 
 A auditoria de segurança encontrou somente os avisos informativos de RLS sem políticas nas tabelas privadas (negação deliberada, acesso por RPC protegido) e o aviso preexistente de proteção de senhas vazadas desativada no Auth. Não foram abertos privilégios diretos para remover os avisos informativos.
+
+## Convites da equipe instalados
+
+`20261101002614_enable_admin_team_invitations` aplicou `team-invites.sql`. Não executar novamente. A tabela privada `team_invite_requests` mantém intenções de envio, estados e limites sem guardar senha ou token. O total atual é 17 tabelas.
+
+`supabase/functions/team-access` contém o endpoint de cadastro/reenvio/recuperação, publicado com `verify_jwt=true`. A Edge valida o usuário no Auth e o papel ativo em RPC exclusivo do servidor antes de chamar Auth Admin. `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são injetados no runtime; nenhuma credencial administrativa foi adicionada ao frontend ou à hospedagem Vercel. Os destinos de e-mail são fixos em `/auth/confirm` e `/auth/recovery` da Vercel.
+
+A administração informa nome (até 100 caracteres), e-mail e papel; a pessoa recebe o link e escolhe a senha. O banco limita 20 solicitações/hora por administrador e 60 segundos por destinatário; replay não libera outro envio. Finalização insere perfil ausente e nunca modifica permissões de perfil já existente. Recuperação/reenvio respeitam a situação atual da identidade e exigem perfil ativo. O template `email-templates/recovery.html` foi salvo no Supabase em português.
+
+As três suites locais (`npm run test:db`) passaram. O handler e o adaptador REST têm testes sem serviços reais. Nenhum convite ou conta de teste foi criado na produção por essa mudança; a validação positiva de convite pelo novo endpoint aguarda destinatário real autorizado.
