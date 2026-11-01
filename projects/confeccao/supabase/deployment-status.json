@@ -22,8 +22,8 @@
     "project_id": "prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW",
     "team_id": "team_eGmQjmQ95Bd8nTTnOwOy2Rxj",
     "status": "READY",
-    "source_commit": "e09e23d50a3f4ae6cbca83e83a12630b6edcf3d4",
-    "deployment_id": "dpl_29ua1j39JPBmzbXVMqZH1uZeuFCR",
+    "source_commit": "03b1fd5fb1004f6fcd1a8c67122de448d62435dd",
+    "deployment_id": "dpl_2JUm6nNuTw5kzc4uxThvCE3dnGMK",
     "final_receipt_pending": false
   },
   "verification": {
@@ -124,7 +124,11 @@
     "seeded_links": 0,
     "official_inventory_changes": false,
     "photo_requirement": "optional",
-    "deployment_pending": true,
-    "real_storage_upload_download_verified": false
+    "deployment_pending": false,
+    "real_storage_upload_download_verified": false,
+    "deployment_status": "READY",
+    "public_route_http_status": 200,
+    "invalid_link_denied_in_browser": true,
+    "unauthenticated_owner_redirect_verified": true
   }
 }

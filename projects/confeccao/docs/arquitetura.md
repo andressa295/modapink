@@ -24,7 +24,7 @@ Custos não são enviados a produção/qualidade; a interface também oculta ess
 
 O projeto `ragyjbrbhfataoiosgqy`, da organização Confeccção Moda Pink, recebeu a estrutura operacional e o bucket privado. Foi restringido o EXECUTE público do helper de event trigger da plataforma, preservando sua função interna. As leituras e escritas operacionais exigem identidade autenticada com perfil ativo.
 
-O endereço oficial é `https://modapink-confeccao.vercel.app`, no projeto Vercel `prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW`, equipe `team_eGmQjmQ95Bd8nTTnOwOy2Rxj`. A publicação de produção `dpl_29ua1j39JPBmzbXVMqZH1uZeuFCR`, commit `e09e23d50a3f4ae6cbca83e83a12630b6edcf3d4`, está READY. O Site anterior no ChatGPT foi excluído; o código permanece no GitHub.
+O endereço oficial é `https://modapink-confeccao.vercel.app`, no projeto Vercel `prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW`, equipe `team_eGmQjmQ95Bd8nTTnOwOy2Rxj`. A publicação de produção `dpl_2JUm6nNuTw5kzc4uxThvCE3dnGMK`, commit `03b1fd5fb1004f6fcd1a8c67122de448d62435dd`, está READY. O Site anterior no ChatGPT foi excluído; o código permanece no GitHub.
 
 O Auth foi configurado no painel Supabase com Site URL `https://modapink-confeccao.vercel.app` e redirects exatos `https://modapink-confeccao.vercel.app/auth/recovery` e `https://modapink-confeccao.vercel.app/auth/confirm`. O callback antigo do ChatGPT foi retirado da lista autorizada. O cadastro público permanece desligado; o endpoint `/auth/v1/settings` confirmou `disable_signup: true` e `external.email: true`. O callback de convite está implementado no aplicativo; a confirmação do e-mail e a definição da senha foram verificadas no Auth.
 
@@ -46,3 +46,5 @@ As projeções externas não incluem custos, fornecedores ou dados das demais pa
 Fotos opcionais usam reservas temporárias e o mesmo bucket privado. O cabeçalho de capacidade é validado por operação; download direto é permitido para fotos autorizadas, enquanto listagem e assinatura externas são negadas. Evidências anexadas não podem ser removidas pela parceira. Objetos órfãos podem exigir limpeza posterior comprovando ausência de referência.
 
 Validação: build/TypeScript, 22 testes da aplicação e suites PostgreSQL local do núcleo e portal passaram. No serviço real, RPC interno sem sessão e capacidade inválida retornaram HTTP 401; preflight Storage aceitou o cabeçalho do portal. A gravação e leitura de foto com uma OP real ainda aguardam validação operacional. Não foram criadas parceiras, links ou ordens fictícias na produção.
+
+O portal foi publicado na Vercel com a mesma versão do núcleo. `/portal-confeccao` respondeu HTTP 200, usa o projeto Supabase correto e recusou link ausente/inexistente no navegador; `/confeccoes` sem sessão redirecionou para `/login`. Login e portal não apresentaram erro de renderização no smoke HTTP. O fluxo positivo de apontamento com foto ainda exige uma OP real atribuída.
