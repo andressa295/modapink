@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { SupabaseConfiguration } from "../components/supabase-configuration";
-import { DemoProvider } from "../lib/demo-store";
-import { AuthLinkGate } from "../components/auth-link-gate";
+import { ClientApplicationProviders } from "../components/client-application-providers";
 import "./globals.css";
 
 const poppins = localFont({ src: [
@@ -30,7 +29,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={poppins.variable}><SupabaseConfiguration url={process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? ""} publishableKey={(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY ?? "").startsWith("sb_publishable_") ? (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY ?? "") : ""}><AuthLinkGate><DemoProvider>{children}</DemoProvider></AuthLinkGate></SupabaseConfiguration></body>
+      <body className={poppins.variable}><SupabaseConfiguration url={process.env.NEXT_PUBLIC_SUPABASE_URL ?? process.env.SUPABASE_URL ?? ""} publishableKey={(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY ?? "").startsWith("sb_publishable_") ? (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY ?? "") : ""}><ClientApplicationProviders>{children}</ClientApplicationProviders></SupabaseConfiguration></body>
     </html>
   );
 }

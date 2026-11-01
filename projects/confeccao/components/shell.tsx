@@ -7,8 +7,11 @@ import { useDemo } from "../lib/demo-store";
 import { available } from "../lib/domain";
 import { Modal } from "./ui";
 import { AuthBoundary, roleNames, useAuth } from "../lib/auth-context";
-const links = [{ href: "/dashboard", label: "Visão geral", icon: LayoutDashboard }, { href: "/producao", label: "Ordens de produção", icon: Scissors }, { href: "/modelos", label: "Fichas técnicas", icon: Shirt }, { href: "/materiais", label: "Tecidos e materiais", icon: Layers }, { href: "/qualidade", label: "Controle de qualidade", icon: ClipboardCheck }, { href: "/custos", label: "Custos e resultados", icon: ChartNoAxesCombined }];
-export function Shell({ children }: { children: ReactNode }) { return <AuthBoundary><ShellContent>{children}</ShellContent></AuthBoundary>; }
+import { PartnerPortalProvider } from "./partner-portal-context";
+import "./partner-portal.css";
+const links = [{ href: "/dashboard", label: "Visão geral", icon: LayoutDashboard }, { href: "/producao", label: "Ordens de produção", icon: Scissors }, { href: "/confeccoes", label: "Confecções parceiras", icon: Factory }, { href: "/modelos", label: "Fichas técnicas", icon: Shirt }, { href: "/materiais", label: "Tecidos e materiais", icon: Layers }, { href: "/qualidade", label: "Controle de qualidade", icon: ClipboardCheck }, { href: "/custos", label: "Custos e resultados", icon: ChartNoAxesCombined }];
+export function Shell({ children }: { children: ReactNode }) { return <AuthBoundary><AuthenticatedShell>{children}</AuthenticatedShell></AuthBoundary>; }
+function AuthenticatedShell({ children }: { children: ReactNode }) { const { profile } = useAuth(); return <PartnerPortalProvider key={profile.id}><ShellContent>{children}</ShellContent></PartnerPortalProvider>; }
 function ShellContent({ children }: { children: ReactNode }) {
   const path = usePathname(); const router = useRouter(); const { state, ready, error: dataError, refresh: refreshData } = useDemo(); const { profile, email, signOut } = useAuth();
   const canSeeCosts = profile.role === "admin" || profile.role === "gestao";

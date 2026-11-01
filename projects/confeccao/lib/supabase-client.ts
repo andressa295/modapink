@@ -10,6 +10,7 @@ export function configureSupabase(config: PublicConfig) {
 function config(): PublicConfig {
   return configured ?? { url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "", publishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "" };
 }
+export function getSupabasePublicConfiguration() { const value = config(); return { url: value.url, publishableKey: value.publishableKey }; }
 export function isSupabaseConfigured() {
   const c = config();
   try { return new URL(c.url).protocol === "https:" && c.publishableKey.startsWith("sb_publishable_"); } catch { return false; }

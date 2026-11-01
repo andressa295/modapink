@@ -9,7 +9,8 @@
   "storage_public": false,
   "auth_accounts_provisioned": 1,
   "pending": [
-    "authenticated_end_to_end_test"
+    "authenticated_end_to_end_test",
+    "partner_portal_real_photo_roundtrip"
   ],
   "hardening_migration": {
     "version": "20261031230133",
@@ -44,7 +45,7 @@
     "smtp_configuration_persisted_verified": true,
     "email_delivery_verified": true,
     "invite_callback_implemented": true,
-    "domain_tests_passed": 15,
+    "domain_tests_passed": 22,
     "final_security_patch_deployment_verified": true,
     "vercel_login_http_status": 200,
     "vercel_correct_supabase_project": true,
@@ -59,7 +60,11 @@
     "runtime_error_log_entries": 0,
     "expired_link_rejected_in_browser": true,
     "public_login_ui_verified": true,
-    "admin_login_user_reported": true
+    "admin_login_user_reported": true,
+    "partner_portal_sql_tests_passed": true,
+    "partner_portal_anonymous_owner_denied": true,
+    "partner_portal_invalid_token_denied": true,
+    "partner_portal_storage_cors_verified": true
   },
   "auth_configuration": {
     "site_url": "https://modapink-confeccao.vercel.app",
@@ -103,5 +108,23 @@
   },
   "admin_email_confirmed": true,
   "admin_password_set": true,
-  "admin_profile_bootstrapped": true
+  "admin_profile_bootstrapped": true,
+  "portal_migration": {
+    "version": "20261101000759",
+    "name": "create_partner_production_portal"
+  },
+  "partner_portal": {
+    "database_installed": true,
+    "route": "/portal-confeccao",
+    "owner_route": "/confeccoes",
+    "link_validity_days": 30,
+    "application_tables": 16,
+    "new_tables": 5,
+    "seeded_partners": 0,
+    "seeded_links": 0,
+    "official_inventory_changes": false,
+    "photo_requirement": "optional",
+    "deployment_pending": true,
+    "real_storage_upload_download_verified": false
+  }
 }

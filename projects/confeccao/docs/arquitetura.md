@@ -32,5 +32,17 @@ O SMTP personalizado Resend está habilitado com `smtp.resend.com`, porta `465`,
 
 O bootstrap administrativo foi executado por operador, com bloqueio da fábrica, rejeição caso já existisse administrador ativo e exigência de e-mail confirmado e senha definida. O resultado foi verificado: papel `admin`, perfil ativo e exatamente um administrador ativo. A revisão da fábrica foi incrementada. Não repetir o bootstrap.
 
-A única pendência é testar o fluxo completo da aplicação no navegador com sessão autenticada, incluindo login, recuperação, permissões e imagens privadas. Identidades sem perfil ativo continuam sem acesso aos dados. TypeScript, build, 15 testes de domínio/callback e testes SQL com validação do envelope RPC passaram. Next.js 16.4.3 e Zod 4.6.7 corrigem os advisories encontrados; npm audit não retornou vulnerabilidades. O login publicado carregou corretamente e o painel sem sessão retornou ao login. Isso não substitui o teste autenticado com a conta real.
+A única pendência é testar o fluxo completo da aplicação no navegador com sessão autenticada, incluindo login, recuperação, permissões e imagens privadas. Identidades sem perfil ativo continuam sem acesso aos dados. TypeScript, build, 22 testes de domínio/callback/portal e testes SQL com validação do envelope RPC passaram. Next.js 16.4.3 e Zod 4.6.7 corrigem os advisories encontrados; npm audit não retornou vulnerabilidades. O login publicado carregou corretamente e o painel sem sessão retornou ao login. Isso não substitui o teste autenticado com a conta real.
 
+
+## Portal de confecções parceiras
+
+A migração `20261101000759_create_partner_production_portal` está aplicada. Adiciona cinco tabelas privadas: `partners`, `partner_assignments`, `portal_links`, `portal_uploads` e `partner_updates`. A aplicação tem 16 tabelas; a seleção padrão `public` no editor mostra apenas `profiles`. As demais ficam em `mf_private`, com RLS e sem acesso direto de clientes.
+
+Administração e gestão cadastram parceiras, atribuem ordens e geram ou revogam o link. Cada confecção recebe uma capacidade aleatória de aproximadamente 244 bits, válida por 30 dias. O banco guarda apenas SHA-256; o link completo aparece somente na criação e usa fragmento de URL. O portal usa cliente anônimo isolado da sessão do painel. Toda chamada e leitura de imagem revalida a capacidade, a situação da confecção e a atribuição atual.
+
+As projeções externas não incluem custos, fornecedores ou dados das demais parceiras. Os apontamentos são imutáveis e idempotentes; quantidades são acumuladas, limitadas pela OP e acompanhadas do responsável, etapa e descrição obrigatória para defeitos. A indicação de retirada exige todas as peças produzidas e conferidas. Nenhum apontamento externo movimenta estoque, concede aprovação de qualidade ou conclui a OP. O painel consulta o andamento a cada 15 segundos enquanto visível.
+
+Fotos opcionais usam reservas temporárias e o mesmo bucket privado. O cabeçalho de capacidade é validado por operação; download direto é permitido para fotos autorizadas, enquanto listagem e assinatura externas são negadas. Evidências anexadas não podem ser removidas pela parceira. Objetos órfãos podem exigir limpeza posterior comprovando ausência de referência.
+
+Validação: build/TypeScript, 22 testes da aplicação e suites PostgreSQL local do núcleo e portal passaram. No serviço real, RPC interno sem sessão e capacidade inválida retornaram HTTP 401; preflight Storage aceitou o cabeçalho do portal. A gravação e leitura de foto com uma OP real ainda aguardam validação operacional. Não foram criadas parceiras, links ou ordens fictícias na produção.

@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --experimental-strip-types run-schema.mjs"
+    "test": "node --experimental-strip-types run-schema.mjs && node run-portal.mjs",
+    "test:portal": "node run-portal.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.14"

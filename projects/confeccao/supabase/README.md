@@ -110,3 +110,13 @@ Verifica: base vazia, reserva, consumo efetivo, idempotência, revisão desatual
 Todas as tabelas da aplicação têm RLS. Os alertas de EXECUTE público do helper `public.rls_auto_enable()` foram corrigidos revogando EXECUTE de PUBLIC/anon/authenticated; a função continua disponível para seu event trigger de plataforma.
 
 Os avisos informativos de [RLS sem política](https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy) nas tabelas `mf_private` são intencionais: acesso direto negado, com operações feitas somente pelas funções privadas autorizadas. As tabelas e funções privadas não devem ser expostas como API.
+
+## Portal de confecções instalado
+
+A migração `20261101000759_create_partner_production_portal` aplicou `partner-portal.sql` uma única vez no projeto. Não executar novamente. São cinco novas tabelas privadas, todas com RLS: parceiras, atribuições de ordens, links, reservas de fotos e apontamentos imutáveis. Com o núcleo, existem 16 tabelas da aplicação. No Table Editor, trocar o schema `public` por `mf_private` para inspecionar os registros operacionais.
+
+As funções `mf_portal_owner_state` e `mf_portal_manage` exigem perfil ativo; o gerenciamento exige administração ou gestão. As funções `mf_portal_get`, `mf_portal_submit`, `mf_portal_prepare_upload` e `mf_portal_release_upload` exigem capacidade válida mesmo sem login. Um link por confecção, revogável, válido por 30 dias e salvo apenas como hash. Somente OPs atualmente atribuídas são projetadas, sem campos financeiros. Os apontamentos não alteram estoque, aprovação de qualidade ou encerramento oficial.
+
+Os testes PostgreSQL locais cobrem isolamento, revogação/expiração/rotação, replay, imutabilidade, contagens, atribuições, OP concluída e políticas de imagens. O serviço real rejeitou RPC interno sem sessão e token inválido; o preflight Storage permitiu o cabeçalho adicional. Upload/download positivo com dados reais permanece pendente. Não há parceiras, links nem OPs de teste inseridos pelo desenvolvimento na produção.
+
+A auditoria de segurança encontrou somente os avisos informativos de RLS sem políticas nas tabelas privadas (negação deliberada, acesso por RPC protegido) e o aviso preexistente de proteção de senhas vazadas desativada no Auth. Não foram abertos privilégios diretos para remover os avisos informativos.
