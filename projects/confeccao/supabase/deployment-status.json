@@ -23,8 +23,8 @@
     "project_id": "prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW",
     "team_id": "team_eGmQjmQ95Bd8nTTnOwOy2Rxj",
     "status": "READY",
-    "source_commit": "8fb9ba4e50142c64d45de9d6405c6940067c8269",
-    "deployment_id": "dpl_Eg3dZTbq2CbrKMx4trkfLCfGvxH7",
+    "source_commit": "dc2ffba7a0673185fc93d73e2560396ad9da9c36",
+    "deployment_id": "dpl_FxBX2R4eWjSSx3MaDsHyNvEX4LMY",
     "final_receipt_pending": false
   },
   "verification": {
@@ -318,6 +318,12 @@
     "responsive_browser_verified": false,
     "physical_iphone_safari_verified": false,
     "database_changed": false,
-    "deployment_pending": true
+    "deployment_pending": false,
+    "frontend_status": "READY",
+    "build_passed": true,
+    "public_recovery_status": 200,
+    "runtime_error_logs": 0,
+    "manual_zoom_viewport_verified": true,
+    "live_mobile_css_present": true
   }
 }
