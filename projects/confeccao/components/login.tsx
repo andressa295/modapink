@@ -1,4 +1,5 @@
 "use client";
+import { AgencyCredit } from "./agency-credit";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Eye, EyeOff, Mail, LockKeyhole, Sparkles, Scissors, Layers, Check, ArrowUpRight, ArrowLeft } from "lucide-react";
@@ -54,6 +55,6 @@ export default function Login() {
           {message && <div className={`auth-feedback ${sent ? "success" : ""}`} role={sent ? "status" : "alert"}>{message}</div>}
           <button className="login-submit" type="submit" disabled={loading || (recovering && sent)}>{loading ? "Aguarde um instante…" : recovering ? (sent ? "Instruções solicitadas" : "Recuperar acesso") : "Entrar no painel"}<ArrowRight size={17} /></button>
         </form>{recovering && <button className="login-back-link" onClick={switchMode} disabled={loading}><ArrowLeft size={14} />Voltar para o login</button>}<div className="login-auth-footer"><LockKeyhole size={12} style={{ display: "inline", verticalAlign: "middle", marginRight: 5 }} />Acesso exclusivo à equipe autorizada da Confecção Moda Pink.</div>
-      </section></div><footer className="login-footer"><span>© {new Date().getFullYear()} Moda Pink. Feito para crescer com você.</span><span>Desenvolvido por <span className="agency-mark">phand<span>®</span></span></span></footer>
+      </section></div><footer className="login-footer"><span>© {new Date().getFullYear()} Moda Pink. Feito para crescer com você.</span><AgencyCredit onDark /></footer>
   </main>;
 }

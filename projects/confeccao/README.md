@@ -123,3 +123,7 @@ A aba `/precificacao`, exclusiva para administração e gestão, cria e salva si
 O preço calculado usa custo por peça dividido por `1 − taxas − margem`. Também mostra o mínimo para os custos informados, o efeito do preço de atacado praticado e a revenda calculada com margem, despesas percentuais e gasto adicional da lojista. Não preenche alíquotas fiscais ou margens comerciais como recomendações. A exportação CSV preserva as premissas. Simulações podem ser abertas, editadas e excluídas com confirmação; o banco protege versões concorrentes e tentativas repetidas e não reativa registros removidos. Nenhuma ação muda estoque, ficha ou OP.
 
 Instalação: após `supabase/record-removal.sql`, aplicar `supabase/migrations/20261101020350_create_pricing_sheets.sql`. A tabela fica privada com RLS, sem acesso direto; os três RPCs revalidam perfil financeiro ativo. A nova suíte `npm --prefix supabase/tests run test:pricing` usa PostgreSQL local com dados sintéticos.
+
+## Assinatura da agência
+
+Login, definição de senha, painel e portal usam o componente `AgencyCredit`, com a logo original do portfólio Phand hospedada localmente. A imagem é rosa em fundos claros e recebe filtro branco em fundos escuros. A assinatura abre `https://www.phand.com.br/` em nova aba, sem enviar o referrer. Os rodapés dos dois templates de e-mail usam o mesmo PNG rosa em URL pública absoluta, mantendo o link de autenticação intacto.
