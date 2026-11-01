@@ -1,0 +1,11 @@
+-- Run as project operator only, after creating/verifying the Auth identity.
+-- No password is created, changed or printed by this script.
+\set ON_ERROR_STOP on
+\prompt 'E-mail exato do primeiro administrador já criado no Auth: ' admin_email
+\prompt 'Nome de exibição do administrador: ' admin_name
+begin;
+select id as bootstrap_id from auth.users where lower(email)=lower(:'admin_email') and email_confirmed_at is not null \gset
+-- gset fails if no user or multiple users match: do not guess or choose another identity.
+insert into public.profiles(id,full_name,role,active)
+values(:'bootstrap_id'::uuid,:'admin_name','admin',true);
+commit;
