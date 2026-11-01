@@ -23,8 +23,8 @@
     "project_id": "prj_BoPkAUvTQJs5bBo1aA0DGVbWnzrW",
     "team_id": "team_eGmQjmQ95Bd8nTTnOwOy2Rxj",
     "status": "READY",
-    "source_commit": "d4221245c44a17b87a8616408521a32a3ba1e5a9",
-    "deployment_id": "dpl_8MknBzeE59p9nTULyRcfZXHJGncB",
+    "source_commit": "c9841a2fe818e8fe8d182baa4fba91292f1944b4",
+    "deployment_id": "dpl_9RQQuGP88J3wD2GGvAurtVLCSNdB",
     "final_receipt_pending": false
   },
   "verification": {
@@ -271,6 +271,12 @@
     "live_transactional_crud_rolled_back": true,
     "permanent_synthetic_records": 0,
     "authenticated_browser_flow_verified": false,
-    "deployment_pending": true
+    "deployment_pending": false,
+    "frontend_status": "READY",
+    "public_route_http_status": 200,
+    "unauthenticated_browser_login_redirect_verified": true,
+    "runtime_error_logs": 0,
+    "cost_catalog_count": 48,
+    "sales_rate_count": 8
   }
 }
