@@ -9,3 +9,6 @@
 @media(max-width:620px){.login-hero-brand{max-width:340px;aspect-ratio:1.85}.login-story .login-steps{gap:10px;font-size:10px}.login-story .login-mini{margin-top:20px;padding:13px 15px}.login-page .login-story .login-mini strong{font-size:12px}.login-page .login-story .login-mini span{font-size:10px}}
 
 .login-top.login-top-single{justify-content:flex-end}
+
+.login-recovery-form .recovery-field + .recovery-field{margin-top:20px}
+.recovery-field .recovery-field-label{margin-top:0}

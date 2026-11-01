@@ -1,8 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import { SupabaseConfiguration } from "../components/supabase-configuration";
 import { ClientApplicationProviders } from "../components/client-application-providers";
 import "./globals.css";
+import "../components/mobile-records.css";
+import "../components/mobile.css";
 
 const poppins = localFont({ src: [
   { path: "../node_modules/@fontsource/poppins/files/poppins-latin-400-normal.woff2", weight: "400", style: "normal" },
@@ -22,6 +24,12 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  interactiveWidget: "resizes-content",
+};
 export default function RootLayout({
   children,
 }: Readonly<{

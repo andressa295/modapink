@@ -127,3 +127,9 @@ Instalação: após `supabase/record-removal.sql`, aplicar `supabase/migrations/
 ## Assinatura da agência
 
 Login, definição de senha, painel e portal usam o componente `AgencyCredit`, com a logo original do portfólio Phand hospedada localmente. A imagem é rosa em fundos claros e recebe filtro branco em fundos escuros. A assinatura abre `https://www.phand.com.br/` em nova aba, sem enviar o referrer. Os rodapés dos dois templates de e-mail usam o mesmo PNG rosa em URL pública absoluta, mantendo o link de autenticação intacto.
+
+## Celular e iPhone
+
+O viewport usa largura do dispositivo, áreas seguras e adaptação a teclado compatível, mantendo o zoom manual. Os controles de digitação têm tamanho final mínimo16px no celular e em dispositivos de toque, incluindo paisagem. Login e definição de senha têm áreas de toque maiores, espaçamento próprio entre os campos e suporte a preenchimento automático. Materiais e acompanhamento de parceiras usam cartões no celular; precificação, custos e qualidade têm grades e controles ajustados. Menu, modais e rodapés respeitam as áreas seguras da tela.
+
+A sintaxe dos estilos e TypeScript foram validados. A prévia gerenciada não iniciou porque acrescenta flags incompatíveis com Next (`--host`/`--strictPort`); ela foi encerrada sem modificar o servidor ou a infraestrutura. Validação visual em viewport móvel e teste em Safari/iPhone físico permanecem pendentes.

@@ -2,3 +2,56 @@
 @media(max-width:1250px){.pricing-layout{grid-template-columns:minmax(0,1fr) 285px;gap:18px}.pricing-section{padding:20px}.pricing-cost-row{grid-template-columns:minmax(100px,1fr) 135px 100px 25px;gap:5px}.pricing-cost-label input{font-size:9px}.pricing-cost-row select{font-size:9px}.pricing-amount{padding-left:7px}.pricing-import{flex-wrap:wrap}.pricing-import label{flex-basis:100%}}
 @media(max-width:1050px){.pricing-layout{grid-template-columns:1fr}.pricing-results{position:static;display:grid;grid-template-columns:1fr 1fr;align-items:start;margin-bottom:23px}.pricing-summary{grid-row:span 2}.pricing-results>.pricing-formula,.pricing-results>.pricing-validation,.pricing-results>.pricing-save-status{grid-column:1/-1}.pricing-cost-row{grid-template-columns:minmax(140px,1fr) 160px 130px 28px}.pricing-saved-grid{grid-template-columns:1fr}}
 @media(max-width:620px){.pricing-page .heading-actions{flex-wrap:wrap}.pricing-page .heading-actions>.button{flex:1;justify-content:center;white-space:nowrap}.pricing-section,.pricing-saved{padding:18px 15px}.pricing-section-title{gap:10px;margin-bottom:19px}.pricing-section-title h2,.pricing-price-card h2{font-size:14px}.pricing-import{padding:12px;gap:10px}.pricing-import .button{width:100%;justify-content:center}.pricing-page input,.pricing-page select,.pricing-page textarea{font-size:12px}.pricing-monthly{grid-template-columns:1fr;gap:9px;padding:13px}.pricing-monthly .pricing-amount{max-width:none}.pricing-base-fields{gap:15px 12px}.pricing-cost-row{grid-template-columns:minmax(0,1fr) 110px 26px;gap:8px;padding:13px 0;border-top:1px solid #f7f0f8}.pricing-cost-label{grid-column:1/3}.pricing-cost-label input{font-size:11px}.pricing-cost-row select{grid-column:1;grid-row:2;font-size:10px}.pricing-cost-row .pricing-amount{grid-column:2;grid-row:2}.pricing-cost-row>.pricing-trash{grid-column:3;grid-row:1/3;align-self:center}.pricing-group summary{gap:8px;font-size:12px}.pricing-group summary small{font-size:9px}.pricing-targets{grid-template-columns:1fr}.pricing-rate-grid{gap:16px 12px}.pricing-rate-grid>div>span{font-size:10px;display:block;min-height:34px}.pricing-results{display:flex;gap:15px}.pricing-summary h2{font-size:38px}.pricing-price-card{padding:21px}.pricing-saved-title{align-items:flex-start;flex-direction:column;gap:13px}.pricing-saved-grid article{padding:14px;gap:9px}.pricing-saved-actions{gap:4px}.pricing-saved-grid strong{font-size:11px}.pricing-saved-grid article small{font-size:9px}.pricing-page dl{font-size:11px}.pricing-hint,.pricing-formula p{font-size:11px}.pricing-add-cost>*{flex:1}.pricing-add-cost .button{font-size:10px;justify-content:center}}
+
+/* Keep typed text at a readable size without disabling the iPhone's manual zoom. */
+@media (max-width:767px) {
+  .pricing-page input,.pricing-page select,.pricing-page textarea,
+  .pricing-cost-label input,.pricing-cost-row .pricing-amount input {
+    font-size:16px;
+  }
+  .pricing-page input,.pricing-page select {min-height:46px;}
+  .pricing-page textarea {min-height:112px;}
+  .pricing-page .button {min-height:44px;font-size:12px;white-space:normal;line-height:1.6;}
+  .pricing-layout,.pricing-section,.pricing-saved,.pricing-results,
+  .pricing-base-fields>*,.pricing-rate-grid>*,.pricing-targets>* {min-width:0;}
+  .pricing-page .heading-actions {width:100%;flex-wrap:wrap;}
+  .pricing-page .heading-actions>.button {flex:1 1 180px;justify-content:center;}
+  .pricing-import {align-items:stretch;}
+  .pricing-import select {width:100%;}
+  .pricing-page label,.pricing-base-fields>div>span,
+  .pricing-rate-grid>div>span,.pricing-targets>div>span {font-size:12px;}
+  .pricing-section-title>div {min-width:0;}
+  .pricing-section-title h2,.pricing-saved h2 {overflow-wrap:anywhere;}
+  .pricing-page dl>div {flex-wrap:wrap;gap:3px 12px;}
+  .pricing-page dt {min-width:0;flex:1 1 150px;}
+  .pricing-page dd {min-width:0;max-width:100%;overflow-wrap:anywhere;}
+  .pricing-summary h2 {font-size:clamp(28px,8vw,38px);}
+  .pricing-price-card>strong {font-size:clamp(25px,7vw,32px);}
+  .pricing-group summary {min-height:48px;flex-wrap:wrap;gap:6px 10px;}
+  .pricing-group summary>span {min-width:0;overflow-wrap:anywhere;}
+  .pricing-group summary small {font-size:11px;white-space:normal;overflow-wrap:anywhere;}
+  .pricing-add-cost>* {min-width:0;flex:1 1 180px;}
+  .pricing-saved-grid article {flex-wrap:wrap;}
+  .pricing-saved-grid article>div:first-child {flex:1 1 190px;}
+  .pricing-saved-actions {width:100%;justify-content:space-between;align-items:center;}
+  .pricing-saved-actions .text-link {min-height:44px;padding:8px 0;font-size:12px;}
+  .pricing-trash {width:44px;height:44px;}
+}
+@media (max-width:767px) {
+  .pricing-cost-row {grid-template-columns:minmax(0,1fr) 44px;gap:8px 10px;}
+  .pricing-cost-label {grid-column:1/-1;grid-row:1;}
+  .pricing-cost-label input {padding-left:10px;padding-right:10px;}
+  .pricing-cost-row select {grid-column:1;grid-row:2;width:100%;}
+  .pricing-cost-row .pricing-amount {grid-column:1;grid-row:3;width:100%;}
+  .pricing-cost-row>.pricing-trash {grid-column:2;grid-row:2/4;align-self:center;}
+  .pricing-source,.pricing-monthly p,.pricing-targets small,
+  .pricing-retail>p,.pricing-save-status {font-size:11px;}
+  .pricing-saved-grid article span {font-size:12px;}
+  .pricing-saved-grid article small {font-size:10px;}
+}
+@media (max-width:380px) {
+  .pricing-base-fields,.pricing-rate-grid {grid-template-columns:minmax(0,1fr);}
+  .pricing-name {grid-column:1;}
+  .pricing-rate-grid>div>span {min-height:0;}
+  .pricing-summary,.pricing-price-card {padding:20px 17px;}
+}

@@ -302,5 +302,22 @@
     "build_passed": true,
     "runtime_error_logs": 0,
     "status": "READY"
+  },
+  "mobile_refinement": {
+    "editable_control_min_font_px": 16,
+    "touch_target_min_px": 44,
+    "portrait_and_coarse_landscape": true,
+    "manual_pinch_zoom_preserved": true,
+    "safe_area_insets": true,
+    "recovery_password_groups": 2,
+    "recovery_spacing_improved": true,
+    "material_partner_mobile_cards": true,
+    "stylesheets_parsed": 6,
+    "typescript_passed": true,
+    "managed_preview_status": "unavailable_next_cli_flag_mismatch",
+    "responsive_browser_verified": false,
+    "physical_iphone_safari_verified": false,
+    "database_changed": false,
+    "deployment_pending": true
   }
 }
