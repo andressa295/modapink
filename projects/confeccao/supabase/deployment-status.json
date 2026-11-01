@@ -46,7 +46,7 @@
     "smtp_configuration_persisted_verified": true,
     "email_delivery_verified": true,
     "invite_callback_implemented": true,
-    "domain_tests_passed": 30,
+    "domain_tests_passed": 52,
     "final_security_patch_deployment_verified": true,
     "vercel_login_http_status": 200,
     "vercel_correct_supabase_project": true,
@@ -71,7 +71,10 @@
     "brand_login_ui_verified": true,
     "old_login_headline_removed": true,
     "production_next_step_ui_implemented": true,
-    "team_invitation_ui_implemented": true
+    "team_invitation_ui_implemented": true,
+    "local_sql_suites_passed": 5,
+    "portal_metadata_download_policy_verified_with_rollback": true,
+    "portal_media_failure_preserves_scope_after_revalidation": true
   },
   "auth_configuration": {
     "site_url": "https://modapink-confeccao.vercel.app",
@@ -144,7 +147,7 @@
   },
   "team_access": {
     "edge_function": "team-access",
-    "version": 1,
+    "version": 2,
     "status": "ACTIVE",
     "verify_jwt": true,
     "server_admin_guard": true,
@@ -163,6 +166,32 @@
     "anonymous_jwt_handler_status": 401,
     "missing_session_gateway_status": 401,
     "cors_status": 204,
-    "recovery_template_persistence_verified": true
+    "recovery_template_persistence_verified": true,
+    "archived_member_restore_explicit_new_invite": true
+  },
+  "portal_image_migration": {
+    "version": "20261101003900",
+    "name": "fix_portal_private_image_metadata"
+  },
+  "record_removal_migration": {
+    "version": "20261101004440",
+    "name": "enable_safe_record_removal"
+  },
+  "record_removal": {
+    "implemented_entities": [
+      "material",
+      "model",
+      "order",
+      "partner",
+      "member"
+    ],
+    "history_preserved": true,
+    "pending_reservations_released_once": true,
+    "consumed_stock_restored": false,
+    "same_identity_re_registration": true,
+    "live_records_removed_in_development": 0,
+    "live_projection_verified": true,
+    "anonymous_remove_denied": true,
+    "deployment_pending": true
   }
 }

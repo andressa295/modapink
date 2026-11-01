@@ -1,8 +1,8 @@
 export const stages = ["Planejado", "Corte", "Costura", "Acabamento", "Qualidade", "Concluído"] as const;
 export type Stage = (typeof stages)[number];
 export type Unit = "kg" | "m" | "un";
-export interface Material { id: string; name: string; category: "Tecido" | "Aviamento"; color: string; hex: string; lot: string; supplier: string; quantity: number; reserved: number; minimum: number; unit: Unit; price: number; }
-export interface Model { id: string; name: string; reference: string; materialId: string; consumption: number; sizes: string[]; notionsCost: number; sewingCost: number; finishingCost: number; notes: string; image?: string; }
+export interface Material { id: string; archived?: boolean; name: string; category: "Tecido" | "Aviamento"; color: string; hex: string; lot: string; supplier: string; quantity: number; reserved: number; minimum: number; unit: Unit; price: number; }
+export interface Model { id: string; archived?: boolean; name: string; reference: string; materialId: string; consumption: number; sizes: string[]; notionsCost: number; sewingCost: number; finishingCost: number; notes: string; image?: string; }
 export interface Order { consumptionPerPiece?: number; modelSnapshot?: { consumption: number; notionsCost: number; sewingCost: number; finishingCost: number }; id: string; modelId: string; materialId: string; quantity: number; variants: { size: string; quantity: number }[]; stage: Stage; due: string; team: string; priority: "Normal" | "Alta"; reserved: number; actualConsumption: number | null; materialPrice: number; approved: number; rework: number; lost: number; created: string; }
 export interface Inspection { id: string; orderId: string; quantity: number; result: "Aprovadas" | "Retrabalho" | "Perda"; reason: string; notes: string; image?: string; date: string; resolved: boolean; }
 export interface Activity { id: string; title: string; detail: string; date: string; }

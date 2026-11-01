@@ -6,7 +6,7 @@ Aplicação independente em Next.js App Router, TypeScript e Tailwind CSS 4. Ide
 
 Endereço oficial: [https://modapink-confeccao.vercel.app](https://modapink-confeccao.vercel.app). A versão corrigida foi publicada em produção na Vercel. O Site anterior no ChatGPT foi excluído, e seus callbacks foram removidos do Supabase.
 
-Banco instalado no projeto `ragyjbrbhfataoiosgqy` (Confeccção), organização Confeccção Moda Pink. Migrações aplicadas: estrutura operacional, restrição de execução de um helper privilegiado da plataforma e portal de confecções e convites da equipe. São 17 tabelas da aplicação: `profiles` em `public` e as demais em `mf_private`. Todas as tabelas da aplicação usam RLS, e as imagens ficam no bucket privado `confeccao-images`.
+Banco instalado no projeto `ragyjbrbhfataoiosgqy` (Confeccção), organização Confeccção Moda Pink. Migrações aplicadas: núcleo operacional, hardening, portal, convites, correção de metadados de imagens e exclusão segura. São 17 tabelas da aplicação: `profiles` em `public` e as demais em `mf_private`. Todas as tabelas da aplicação usam RLS, e as imagens ficam no bucket privado `confeccao-images`.
 
 A aplicação usa configuração pública do projeto na hospedagem, sem chaves administrativas no cliente. O Auth por e-mail/senha está configurado para a Vercel: Site URL `https://modapink-confeccao.vercel.app`, redirects exatos `https://modapink-confeccao.vercel.app/auth/recovery` e `https://modapink-confeccao.vercel.app/auth/confirm`, e cadastro público desativado. O callback antigo do ChatGPT foi removido da lista autorizada. O endpoint de configurações confirmou `disable_signup: true` e `external.email: true`.
 
@@ -76,7 +76,7 @@ npm run test:db
 npm run build
 ```
 
-TypeScript, build, 30 testes locais de domínio/callback/portal/equipe e os testes PostgreSQL passaram. Next.js 16.4.3 e Zod 4.6.7 estão fixados; a auditoria npm não encontrou vulnerabilidades em produção ou desenvolvimento. A publicação Vercel está READY e o login respondeu HTTP 200 com a configuração pública do Supabase correto. O painel redireciona visitantes sem sessão ao login. A confirmação do e-mail, a definição da senha e o perfil administrador ativo foram verificados no banco; o teste completo no navegador com sessão autenticada e upload/leitura privada permanece pendente.
+TypeScript, build, 52 testes locais de domínio/callback/portal/equipe/materiais e os testes PostgreSQL passaram. Next.js 16.4.3 e Zod 4.6.7 estão fixados; a auditoria npm não encontrou vulnerabilidades em produção ou desenvolvimento. A publicação Vercel está READY e o login respondeu HTTP 200 com a configuração pública do Supabase correto. O painel redireciona visitantes sem sessão ao login. A confirmação do e-mail, a definição da senha e o perfil administrador ativo foram verificados no banco; o teste completo no navegador com sessão autenticada e upload/leitura privada permanece pendente.
 
 Os testes SQL usam PostgreSQL embarcado com Auth/Storage sintéticos, sem conexão à operação da cliente. Verificam atomicidade, reservas, concorrência, replay, qualidade, snapshots, contrato de retorno, RLS e permissões. Não substituem os testes reais de Auth, entrega de e-mail e upload/download após liberar o projeto.
 
@@ -95,3 +95,13 @@ O login destaca o logo da Moda Pink e preserva Matéria-prima, Produção, Quali
 Convites exigem administração ativa no servidor; gestão pode consultar a equipe. O endpoint valida o JWT no Auth, revalida a autorização no banco e aplica limite de 20 solicitações por hora e intervalo de 60 segundos por destinatário. Uma solicitação incerta pode ser retomada sem duplicar o e-mail. Nenhum link de login ou senha é devolvido ao administrador. O template de recuperação em português fica em `supabase/email-templates/recovery.html`.
 
 ![Login atualizado da Moda Pink](docs/login-marca.jpg)
+
+## Exclusão e campos de materiais
+
+Administração e gestão podem excluir materiais, fichas, produções e confecções; somente administração exclui integrantes da equipe. A ação pede confirmação pelo nome, retira o cadastro das listas, busca e seletores e preserva histórico relacionado. Produções excluídas liberam somente reservas pendentes, uma única vez; tecido consumido não é devolvido automaticamente ao estoque. A própria conta e o último administrador são protegidos. Confecções removidas têm seus links revogados.
+
+Cadastros removidos podem ser refeitos com a mesma identificação. Para e-mail da equipe, um novo convite explícito pode readicionar a pessoa; solicitações antigas não reativam o acesso. Referências históricas podem permanecer nos dados de uma OP existente, sem reaparecer no catálogo nem permitir novos usos.
+
+Materiais mostram a unidade dos saldos, custo com R$ e exemplo de vírgula decimal. Os ícones de informação funcionam por mouse, foco e toque. Saldo inicial é o que já existe no lote; saldo mínimo é o limite de reposição, descontadas as reservas.
+
+O portal passou a autorizar a operação de metadados necessária ao download privado. Falha em uma foto gera aviso separado após revalidar o acesso, sem derrubar o lote autorizado. Revogação ou falha de autorização continuam bloqueando a consulta.

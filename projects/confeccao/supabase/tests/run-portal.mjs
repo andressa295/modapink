@@ -24,6 +24,7 @@ await db.exec(`
 `);
 await db.exec(await readFile(new URL('../schema.sql', import.meta.url), 'utf8'));
 await db.exec(await readFile(new URL('../partner-portal.sql', import.meta.url), 'utf8'));
+await db.exec(await readFile(new URL('../portal-image-fix.sql', import.meta.url), 'utf8'));
 const admin = '11111111-1111-4111-8111-111111111111';
 const prod = '22222222-2222-4222-8222-222222222222';
 const unknown = '33333333-3333-4333-8333-333333333333';
@@ -100,6 +101,9 @@ assert.equal(guestA.orders.length, 1);
 assert.equal(guestA.orders[0].id, orderA.id);
 assert.equal(guestA.orders.some(o => o.id === orderB.id || o.id === orderUnassigned.id), false);
 for (const secret of ['SUPPLIER-SECRET', 'INTERNAL-SECRET', 'materialPrice', 'notionsCost', 'sewingCost', 'finishingCost', 'consumption', 'supplier', 'token_hash', 'contact']) assert.equal(JSON.stringify(guestA).includes(secret), false, secret);
+assert.equal(await readObject(modelPhoto), 1);
+assert.equal(await readObject(unassignedModelPhoto), 0);
+await asAnon(linkA.token, 'storage.object.get_authenticated_info');
 assert.equal(await readObject(modelPhoto), 1);
 assert.equal(await readObject(unassignedModelPhoto), 0);
 for (const op of ['storage.object.list', 'storage.object.list_v2', 'storage.object.sign', 'storage.object.sign_many', '', 'storage.object.get_public']) {

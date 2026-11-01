@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Database, LockKeyhole, Image, UsersRound, ShieldCheck, Check, RefreshCw, Pencil, LogOut, ArrowUpRight, UserPlus, Mail, Send, CircleCheck, Clock3, TriangleAlert } from "lucide-react";
+import { Database, LockKeyhole, Image, UsersRound, ShieldCheck, Check, RefreshCw, Pencil, LogOut, ArrowUpRight, UserPlus, Mail, Send, CircleCheck, Clock3, TriangleAlert, Trash2 } from "lucide-react";
 import { useAuth, roleNames, type AccessRole } from "../../../lib/auth-context";
 import { getSupabase } from "../../../lib/supabase-client";
+import { removeRecord } from "../../../lib/record-removal";
 import { useDemo } from "../../../lib/demo-store";
 import { requestUuid } from "../../../lib/production-contract";
 import { listTeamMembers, sendTeamAccess, TeamAccessError, teamAccessRequestSchema, type TeamMember, type TeamAccessRequest } from "../../../lib/team-access";
@@ -28,7 +29,7 @@ function memberStatus(member: TeamMember) {
 
 export default function Settings() {
   const { profile, email, refresh, signOut } = useAuth();
-  const { notify } = useDemo();
+  const { notify, refresh: refreshFactory } = useDemo();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [loaded, setLoaded] = useState(false);
@@ -37,6 +38,10 @@ export default function Settings() {
   const [selected, setSelected] = useState<TeamMember | null>(null);
   const [saving, setSaving] = useState(false);
   const [editError, setEditError] = useState("");
+  const [removingMember, setRemovingMember] = useState<TeamMember | null>(null);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState("");
+  const removingRef = useRef(false);
   const [signingOut, setSigningOut] = useState(false);
   const [dialog, setDialog] = useState<AccessDialog | null>(null);
   const [invite, setInvite] = useState(emptyInvite);
@@ -63,7 +68,7 @@ export default function Settings() {
   }, [canList, profile.id]);
   useEffect(() => { void loadMembers(); return () => { loadSequence.current += 1; }; }, [loadMembers]);
   function openAccess(next: AccessDialog) {
-    if (!canManage || pendingRef.current || sendingRef.current) return;
+    if (!canManage || pendingRef.current || sendingRef.current || removingRef.current) return;
     setNotice(""); setAccessError(""); setEndingAttempt(false); setInvite(emptyInvite); setDialog(next); dialogRef.current = next;
   }
   function closeAccess() {
@@ -114,9 +119,22 @@ export default function Settings() {
     } catch { setEditError("Não foi possível atualizar o acesso agora. Tente novamente."); }
     finally { setSaving(false); }
   }
+  async function removeMember() {
+    const target = removingMember;
+    if (!canManage || !target || removingRef.current) return;
+    if (target.id === profile.id) { setRemoveError("Você não pode excluir seu próprio acesso."); return; }
+    removingRef.current = true; setRemoving(true); setRemoveError("");
+    try {
+      await removeRecord("member", target.id);
+      setMembers(current => current.filter(member => member.id !== target.id));
+      setRemovingMember(null); setNotice("Pessoa excluída da equipe. O acesso ao painel foi encerrado.");
+      await Promise.allSettled([loadMembers(), refreshFactory(), refresh()]);
+    } catch (cause) { setRemoveError(cause instanceof Error ? cause.message : "Não foi possível excluir esse acesso. Tente novamente."); }
+    finally { removingRef.current = false; setRemoving(false); }
+  }
   async function leave() { if (signingOut) return; setSigningOut(true); try { await signOut(); } catch { notify("Não foi possível sair agora. Tente novamente."); } finally { setSigningOut(false); } }
   const pending = !!pendingRequest;
-  const listUnavailable = !loaded || loading || !!teamError;
+  const listUnavailable = !loaded || loading || !!teamError || removing;
   return <>
     <PageHeading eyebrow="CONFIGURAÇÕES" title="Sua equipe. Cada acesso no lugar." description="Cadastre as pessoas e escolha o que cada uma pode acessar.">
       {canManage && <button className="button primary" disabled={listUnavailable || pending} onClick={() => openAccess({ kind: "invite" })}><UserPlus size={16} />Cadastrar pessoa</button>}
@@ -129,7 +147,7 @@ export default function Settings() {
         {!canList ? <div className="settings-inline-feedback">Seu perfil permite consultar sua própria conta. A administração cadastra e libera os demais acessos.</div> : <>
           {teamError && <div className="team-list-error" role="alert"><TriangleAlert size={16} /><p>{teamError}{loaded ? " Os dados abaixo são da última consulta concluída." : ""}</p><button type="button" onClick={() => void loadMembers()} disabled={loading}>Tentar novamente</button></div>}
           {loading && <div className="settings-inline-feedback" role="status">{loaded ? "Atualizando a equipe…" : "Carregando a equipe…"}</div>}
-          {loaded && members.length > 0 && <div className="table-scroll"><table className="data-table team-table team-access-table"><thead><tr><th>Pessoa</th><th>Perfil</th><th>Acesso</th>{canManage && <th>Ações</th>}</tr></thead><tbody>{members.map(member => { const status = memberStatus(member); return <tr key={member.id}><td data-label="Pessoa"><strong className="team-member-name">{member.full_name || "Nome não informado"}</strong><span className="team-member-email">{member.email || "E-mail não disponível"}</span>{member.id === profile.id && <small className="team-self">Sua conta</small>}</td><td data-label="Perfil"><span className="team-role">{roleNames[member.role]}</span></td><td data-label="Acesso"><span className={`badge ${status.tone}`} title={status.help}><i />{status.label}</span><small className="team-status-help">{status.help}</small></td>{canManage && <td data-label="Ações"><div className="team-member-actions"><button type="button" className="team-action-button" disabled={listUnavailable || pending} aria-label={`Editar acesso de ${member.full_name || "integrante"}`} onClick={() => { setEditError(""); setSelected({ ...member }); }}><Pencil size={13} />Editar</button>{member.active && member.email && member.id !== profile.id && <button type="button" className="team-action-button" disabled={listUnavailable || pending} onClick={() => openAccess({ kind: member.password_set ? "recovery" : "resend", member })}><Mail size={13} />{member.password_set ? "Recuperar senha" : "Reenviar convite"}</button>}</div></td>}</tr>; })}</tbody></table></div>}
+          {loaded && members.length > 0 && <div className="table-scroll"><table className="data-table team-table team-access-table"><thead><tr><th>Pessoa</th><th>Perfil</th><th>Acesso</th>{canManage && <th>Ações</th>}</tr></thead><tbody>{members.map(member => { const status = memberStatus(member); return <tr key={member.id}><td data-label="Pessoa"><strong className="team-member-name">{member.full_name || "Nome não informado"}</strong><span className="team-member-email">{member.email || "E-mail não disponível"}</span>{member.id === profile.id && <small className="team-self">Sua conta</small>}</td><td data-label="Perfil"><span className="team-role">{roleNames[member.role]}</span></td><td data-label="Acesso"><span className={`badge ${status.tone}`} title={status.help}><i />{status.label}</span><small className="team-status-help">{status.help}</small></td>{canManage && <td data-label="Ações"><div className="team-member-actions"><button type="button" className="team-action-button" disabled={listUnavailable || pending} aria-label={`Editar acesso de ${member.full_name || "integrante"}`} onClick={() => { setEditError(""); setSelected({ ...member }); }}><Pencil size={13} />Editar</button>{member.active && member.email && member.id !== profile.id && <button type="button" className="team-action-button" disabled={listUnavailable || pending} onClick={() => openAccess({ kind: member.password_set ? "recovery" : "resend", member })}><Mail size={13} />{member.password_set ? "Recuperar senha" : "Reenviar convite"}</button>}{member.id !== profile.id && <button type="button" className="team-action-button team-remove-button" disabled={listUnavailable || pending} onClick={() => { setRemoveError(""); setRemovingMember(member); }}><Trash2 size={13} />Excluir</button>}</div></td>}</tr>; })}</tbody></table></div>}
           {loaded && !members.length && !loading && !teamError && <Empty title="Vamos reunir sua equipe?" text="Cadastre a primeira pessoa. Ela receberá um convite para criar a própria senha." action={canManage ? <button className="button primary" disabled={pending} onClick={() => openAccess({ kind: "invite" })}><UserPlus size={15} />Cadastrar pessoa</button> : undefined} />}
         </>}
         <p className="team-access-note"><LockKeyhole size={13} />Cada pessoa recebe o próprio link por e-mail e define sua senha. A administração pode editar o perfil ou desativar o acesso quando necessário.</p>
@@ -137,6 +155,7 @@ export default function Settings() {
       <aside className="settings-aside"><section className="panel"><PanelTitle title="Escolha o perfil de cada pessoa" /><div className="integration-list">{[{ icon: ShieldCheck, title: "Administração", text: roleHelp.admin }, { icon: UsersRound, title: "Gestão", text: roleHelp.gestao }, { icon: Database, title: "Produção", text: roleHelp.producao }, { icon: Image, title: "Qualidade", text: roleHelp.qualidade }].map(item => <div key={item.title}><span><item.icon size={18} /></span><div><strong>{item.title}</strong><p>{item.text}</p></div></div>)}</div></section><div className="settings-brand-card"><span className="eyebrow">CUIDADO TAMBÉM É GESTÃO</span><h3>Um acesso para cada pessoa.</h3><p>As confecções parceiras usam o link da área Confecções. A equipe interna entra por e-mail e senha.</p><Link className="team-partner-link" href="/confeccoes">Abrir confecções<ArrowUpRight size={15} /></Link></div></aside>
     </section>
     {selected && <Modal title="Editar acesso" subtitle="Nome e permissões da pessoa na confecção." onClose={() => { if (!saving) setSelected(null); }}><form className="form team-form" onSubmit={save}><label>Nome<input autoComplete="off" required maxLength={120} value={selected.full_name} onChange={event => setSelected({ ...selected, full_name: event.target.value })} disabled={saving} /></label><label>E-mail<input type="email" value={selected.email} readOnly disabled /><small>O e-mail identifica este acesso e não pode ser alterado aqui.</small></label><label>Perfil de acesso<select value={selected.role} onChange={event => setSelected({ ...selected, role: event.target.value as AccessRole })} disabled={saving || selected.id === profile.id}>{Object.entries(roleNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><small>{roleHelp[selected.role]}</small></label><label>Situação<select value={selected.active ? "active" : "inactive"} onChange={event => setSelected({ ...selected, active: event.target.value === "active" })} disabled={saving || selected.id === profile.id}><option value="active">Ativo</option><option value="inactive">Desativado</option></select></label>{selected.id === profile.id && <div className="team-form-note"><ShieldCheck size={17} /><p>Outra pessoa da administração deve alterar seu perfil ou desativar seu acesso.</p></div>}{editError && <div className="team-form-error" role="alert">{editError}</div>}<div className="form-footer"><button type="button" className="button secondary" onClick={() => setSelected(null)} disabled={saving}>Cancelar</button><button className="button primary" disabled={saving}>{saving ? "Salvando…" : "Salvar acesso"}<Check size={15} /></button></div></form></Modal>}
+    {removingMember && <Modal title="Excluir pessoa da equipe" subtitle="Confirme qual acesso será encerrado." onClose={() => { if (!removingRef.current) { setRemovingMember(null); setRemoveError(""); } }}><form className="form team-form" onSubmit={event => { event.preventDefault(); void removeMember(); }}><div className="team-recipient"><span><Trash2 size={20} /></span><div><strong>{removingMember.full_name || "Integrante da equipe"}</strong><p>{removingMember.email}</p></div></div><div className="team-removal-warning"><TriangleAlert size={18} /><div><strong>O acesso ao painel será encerrado.</strong><p>Esta pessoa sairá da lista da equipe. Os registros que ela já fez continuarão no histórico da Moda Pink.</p></div></div>{removeError && <div className="team-form-error" role="alert"><TriangleAlert size={16} /><p>{removeError}</p></div>}<div className="form-footer"><button type="button" className="button secondary" disabled={removing} onClick={() => { setRemovingMember(null); setRemoveError(""); }}>Cancelar</button><button type="submit" className="button team-confirm-remove" disabled={removing}>{removing ? "Excluindo…" : "Excluir pessoa"}<Trash2 size={15} /></button></div></form></Modal>}
     {dialog && <Modal title={dialog.kind === "invite" ? "Cadastrar pessoa da equipe" : dialog.kind === "resend" ? "Reenviar convite" : "Enviar recuperação de senha"} subtitle={dialog.kind === "invite" ? "O convite vai por e-mail. A pessoa define a própria senha." : "Confirme para quem as instruções serão enviadas."} onClose={closeAccess}><form className="form team-form" onSubmit={submitAccess}>
       {dialog.kind === "invite" ? <fieldset disabled={sending || pending}><label>Nome da pessoa<input autoComplete="name" required maxLength={100} placeholder="Como a pessoa se chama?" value={invite.fullName} onChange={event => setInvite({ ...invite, fullName: event.target.value })} /></label><label>E-mail de acesso<input autoComplete="email" type="email" required maxLength={254} placeholder="pessoa@exemplo.com" value={invite.email} onChange={event => setInvite({ ...invite, email: event.target.value })} /><small>Confira o endereço. É nele que ela receberá o link.</small></label><label>Perfil de acesso<select value={invite.role} onChange={event => setInvite({ ...invite, role: event.target.value as AccessRole })}>{Object.entries(roleNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select><small>{roleHelp[invite.role]}</small></label></fieldset> : <div className="team-recipient"><span><Mail size={20} /></span><div><strong>{dialog.member.full_name}</strong><p>{dialog.member.email}</p><small>{dialog.kind === "resend" ? "Ela receberá um novo convite para definir a própria senha." : "Ela receberá um link para escolher uma nova senha."}</small></div></div>}
       <div className="team-form-note"><ShieldCheck size={17} /><p>{pending ? "Este envio aguarda confirmação. Os dados estão preservados; reconfirmar consulta a mesma solicitação, sem iniciar outro convite." : "A senha é pessoal e será escolhida no link recebido. O cadastro público continua fechado."}</p></div>

@@ -12,10 +12,10 @@ function fail(cause: unknown): PortalAccessError {
   return new PortalAccessError("network", "Não foi possível conectar agora. Confira sua conexão e tente novamente.");
 }
 function parseOwner(data: unknown) { const result = ownerPortalStateSchema.safeParse(data); if (!result.success) throw new PortalAccessError("network", "A resposta da confecção está incompleta. Atualize a página."); return result.data; }
-export async function getOwnerPortalState(): Promise<OwnerPortalState> { const { data, error } = await getSupabase().rpc("mf_portal_owner_state"); if (error) throw fail(error); return parseOwner(data); }
+export async function getOwnerPortalState(): Promise<OwnerPortalState> { const { data, error, status } = await getSupabase().rpc("mf_portal_owner_state"); if (error) throw fail({ ...error, status }); return parseOwner(data); }
 async function manage(type: string, payload: Record<string, unknown>): Promise<OwnerPortalState> {
-  const { data, error } = await getSupabase().rpc("mf_portal_manage", { p_command: { type, payload } });
-  if (error) { const failure = fail(error); if (failure.kind === "validation") throw new PortalAccessError("validation", "Não foi possível salvar. Confira os dados: o nome deve ser único e a ordem precisa estar disponível para atribuição."); throw failure; }
+  const { data, error, status } = await getSupabase().rpc("mf_portal_manage", { p_command: { type, payload } });
+  if (error) { const failure = fail({ ...error, status }); if (failure.kind === "validation") throw new PortalAccessError("validation", "Não foi possível salvar. Confira os dados: o nome deve ser único e a ordem precisa estar disponível para atribuição."); throw failure; }
   return parseOwner(data);
 }
 export function createPortalPartner(input: { id?: string; name: string; contact?: string; active?: boolean }) { return manage("save_partner", { ...input, name: input.name.trim(), contact: input.contact?.trim() ?? "", active: input.active ?? true }); }
@@ -49,7 +49,7 @@ export function createGuestPortalConnection(accessToken: string): GuestPortalCon
   function clearPhotos() { photoEpoch += 1; for (const photo of photos.values()) URL.revokeObjectURL(photo.url); photos.clear(); flights.clear(); }
   async function load() {
     ensure();
-    try { const { data, error } = await guest.rpc("mf_portal_get", { p_token: token }); if (error) throw error;
+    try { const { data, error, status } = await guest.rpc("mf_portal_get", { p_token: token }); if (error) throw { ...error, status };
       const parsed = parseGuestPortalState(data);
       ensure(); snapshot = parsed; allowedPaths = new Set([...snapshot.orders.map(order => order.model.image).filter((path): path is string => !!path), ...snapshot.updates.flatMap(update => update.photos), ...snapshot.latestUpdates.flatMap(update => update.photos)]);
       for (const [path, photo] of photos) if (!allowedPaths.has(path)) { URL.revokeObjectURL(photo.url); photos.delete(path); }
@@ -60,7 +60,7 @@ export function createGuestPortalConnection(accessToken: string): GuestPortalCon
     ensure(); const order = snapshot?.orders.find(item => item.id === input.orderId); if (!order || !snapshot) throw new PortalAccessError("denied", "Esta ordem não está disponível neste acesso.");
     const update = validatePortalSubmission(input, order);
     if (update.photos.some(path => !isPortalPartnerPath(path, snapshot!.partner.id))) throw new PortalAccessError("validation", "Uma das fotos não pertence a este acesso.");
-    try { const { data, error } = await guest.rpc("mf_portal_submit", { p_token: token, p_request_id: requestId, p_update: update }); if (error) throw error; const result = portalSubmissionResultSchema.safeParse(data); if (!result.success || result.data.requestId !== requestId || result.data.update.partnerId !== snapshot.partner.id || result.data.update.orderId !== order.id) throw new PortalAccessError("network", "O envio não pôde ser confirmado. Tente novamente com os mesmos dados.");
+    try { const { data, error, status } = await guest.rpc("mf_portal_submit", { p_token: token, p_request_id: requestId, p_update: update }); if (error) throw { ...error, status }; const result = portalSubmissionResultSchema.safeParse(data); if (!result.success || result.data.requestId !== requestId || result.data.update.partnerId !== snapshot.partner.id || result.data.update.orderId !== order.id) throw new PortalAccessError("network", "O envio não pôde ser confirmado. Tente novamente com os mesmos dados.");
       ensure(); for (const path of update.photos) { draftPaths.delete(path); allowedPaths.add(path); } return result.data;
     } catch (cause) { const error = fail(cause); if (error.kind === "denied") { clearPhotos(); snapshot = null; allowedPaths.clear(); } throw error; }
   }
@@ -71,7 +71,7 @@ export function createGuestPortalConnection(accessToken: string): GuestPortalCon
     try {
       let reservation = reservations.get(blob);
       if (!reservation || reservation.until < Date.now()) {
-        const { data, error } = await guest.rpc("mf_portal_prepare_upload", { p_token: token, p_extension: extension }); if (error) throw error;
+        const { data, error, status } = await guest.rpc("mf_portal_prepare_upload", { p_token: token, p_extension: extension }); if (error) throw { ...error, status };
         const path = data?.path; if (typeof path !== "string" || !isPortalPartnerPath(path, snapshot.partner.id)) throw new PortalAccessError("denied", "Não foi possível preparar o envio desta foto.");
         reservation = { path, until: Date.now() + 9 * 60_000 }; reservations.set(blob, reservation);
       }
@@ -84,7 +84,7 @@ export function createGuestPortalConnection(accessToken: string): GuestPortalCon
 
   async function removeDraft(path: string) {
     ensure(); if (!snapshot || !draftPaths.has(path) || !isPortalPartnerPath(path, snapshot.partner.id)) return;
-    const { error } = await guest.rpc("mf_portal_release_upload", { p_token: token, p_path: path }); if (error) throw fail(error);
+    const { error, status } = await guest.rpc("mf_portal_release_upload", { p_token: token, p_path: path }); if (error) throw fail({ ...error, status });
     const { error: removeError } = await guest.storage.from(bucket).remove([path]); if (removeError) throw fail(removeError); draftPaths.delete(path);
   }
   async function photoUrls(paths: string[]) {
@@ -110,6 +110,11 @@ export function createGuestPortalConnection(accessToken: string): GuestPortalCon
   }
 
   return { load, submit, upload, removeDraft, photoUrls, clearPhotos, dispose: () => { disposed = true; snapshot = null; allowedPaths.clear(); clearPhotos(); draftPaths.clear(); abort.abort(); } };
+}
+/** A failed image is optional only after a fresh RPC confirms the current access. */
+export async function loadGuestPortalPhotos(connection: GuestPortalConnection, paths: string[]): Promise<{ urls: Record<string, string>; unavailable: boolean; state: GuestPortalState | null }> {
+  try { return { urls: await connection.photoUrls(paths), unavailable: false, state: null }; }
+  catch { return { urls: {}, unavailable: true, state: await connection.load() }; }
 }
 export function portalRequestId() { return requestUuid(); }
 export async function compressPortalImage(file: File): Promise<{ blob: Blob; previewUrl: string }> {

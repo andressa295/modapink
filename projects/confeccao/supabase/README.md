@@ -130,3 +130,13 @@ A auditoria de segurança encontrou somente os avisos informativos de RLS sem po
 A administração informa nome (até 100 caracteres), e-mail e papel; a pessoa recebe o link e escolhe a senha. O banco limita 20 solicitações/hora por administrador e 60 segundos por destinatário; replay não libera outro envio. Finalização insere perfil ausente e nunca modifica permissões de perfil já existente. Recuperação/reenvio respeitam a situação atual da identidade e exigem perfil ativo. O template `email-templates/recovery.html` foi salvo no Supabase em português.
 
 As três suites locais (`npm run test:db`) passaram. O handler e o adaptador REST têm testes sem serviços reais. Nenhum convite ou conta de teste foi criado na produção por essa mudança; a validação positiva de convite pelo novo endpoint aguarda destinatário real autorizado.
+
+## Correção de imagens e remoção de cadastros
+
+Aplicadas uma vez: `portal-image-fix.sql` (`20261101003900`) e `record-removal.sql` (`20261101004440`). Não executar novamente. A primeira habilita somente metadados autorizados necessários ao download privado, mantendo assinatura/listagem proibidas para parceiras. A segunda adiciona arquivamento, filtros, limites de permissão, liberação de reserva e recadastro seguro. Nenhum registro real foi removido pela migração.
+
+`mf_remove_record(p_entity text,p_id text)` aceita `material`, `model`, `order`, `partner` e `member` e retorna `{entity,id,removed:true}`. Ordens usam código OP; demais entidades usam UUID. Administração/gestão removem operacionais e parceiras; membros exigem administração. Repetição não libera reserva novamente nem repete eventos. Históricos de movimentos, consumo e qualidade não são apagados.
+
+Materiais/modelos históricos ainda referenciados recebem `archived:true` no estado e ficam fora de listas, métricas e seletores. OPs removidas e seus apontamentos/conferências saem das projeções. A leitura de imagens do portal também exige OP não removida. Os clones anteriores de validação são privados e têm EXECUTE revogado, preservando as regras originais dentro dos novos wrappers.
+
+Um novo convite pode restaurar membro previamente removido mediante autorização explícita e snapshot exato da remoção. Perfis existentes não removidos continuam sem alteração automática pelo convite. A função `team-access` versão 2 foi publicada com verificação JWT. Os testes locais agora incluem cinco suites; testes de moeda e de resiliência usam os parsers/adaptadores reais com serviços simulados.

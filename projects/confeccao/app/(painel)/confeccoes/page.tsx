@@ -1,16 +1,17 @@
 "use client";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, CalendarDays, Check, ClipboardCheck, Copy, Factory, ImageIcon, Link2, LoaderCircle, Plus, RefreshCw, Search, ShieldCheck, ShieldX, UsersRound, X } from "lucide-react";
+import { ArrowRight, CalendarDays, Check, ClipboardCheck, Copy, Factory, ImageIcon, Link2, LoaderCircle, Plus, RefreshCw, Search, ShieldCheck, ShieldX, UsersRound, X, Trash2, TriangleAlert } from "lucide-react";
 import { useAuth } from "../../../lib/auth-context";
 import { useDemo } from "../../../lib/demo-store";
+import { removeRecord } from "../../../lib/record-removal";
 import { formatDate, formatNumber, today } from "../../../lib/domain";
-import { assignPortalOrder, buildPortalAccessUrl, createPortalLink, createPortalPartner, getOwnerPortalPhotoUrl, revokePortalLink, type CreatedPortalLink, type OwnerPortalState, type PortalLink, type PortalOrder, type PortalPartner, type PortalUpdate } from "../../../lib/partner-portal";
+import { assignPortalOrder, buildPortalAccessUrl, createPortalLink, createPortalPartner, getOwnerPortalState, getOwnerPortalPhotoUrl, revokePortalLink, type CreatedPortalLink, type OwnerPortalState, type PortalLink, type PortalOrder, type PortalPartner, type PortalUpdate } from "../../../lib/partner-portal";
 import { usePartnerPortal } from "../../../components/partner-portal-context";
 import { Empty, Metric, Modal, PageHeading, PanelTitle, Status } from "../../../components/ui";
 
-type Action = { type: "partner"; partner?: PortalPartner } | { type: "assign"; orderId?: string; partnerId?: string } | { type: "generate" | "revoke"; partner: PortalPartner };
+type Action = { type: "partner"; partner?: PortalPartner } | { type: "assign"; orderId?: string; partnerId?: string } | { type: "generate" | "revoke" | "remove"; partner: PortalPartner };
 type Share = CreatedPortalLink & { url: string; partnerName: string };
 const dateTime = (value: string) => new Date(value).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo" });
 const newest = (updates: PortalUpdate[]) => [...updates].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || b.id.localeCompare(a.id));
@@ -19,7 +20,7 @@ function linkActive(link?: PortalLink, partner?: PortalPartner) { return !!link 
 function linkLabel(link: PortalLink | undefined, partner: PortalPartner) { return !partner.active ? "Confecção inativa" : !link ? "Sem link de acesso" : link.revokedAt ? "Acesso revogado" : Date.parse(link.expiresAt) <= Date.now() ? "Link expirado" : link.active ? "Link ativo" : "Acesso encerrado"; }
 
 export default function PartnerFactories() {
-  const { profile } = useAuth(); const { notify } = useDemo();
+  const { profile } = useAuth(); const { notify, refresh: refreshFactory } = useDemo();
   const { state, loading, refreshing, error, refreshedAt, refresh, replace } = usePartnerPortal();
   const canManage = profile.role === "admin" || profile.role === "gestao";
   const params = useSearchParams(); const router = useRouter(); const orderFilter = params.get("order") ?? "";
@@ -27,7 +28,8 @@ export default function PartnerFactories() {
   const [action, setAction] = useState<Action | null>(null); const [busy, setBusy] = useState(false); const [actionError, setActionError] = useState("");
   const [share, setShare] = useState<Share | null>(null); const [copied, setCopied] = useState(false);
   const [historyOrderId, setHistoryOrderId] = useState<string | null>(null);
-  const openAction = (next: Action) => { setActionError(""); setAction(next); };
+  const removalRef = useRef(false);
+  const openAction = (next: Action) => { if (!busy) { setActionError(""); setAction(next); } };
   const closeAction = () => { if (!busy) { setAction(null); setActionError(""); } };
   async function save(run: () => Promise<OwnerPortalState>, message: string) {
     if (busy || !canManage) return false;
@@ -35,6 +37,19 @@ export default function PartnerFactories() {
     try { replace(await run()); setAction(null); notify(message); return true; }
     catch (cause) { setActionError(cause instanceof Error ? cause.message : "Não foi possível salvar. Tente novamente."); return false; }
     finally { setBusy(false); }
+  }
+  async function removePartner(partner: PortalPartner) {
+    if (busy || removalRef.current || !canManage) return;
+    removalRef.current = true; setBusy(true); setActionError("");
+    try {
+      await removeRecord("partner", partner.id);
+      if (state) replace({ ...state, partners: state.partners.filter(item => item.id !== partner.id), assignments: state.assignments.filter(item => item.partnerId !== partner.id), links: state.links.filter(item => item.partnerId !== partner.id) });
+      if (partnerFilter === partner.id) setPartnerFilter("");
+      setShare(current => current?.partnerId === partner.id ? null : current); setAction(null);
+      const refreshed = await Promise.allSettled([getOwnerPortalState().then(replace), refreshFactory()]);
+      notify(refreshed[0].status === "fulfilled" ? "Confecção excluída. O acesso ao portal foi encerrado." : "Confecção excluída e acesso encerrado. Não foi possível atualizar todos os dados; clique em Atualizar.");
+    } catch (cause) { setActionError(cause instanceof Error ? cause.message : "Não foi possível excluir esta confecção. Tente novamente."); }
+    finally { removalRef.current = false; setBusy(false); }
   }
   async function generate(partner: PortalPartner) {
     if (busy || !canManage) return;
@@ -84,7 +99,7 @@ export default function PartnerFactories() {
       {!orderFilter && <>{partners.length ? <section className="partner-cards" aria-label="Confecções cadastradas">{partners.map(partner => {
         const assigned = state.assignments.filter(item => item.partnerId === partner.id); const link = currentLink(state.links, partner.id); const isActive = linkActive(link, partner);
         const last = newest(state.latestUpdates.filter(update => update.partnerId === partner.id && assigned.some(item => item.orderId === update.orderId)))[0];
-        return <article className="partner-card" key={partner.id}><div className="partner-card-head"><span className="partner-mark"><Factory size={18} /></span><div><h2>{partner.name}</h2><p>{partner.contact || "Contato não informado"}</p></div></div><div className="partner-link-status"><span className={`badge ${isActive ? "green" : link?.revokedAt ? "red" : "gray"}`}><i />{linkLabel(link, partner)}</span>{link && <span>{link.revokedAt ? `Revogado em ${dateTime(link.revokedAt)}` : `Até ${dateTime(link.expiresAt)}`}</span>}</div><div className="partner-card-detail"><span>Produções vinculadas</span><strong>{assigned.length}</strong></div><div className="partner-card-detail"><span>Último apontamento</span><strong>{last ? dateTime(last.createdAt) : "Aguardando"}</strong></div>{!assigned.length && <p className="partner-card-empty-note">Nenhuma produção vinculada. O portal fica vazio até você escolher um lote para esta confecção.{canManage && !assignableOrders.length && <> <Link href="/producao">Criar uma ordem de produção <ArrowRight size={12} /></Link></>}</p>}<div className="partner-card-actions">{canManage && <><button className="button primary partner-link-production" disabled={!partner.active || !assignableOrders.length || !!error} onClick={() => openAction({ type: "assign", partnerId: partner.id })}><Plus size={14} />Vincular produção</button><button className="button secondary" disabled={!partner.active || !!error} onClick={() => openAction({ type: "generate", partner })}><Link2 size={12} />{isActive ? "Novo link de acesso" : "Gerar link de acesso"}</button>{isActive && <button className="button secondary" disabled={!!error} onClick={() => openAction({ type: "revoke", partner })}><ShieldX size={12} /> Revogar</button>}<button className="text-link" disabled={!!error} onClick={() => openAction({ type: "partner", partner })}>Editar</button></>}{!canManage && <span className="partner-source"><ShieldCheck size={12} /> Acesso gerenciado pela administração</span>}</div></article>;
+        return <article className="partner-card" key={partner.id}><div className="partner-card-head"><span className="partner-mark"><Factory size={18} /></span><div><h2>{partner.name}</h2><p>{partner.contact || "Contato não informado"}</p></div></div><div className="partner-link-status"><span className={`badge ${isActive ? "green" : link?.revokedAt ? "red" : "gray"}`}><i />{linkLabel(link, partner)}</span>{link && <span>{link.revokedAt ? `Revogado em ${dateTime(link.revokedAt)}` : `Até ${dateTime(link.expiresAt)}`}</span>}</div><div className="partner-card-detail"><span>Produções vinculadas</span><strong>{assigned.length}</strong></div><div className="partner-card-detail"><span>Último apontamento</span><strong>{last ? dateTime(last.createdAt) : "Aguardando"}</strong></div>{!assigned.length && <p className="partner-card-empty-note">Nenhuma produção vinculada. O portal fica vazio até você escolher um lote para esta confecção.{canManage && !assignableOrders.length && <> <Link href="/producao">Criar uma ordem de produção <ArrowRight size={12} /></Link></>}</p>}<div className="partner-card-actions">{canManage && <><button className="button primary partner-link-production" disabled={!partner.active || !assignableOrders.length || !!error} onClick={() => openAction({ type: "assign", partnerId: partner.id })}><Plus size={14} />Vincular produção</button><button className="button secondary" disabled={!partner.active || !!error} onClick={() => openAction({ type: "generate", partner })}><Link2 size={12} />{isActive ? "Novo link de acesso" : "Gerar link de acesso"}</button>{isActive && <button className="button secondary" disabled={!!error} onClick={() => openAction({ type: "revoke", partner })}><ShieldX size={12} /> Revogar</button>}<button className="text-link" disabled={!!error} onClick={() => openAction({ type: "partner", partner })}>Editar</button><button type="button" className="partner-remove-button" disabled={!!error || busy} onClick={() => openAction({ type: "remove", partner })}><Trash2 size={12} />Excluir</button></>}{!canManage && <span className="partner-source"><ShieldCheck size={12} /> Acesso gerenciado pela administração</span>}</div></article>;
       })}</section> : <section className="panel partner-section"><Empty title={state.partners.length ? "Nenhuma confecção nesta busca" : "Sua próxima parceria começa aqui."} text={state.partners.length ? "Ajuste o nome ou o filtro para encontrar a confecção." : canManage ? "Comece pelo cadastro. Depois, clique em Vincular produção no cartão da confecção e escolha uma ordem." : "As confecções cadastradas pela gestão aparecerão aqui."} action={canManage && !state.partners.length ? <button className="button primary" onClick={() => openAction({ type: "partner" })}><Plus size={15} /> Cadastrar confecção</button> : undefined} /></section>}</>}
       <section className="panel partner-section"><PanelTitle title="Acompanhamento das produções" subtitle="Confira a confecção de cada lote e o último andamento enviado" action={<span className="partner-source"><Factory size={13} /> Apontamento externo</span>} />
         {orders.length ? <div className="table-scroll"><table className="data-table partner-order-table"><thead><tr><th>Ordem / modelo</th><th>Confecção</th><th>Produzidas</th><th>Conferidas / defeitos</th><th>Etapa informada</th><th>Prazo</th><th>Último envio</th><th><span className="sr-only">Ações</span></th></tr></thead><tbody>{orders.map(order => {
@@ -94,6 +109,7 @@ export default function PartnerFactories() {
         <p className="partner-data-disclaimer"><ShieldCheck size={14} />Produzidas, conferidas e defeitos são totais acumulados informados pela parceira. A conferência oficial e a liberação das peças continuam no controle de qualidade da Moda Pink.</p>
       </section>
     </>}
+    {action?.type === "remove" && <Modal title="Excluir confecção" subtitle={action.partner.name} onClose={closeAction}><form className="form" onSubmit={event => { event.preventDefault(); void removePartner(action.partner); }}><div className="partner-removal-warning"><TriangleAlert size={20} /><div><strong>O acesso desta confecção será encerrado.</strong><p><b>{action.partner.name}</b> sairá da lista de confecções e o link dela deixará de permitir consultas ou novos envios.</p><p>Os apontamentos e as fotos já registrados continuarão no histórico da Moda Pink.</p></div></div>{actionError && <p className="partner-form-error" role="alert">{actionError}</p>}<div className="form-footer"><button type="button" className="button secondary" disabled={busy} onClick={closeAction}>Cancelar</button><button type="submit" className="button partner-confirm-remove" disabled={busy}>{busy ? "Excluindo…" : "Excluir confecção"}<Trash2 size={15} /></button></div></form></Modal>}
     {action?.type === "partner" && <PartnerForm partner={action.partner} busy={busy} error={actionError} onClose={closeAction} onSave={input => save(() => createPortalPartner(input), "Confecção salva.")} />}
     {action?.type === "assign" && state && <AssignmentForm state={state} orderId={action.orderId} partnerId={action.partnerId} busy={busy} error={actionError} onClose={closeAction} onSave={input => save(() => assignPortalOrder(input), "Vínculo da produção atualizado.")} />}
     {(action?.type === "generate" || action?.type === "revoke") && <Modal title={action.type === "generate" ? "Gerar acesso da confecção" : "Revogar acesso"} subtitle={action.partner.name} onClose={closeAction}>{action.type === "generate" && !state?.assignments.some(item => item.partnerId === action.partner.id) && <div className="partner-no-order-warning"><Link2 size={18} /><div><strong>Falta vincular uma produção</strong><p>Você pode gerar o link agora, mas a parceira verá o portal vazio até receber um lote.</p><button className="text-link" disabled={busy || !assignableOrders.length} onClick={() => openAction({ type: "assign", partnerId: action.partner.id })}>Vincular produção agora <ArrowRight size={13} /></button>{!assignableOrders.length && <Link href="/producao" className="text-link" onClick={closeAction}>Criar uma ordem na página Produção <ArrowRight size={13} /></Link>}</div></div>}<div className="partner-share-warning">{action.type === "generate" ? <><p>O link terá validade de <strong>30 dias</strong> e dará acesso somente às produções vinculadas a esta confecção.</p><p>Ao confirmar, o link anterior será revogado. O novo link aparecerá uma única vez para você copiar e guardar.</p></> : <p>O link atual deixará de permitir consultas, envio de apontamentos e acesso às fotos. O histórico já registrado permanece na Moda Pink.</p>}</div>{actionError && <p className="partner-form-error" role="alert">{actionError}</p>}<div className="form-footer"><button className="button secondary" disabled={busy} onClick={closeAction}>Cancelar</button><button className="button primary" disabled={busy} onClick={() => action.type === "generate" ? void generate(action.partner) : void save(() => revokePortalLink(action.partner.id), "Acesso da confecção revogado.")}>{busy ? "Aguarde…" : action.type === "generate" ? "Gerar link de acesso" : "Revogar acesso"}<ArrowRight size={15} /></button></div></Modal>}

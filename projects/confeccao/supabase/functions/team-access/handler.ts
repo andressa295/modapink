@@ -2,7 +2,7 @@ export type TeamAction = "invite" | "resend" | "recovery";
 export type TeamInput = { requestId: string; action: TeamAction; email?: string; fullName?: string; role?: string; userId?: string };
 export type TeamReceipt = {
   requestId: string; action: TeamAction; status: string; canSend: boolean; replayed: boolean;
-  target: { id: string | null; email: string; fullName: string; role: string; active: boolean; emailConfirmed: boolean; passwordSet: boolean; hasProfile: boolean };
+  target: { id: string | null; email: string; fullName: string; role: string; active: boolean; emailConfirmed: boolean; passwordSet: boolean; hasProfile: boolean; archived?: boolean };
 };
 export interface TeamBackend {
   verifyUser: (token: string) => Promise<{ id: string } | null>;
@@ -55,10 +55,11 @@ export function createTeamAccessHandler(backend: TeamBackend) {
       const input = readInput(raw);
       receipt = await backend.prepare(actorId, input);
       if (receipt.requestId !== input.requestId || receipt.action !== input.action) throw new TeamFault(503, "incomplete_response", "Não foi possível confirmar esta solicitação.");
+      if (receipt.status === "completed" && receipt.target.archived) throw new TeamFault(409, "member_removed", "Esse acesso foi excluído depois do convite. Cadastre a pessoa novamente para autorizar um novo acesso.");
       if (receipt.status === "completed") return reply(200, { ok: true, status: "completed", requestId: input.requestId, replayed: true, message: "Esta solicitação já foi concluída. Nenhum e-mail adicional foi enviado." });
       if (!receipt.canSend) {
         // A retry can finish provisioning an identity created by the first invocation, without sending twice.
-        if (input.action === "invite" && receipt.target.id && !receipt.target.hasProfile && receipt.status !== "failed") {
+        if (input.action === "invite" && receipt.target.id && (!receipt.target.hasProfile || receipt.target.archived) && receipt.status !== "failed") {
           await backend.finish(actorId, input.requestId, receipt.target.id);
           return reply(200, { ok: true, status: "completed", requestId: input.requestId, replayed: true, message: "O cadastro foi confirmado. Confira o acesso na lista da equipe." });
         }

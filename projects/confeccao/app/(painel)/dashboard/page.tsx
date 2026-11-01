@@ -20,8 +20,8 @@ export default function Dashboard() {
   const quantity = active.reduce((n, o) => n + o.quantity, 0);
   const approved = state.orders.reduce((n, o) => n + o.approved, 0);
   const rework = state.orders.reduce((n, o) => n + o.rework, 0);
-  const fabrics = state.materials.filter(m => m.category === "Tecido" && m.unit === "kg");
-  const low = state.materials.filter(m => available(m) < m.minimum);
+  const fabrics = state.materials.filter(m => !m.archived && m.category === "Tecido" && m.unit === "kg");
+  const low = state.materials.filter(m => !m.archived && available(m) < m.minimum);
   const late = state.orders.filter(o => o.stage !== "Concluído" && o.due < today());
   const total = state.orders.reduce((n, o) => n + o.quantity, 0);
   const overviewOrders = state.orders.filter(order => productionStage === "Todas" || order.stage === productionStage).sort((a, b) => Number(a.stage === "Concluído") - Number(b.stage === "Concluído") || a.due.localeCompare(b.due) || a.id.localeCompare(b.id));

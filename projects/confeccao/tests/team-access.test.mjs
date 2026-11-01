@@ -68,3 +68,11 @@ test("equipe: retomada finaliza identidade criada sem reenviar; CORS é restrito
   const preflight = await s.handler(new Request(origin, { method: "OPTIONS", headers: { Origin: origin } }));
   assert.equal(preflight.status, 204); assert.equal(preflight.headers.get("access-control-allow-origin"), origin);
 });
+test("equipe: novo convite explícito pode retomar restauração de perfil removido sem outro e-mail", async () => {
+  const s = setup(); Object.assign(s.receipt, { status: "uncertain", canSend: false }); Object.assign(s.receipt.target, { id: member, hasProfile: true, archived: true, active: false });
+  const r = await s.send(); assert.equal(r.status, 200); assert.equal(s.calls.some(c => c[0] === "invite" || c[0] === "recover"), false); assert.deepEqual(s.calls.find(c => c[0] === "finish"), ["finish", actor, requestId, member]);
+});
+test("equipe: confirmação de convite antigo não apresenta como ativo um acesso removido", async () => {
+  const s = setup(); Object.assign(s.receipt, { status: "completed", canSend: false }); Object.assign(s.receipt.target, { id: member, hasProfile: true, archived: true, active: false });
+  const r = await s.send(); assert.equal(r.status, 409); assert.equal((await r.json()).uncertain, false); assert.equal(s.calls.some(c => ["invite", "recover", "finish"].includes(c[0])), false);
+});
