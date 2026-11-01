@@ -93,3 +93,5 @@ A pasta mantém build e dependências próprios; o TypeScript da raiz a exclui d
 O login destaca o logo da Moda Pink e preserva Matéria-prima, Produção, Qualidade e Cuidado em cada etapa. Poppins é aplicada ao sistema e aos campos. A visão geral mostra a etapa e o próximo passo de cada lote, incluindo planejados. No detalhe da produção, a ação seguinte explica consumo de tecido e conferência necessária. O portal apresenta etapas em botões explicados e um exemplo de contagem acumulada.
 
 Convites exigem administração ativa no servidor; gestão pode consultar a equipe. O endpoint valida o JWT no Auth, revalida a autorização no banco e aplica limite de 20 solicitações por hora e intervalo de 60 segundos por destinatário. Uma solicitação incerta pode ser retomada sem duplicar o e-mail. Nenhum link de login ou senha é devolvido ao administrador. O template de recuperação em português fica em `supabase/email-templates/recovery.html`.
+
+![Login atualizado da Moda Pink](docs/login-marca.jpg)
