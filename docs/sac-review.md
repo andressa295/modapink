@@ -6,7 +6,7 @@ Base do painel: andressa295/modapink, c5acafa99c0a15f59e5b1408c97fe748b63b3f4d (
 
 - Página isolada `/sac-revisao`, fora do layout do dashboard para não montar o sincronizador automático de pedidos existente.
 - Página e API `/api/sac-preview/:id` ficam indisponíveis por padrão. Exigem a opção server-only `SAC_REVIEW_ENABLED=true`, que **não foi configurada nesta entrega**.
-- Exige sessão válida e perfil `admin` verificado no servidor. Os papéis atuais não distinguem SAC: não foi criado papel, alterado perfil nem ampliado permissão. O acesso de Aline não foi verificado.
+- Exige sessão válida e perfil cadastrado `admin`, `agent` ou `user` verificado no servidor. A mudança de acesso de 05/11/2026 amplia somente o acesso SAC; não cria papel, altera perfil, modifica RLS nem libera as outras áreas administrativas. Perfis ausentes ou desconhecidos são negados. A opção server-only continua independente e não é ativada por esta mudança.
 - O operador informa o UUID da conversa; não há listagem global nem busca de clientes. A API confirma visibilidade com o cliente Supabase da sessão (RLS) e exige `session_key` e `session_id` iguais a `sac`.
 - Usa a configuração server-only existente da API WhatsApp e chave interna obrigatória, inclusive em loopback. Nenhuma chave é passada ao navegador; não há criação ou configuração de credenciais.
 - A classificação como cliente é confirmação explícita do operador e **não prova identidade do pedido**. A consulta opcional de pedido delega a verificação exata ao adaptador SAC da API.

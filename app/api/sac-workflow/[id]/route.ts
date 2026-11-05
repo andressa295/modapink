@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { createClient } from '@/lib/supabase/server'
 import { getDashboardAccess } from '@/lib/dashboard-auth'
+import { canAccessMessaging } from '@/lib/dashboard-access'
 import { getWhatsAppApiBaseUrl, getWhatsAppInternalKey, readLimitedWhatsAppBody } from '@/lib/whatsapp-proxy.server'
 import { parseSacWorkflow, SAC_HASH, SAC_OUTBOX_ID, SAC_WORKFLOW_UUID, sacVersion } from '@/lib/sac-workflow'
 export const dynamic='force-dynamic'
@@ -16,7 +17,7 @@ async function handle(req:Request,ctx:{params:Promise<{id:string}>},mutation:boo
  try{
   const client=await createClient();const access=await getDashboardAccess(client)
   if(!access.user)return response({error:'Sessão expirada.'},401)
-  if(access.role!=='admin'||!SAC_WORKFLOW_UUID.test(access.user.id))return response({error:'Acesso restrito ao administrador.'},403)
+  if(!canAccessMessaging(access.role)||!SAC_WORKFLOW_UUID.test(access.user.id))return response({error:'Acesso ao atendimento não permitido.'},403)
   const {id}=await ctx.params
   if(!SAC_WORKFLOW_UUID.test(id)||new URL(req.url).search)return response({error:'Consulta inválida.'},400)
   if(mutation&&!validOrigin(req))return response({error:'Origem não permitida ou não configurada.'},403)

@@ -20,6 +20,7 @@ import {
 import styles from "../styles/chat.module.css"
 import { getRequestedChatTab } from "@/lib/chat-navigation"
 import { getConversationDisplaySignature } from "@/lib/chat-conversation-signature"
+import { SacDecisionLink } from "../components/SacDecisionAccess"
 
 import { createBrowserClient } from "@supabase/ssr"
 
@@ -3578,6 +3579,12 @@ export default function Conversas() {
                   styles["chat-header-actions"]
                 }
               >
+                <SacDecisionLink
+                  conversationId={selected.id}
+                  sessionId={selected.session_id}
+                  sessionKey={selected.session_key}
+                  className={styles["pause-bot-button"]}
+                />
                 {isSacConversation(selected) && (
                   <button
                     type="button"

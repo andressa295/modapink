@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getDashboardAccess } from '@/lib/dashboard-auth'
+import { canAccessMessaging } from '@/lib/dashboard-access'
 import { getWhatsAppApiBaseUrl, getWhatsAppInternalKey } from '@/lib/whatsapp-proxy.server'
 import { parseSacPreview, SAC_UUID } from '@/lib/sac-preview'
 export const dynamic = 'force-dynamic'
@@ -10,7 +11,7 @@ export async function GET(request: Request, context: {params: Promise<{id:string
     const client = await createClient()
     const access = await getDashboardAccess(client)
     if (!access.user) return reply({error:'Sessão expirada.'},401)
-    if (access.role !== 'admin') return reply({error:'Acesso restrito ao administrador.'},403)
+    if (!canAccessMessaging(access.role)) return reply({error:'Acesso ao atendimento não permitido.'},403)
     const {id} = await context.params
     const query = new URL(request.url).searchParams
     if (!SAC_UUID.test(id) || [...query.keys()].some(k => !['confirm_customer','lookup_order'].includes(k)) || [...query.keys()].some(k => query.getAll(k).length !== 1 || !['true','false'].includes(query.get(k)!))) return reply({error:'Consulta inválida.'},400)

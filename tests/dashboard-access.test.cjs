@@ -121,3 +121,14 @@ test('missing server configuration fails closed', async () => {
     assert.equal((await h.auth.requireDashboardAdmin()).status, 403)
   } finally { process.env.SUPABASE_SERVICE_ROLE_KEY = original }
 })
+
+test('messaging accepts only exact registered profile roles without opening administration',()=>{
+  for(const role of ['admin','agent','user'])assert.equal(policy.canAccessMessaging(role),true)
+  for(const role of [null,undefined,'','guest','Admin','agent ','sac',true,{},['admin']])assert.equal(policy.canAccessMessaging(role),false)
+})
+test('messaging fails closed on missing profiles and profile lookup errors',async()=>{
+  for(const options of [{role:null},{role:'guest'},{profileError:new Error('database failed')}]){
+    const h=authHarness(options);const access=await h.auth.getDashboardAccess(h.session)
+    assert.equal(policy.canAccessMessaging(access.role),false)
+  }
+})

@@ -1,11 +1,12 @@
 'use client'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { SAC_WORKFLOW_UUID } from '@/lib/sac-workflow'
 import type { SacWorkflow } from '@/lib/sac-workflow'
 import styles from '../sac-revisao/sac-review.module.css'
 const labels:Record<string,string>={pending_review:'Aguardando decisão',approved:'Resposta aprovada, ainda não enviada',rejected:'Proposta rejeitada',delivering:'Envio em processamento — não repita',sent:'Envio registrado pela API',uncertain:'Resultado de envio incerto — conferência necessária'}
-export default function SacDecisions(){
- const [id,setId]=useState('');const [view,setView]=useState<SacWorkflow|null>(null);const [error,setError]=useState('');const [busy,setBusy]=useState(false);const [deciding,setDeciding]=useState(false);const [checked,setChecked]=useState(false);const [uncertain,setUncertain]=useState(false)
+export default function SacDecisions({initialConversationId=''}: {initialConversationId?:string}){
+ const [id,setId]=useState(initialConversationId);const [view,setView]=useState<SacWorkflow|null>(null);const [error,setError]=useState('');const [busy,setBusy]=useState(false);const [deciding,setDeciding]=useState(false);const [checked,setChecked]=useState(false);const [uncertain,setUncertain]=useState(false)
  const controller=useRef<AbortController|null>(null);const revision=useRef(0);const mutationLock=useRef(false)
  useEffect(()=>()=>{revision.current++;controller.current?.abort()},[])
  const clear=()=>{revision.current++;controller.current?.abort();setView(null);setChecked(false);setError('');setBusy(false)}
@@ -26,10 +27,10 @@ export default function SacDecisions(){
  }
  const outbox=view?.case?.outbox
  return <main className={styles.page}>
-  <a className={styles.back} href="/sac-revisao">Voltar à revisão de propostas</a>
+  <Link className={styles.back} href="/dashboard/conversas?tab=sac">Voltar às conversas do SAC</Link>
   <header><span className={styles.eyebrow}>EXCLUSIVO DO SAC · DECISÃO SOBRE RESPOSTA</span><h1>Conferir resposta do SAC</h1><p>Aprove ou rejeite somente o texto apresentado. Esta decisão não envia mensagem, não autoriza reembolso, não troca peças e não altera pedido. O envio depende de uma etapa separada.</p></header>
   <section className={styles.notice}>O menu normal permanece como entrada. A decisão vale apenas para esta versão da resposta; se o caso mudar, será necessário conferir a nova proposta.</section>
-  <form className={styles.card} onSubmit={consult}><label htmlFor="decision-conversation">Identificador da conversa SAC</label><input id="decision-conversation" value={id} disabled={deciding} autoComplete="off" spellCheck={false} onChange={e=>{clear();setId(e.target.value)}}/><p className={styles.small}>Somente conversas SAC visíveis ao administrador autenticado.</p><button disabled={busy||deciding}>{busy?'Consultando…':'Consultar caso'}</button></form>
+  <form className={styles.card} onSubmit={consult}><label htmlFor="decision-conversation">Identificador da conversa SAC</label><input id="decision-conversation" value={id} disabled={deciding} autoComplete="off" spellCheck={false} onChange={e=>{clear();setId(e.target.value)}}/><p className={styles.small}>Somente conversas SAC visíveis à pessoa autenticada, com acesso cadastrado no painel.</p><button disabled={busy||deciding}>{busy?'Consultando…':'Consultar caso'}</button></form>
   <div aria-live="polite">{error&&<p role="alert" className={styles.error}>{error}</p>}{uncertain&&<p className={styles.notice}>Não repita a decisão sem consultar o estado atualizado.</p>}{view&&!view.case&&<p>Nenhum caso disponível.</p>}{view?.case&&<section className={styles.card}>
    <span className={styles.eyebrow}>VERSÃO {view.case.version}</span><h2>{outbox?labels[outbox.status]:'Sem resposta para decidir'}</h2>
    {outbox&&<><div className={styles.proposal}>{outbox.reply}</div><p className={styles.small}>Validade: {new Date(outbox.expiresAt).toLocaleString('pt-BR')}. A aprovação se aplica exatamente ao texto acima. Não há edição ou envio nesta tela.</p></>}

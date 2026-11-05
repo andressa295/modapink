@@ -6,6 +6,8 @@ import styles from "./styles/admin-layout.module.css"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { getDashboardAccess } from "@/lib/dashboard-auth"
+import { canAccessMessaging } from "@/lib/dashboard-access"
+import { SacDecisionAccessProvider } from "./components/SacDecisionAccess"
 
 export default async function AdminLayout({
   children,
@@ -33,7 +35,9 @@ export default async function AdminLayout({
         {/* CONTENT */}
         <main className={styles.content}>
           <div className={styles.wrapper}>
-            {children}
+            <SacDecisionAccessProvider enabled={canAccessMessaging(role) && process.env.SAC_REVIEW_DECISIONS_ENABLED === "true"}>
+              {children}
+            </SacDecisionAccessProvider>
           </div>
         </main>
       </div>
