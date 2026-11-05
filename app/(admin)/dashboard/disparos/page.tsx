@@ -32,6 +32,7 @@ import {
 import styles from "../styles/disparos.module.css"
 import { createClient } from "@/lib/supabase/client"
 import { WhatsAppIcon } from "@/components/icons/WhatsAppIcon"
+import { getBroadcastDeliveryDiagnostic } from "@/lib/broadcast-delivery-diagnostic"
 
 const BROADCASTS_API = "/api/whatsapp/broadcasts"
 
@@ -51,6 +52,7 @@ type Campaign = {
   status: CampaignStatus
   total_count: number
   sent_count: number
+  last_error?: string | null
   failed_count: number
   skipped_count: number
   created_at: string
@@ -947,7 +949,9 @@ export default function DisparosPage() {
       if (expectedSenderPhone.length < 10) {
         setCampaignActionError(
           campaign.id,
-          `Esta campanha não tem o telefone esperado do remetente salvo. Cancele-a e crie outro rascunho confirmando o número correto.`
+          campaign.status === "draft"
+            ? "Este rascunho não tem o telefone esperado do remetente salvo. Cancele-o e crie outro confirmando o número correto."
+            : "O telefone esperado desta campanha precisa de conferência no serviço. Preserve a fila e o histórico antes de retomar; não crie outra campanha para reenviar a mesma fila."
         )
         return
       }
@@ -955,7 +959,7 @@ export default function DisparosPage() {
       if (expectedSenderPhone !== senderPhone) {
         setCampaignActionError(
           campaign.id,
-          `O telefone conectado em ${getSessionLabel(campaign.session_key)} mudou desde a criação deste rascunho. Cancele-o e crie outro confirmando o remetente correto.`
+          `O telefone conectado em ${getSessionLabel(campaign.session_key)} é diferente do remetente aprovado nesta campanha. Confira e reconecte o número original antes de continuar. Não crie outra campanha para reenviar a mesma fila.`
         )
         return
       }
@@ -1496,6 +1500,11 @@ export default function DisparosPage() {
           ) : (
             <div className={styles.campaignList}>
               {visibleCampaigns.map(campaign => {
+                const deliveryDiagnostic = getBroadcastDeliveryDiagnostic(
+                  campaign,
+                  getSession(campaign.session_key),
+                  !loadingList && !listError
+                )
                 const progress = campaign.total_count
                   ? Math.min(100, Math.max(0, Math.round(
                       ((campaign.sent_count + campaign.failed_count + campaign.skipped_count) /
@@ -1515,6 +1524,18 @@ export default function DisparosPage() {
                         {STATUS_LABEL[campaign.status]}
                       </span>
                     </div>
+
+                    <p className={styles.campaignConnection}>{deliveryDiagnostic.senderLabel}</p>
+                    {deliveryDiagnostic.notice && (
+                      <div className={styles.campaignDiagnostic} role="status">
+                        <AlertTriangle size={15} aria-hidden="true" />
+                        <div>
+                          <strong>{deliveryDiagnostic.notice.title}</strong>
+                          <p>{deliveryDiagnostic.notice.detail}</p>
+                          <button type="button" onClick={() => void loadData()}>Atualizar consulta</button>
+                        </div>
+                      </div>
+                    )}
 
                     {campaign.media_url && (
                       <div className={styles.campaignMedia}>

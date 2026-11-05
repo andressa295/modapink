@@ -181,3 +181,12 @@
   .disclaimer { padding: 0 6px; text-align: left; }
 }
 @media (prefers-reduced-motion: reduce) { .progressTrack span, .card input, .card select, .card textarea { transition: none; } }
+
+.campaignConnection { margin: 8px 0 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.campaignDiagnostic { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; padding: 11px; border: 1px solid #ebd9b8; border-radius: 8px; color: #714d1e; background: #fffaf0; font-size: 11px; line-height: 1.6; overflow-wrap: anywhere; }
+.campaignDiagnostic > svg { flex: none; margin-top: 2px; }
+.campaignDiagnostic > div { min-width: 0; }
+.campaignDiagnostic strong { font-weight: 600; }
+.campaignDiagnostic p { margin: 4px 0 0; }
+.campaignDiagnostic button { margin-top: 8px; padding: 5px 8px; border: 1px solid #d6bb8b; border-radius: 5px; background: #fff; color: #714d1e; font: inherit; cursor: pointer; }
+.campaignDiagnostic button:focus-visible { outline: 2px solid #714d1e; outline-offset: 2px; }
