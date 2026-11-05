@@ -43,15 +43,14 @@ export async function GET(
     }
 
     // ========================
-    // DEBUG DE CREDENCIAIS
+    // DIAGNÓSTICO SEM CREDENCIAIS
     // ========================
     const clientId = process.env.NUVEMSHOP_CLIENT_ID?.trim() || "";
     const clientSecret = process.env.NUVEMSHOP_CLIENT_SECRET?.trim() || "";
 
     console.log("=== INICIANDO TROCA DE TOKEN ===");
-    console.log("CLIENT_ID (Primeiros 5 char):", clientId.substring(0, 5) + "...");
+    console.log("CLIENT_ID Configurado?", clientId.length > 0 ? "SIM" : "NAO");
     console.log("CLIENT_SECRET Configurado?", clientSecret.length > 0 ? "SIM" : "NAO");
-    console.log("CODE RECEBIDO:", code.substring(0, 5) + "...");
     
     // ========================
     // TOKEN REQUEST
@@ -106,7 +105,7 @@ export async function GET(
 
     console.log(
       "🔥 TOKEN RESPONSE:",
-      tokenData
+      { status: tokenRes.status }
     )
 
     // ========================
@@ -122,7 +121,7 @@ export async function GET(
 
       console.error(
         "❌ erro token:",
-        tokenData
+        { status: tokenRes.status }
       )
 
       return new Response(
@@ -133,7 +132,7 @@ export async function GET(
             "Erro ao obter token",
 
           details:
-            tokenData
+            { status: tokenRes.status }
 
         }),
 
@@ -187,7 +186,7 @@ export async function GET(
 
     console.log(
       "🏪 STORE RESPONSE:",
-      storeData
+      { status: storeRes.status }
     )
 
     // ========================
@@ -197,7 +196,7 @@ export async function GET(
 
       console.error(
         "❌ erro store:",
-        storeData
+        { status: storeRes.status }
       )
 
       return new Response(
@@ -208,7 +207,7 @@ export async function GET(
             "Erro ao buscar loja",
 
           details:
-            storeData
+            { status: storeRes.status }
 
         }),
 
@@ -251,7 +250,7 @@ export async function GET(
             "Domínio da loja não encontrado",
 
           details:
-            storeData
+            { status: storeRes.status }
 
         }),
 
@@ -320,8 +319,7 @@ export async function GET(
     if (error) {
 
       console.error(
-        "❌ erro Supabase:",
-        error
+        "❌ erro Supabase ao salvar loja"
       )
 
       return new Response(
@@ -329,10 +327,7 @@ export async function GET(
         JSON.stringify({
 
           error:
-            "Erro ao salvar loja",
-
-          details:
-            error
+            "Erro ao salvar loja"
 
         }),
 
@@ -344,8 +339,7 @@ export async function GET(
     }
 
     console.log(
-      "✅ loja conectada:",
-      shop
+      "✅ loja conectada"
     )
 
     // ========================
@@ -359,11 +353,10 @@ export async function GET(
 
     )
 
-  } catch (error) {
+  } catch {
 
     console.error(
-      "💥 erro geral:",
-      error
+      "💥 erro geral no callback"
     )
 
     return new Response(
