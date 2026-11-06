@@ -1,0 +1,15 @@
+{
+  "name": "modapink-confeccao-database-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --experimental-strip-types run-schema.mjs && node run-portal.mjs && node run-team.mjs && node run-removal.mjs && node run-removal-team.mjs && node run-pricing.mjs",
+    "test:portal": "node run-portal.mjs",
+    "test:team": "node run-team.mjs",
+    "test:removal": "node run-removal.mjs && node run-removal-team.mjs",
+    "test:pricing": "node run-pricing.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.3.14"
+  }
+}

@@ -1,0 +1,149 @@
+"use client";
+import { AgencyCredit } from "../../components/agency-credit";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArrowUpRight, Camera, CheckCheck, ClipboardCheck, Clock3, Factory, History, ImagePlus, Layers, LockKeyhole, PackageCheck, RefreshCw, Scissors, Send, ShieldCheck, Shirt, TriangleAlert, UserRound, X } from "lucide-react";
+import { compressPortalImage, createGuestPortalConnection, loadGuestPortalPhotos, portalRequestId, portalStages, portalTokenFromFragment, PortalAccessError, validatePortalSubmission, type GuestPortalConnection, type GuestPortalState, type PortalOrder, type PortalStage, type PortalSubmission, type PortalUpdate } from "../../lib/partner-portal";
+import "./portal.css";
+const number = (value: number) => value.toLocaleString("pt-BR");
+const stageDescriptions: Record<PortalStage, string> = {
+  "Recebido": "Lote recebido. O trabalho ainda não começou.",
+  "Corte": "Preparando e cortando o tecido.",
+  "Costura": "Montando e costurando as peças.",
+  "Acabamento": "Ajustando barras e os últimos detalhes.",
+  "Conferência": "Revisando as peças e os defeitos.",
+  "Pronto para retirada": "Todas as peças produzidas e conferidas.",
+};
+function date(value: string) { return new Date(value.length === 10 ? `${value}T12:00:00-03:00` : value).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", timeZone: "America/Sao_Paulo" }).replace(".", ""); }
+function moment(value: string) { return new Date(value).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }); }
+function latest(updates: PortalUpdate[], orderId: string) { return updates.filter(item => item.orderId === orderId).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]; }
+function initialStage(order: PortalOrder): PortalStage { return order.stage === "Planejado" ? "Recebido" : order.stage === "Qualidade" ? "Conferência" : order.stage === "Concluído" ? "Pronto para retirada" : order.stage; }
+function StageBadge({ stage }: { stage: string }) { return <span className={`pp-badge ${stage === "Pronto para retirada" || stage === "Concluído" ? "pp-green" : stage === "Conferência" || stage === "Qualidade" ? "pp-amber" : ""}`}><i />{stage}</span>; }
+function PortalHeader({ name }: { name?: string }) { return <header className="pp-header"><div className="pp-header-inner"><img src="/modapink-logo.png" alt="Moda Pink Atacado" /><span className="pp-header-separator" /><div><strong>Portal da confecção</strong><span>{name || "Produção conectada, de perto."}</span></div><span className="pp-protected"><ShieldCheck size={14} />Acesso exclusivo</span></div></header>; }
+interface DraftPhoto { id: string; blob: Blob; previewUrl: string; path?: string; }
+interface PendingReport { id: string; payload: PortalSubmission; }
+function ReportForm({ api, order, previous, pendingReports, onSaved, onDenied }: { api: GuestPortalConnection; order: PortalOrder; previous?: PortalUpdate; pendingReports: Map<string, PendingReport>; onSaved: () => Promise<void>; onDenied: (error: PortalAccessError) => void }) {
+  const initialRequest = useRef(pendingReports.get(order.id)).current;
+  const [stage, setStage] = useState<PortalStage>(initialRequest?.payload.stage ?? previous?.stage ?? initialStage(order));
+  const [produced, setProduced] = useState(String(initialRequest?.payload.produced ?? previous?.produced ?? 0)); const [checked, setChecked] = useState(String(initialRequest?.payload.checked ?? previous?.checked ?? 0)); const [defects, setDefects] = useState(String(initialRequest?.payload.defects ?? previous?.defects ?? 0));
+  const [reporter, setReporter] = useState(initialRequest?.payload.reporter ?? ""); const [notes, setNotes] = useState(initialRequest?.payload.notes ?? ""); const [description, setDescription] = useState(initialRequest?.payload.defectDescription ?? "");
+  const [photos, setPhotos] = useState<DraftPhoto[]>([]); const photosRef = useRef<DraftPhoto[]>([]); const inputRef = useRef<HTMLInputElement>(null);
+  const [preparing, setPreparing] = useState(false); const [saving, setSaving] = useState(false); const [uncertain, setUncertain] = useState(!!initialRequest); const [message, setMessage] = useState(""); const [success, setSuccess] = useState(false);
+  const [baseId, setBaseId] = useState(previous?.id ?? ""); const mounted = useRef(true);
+  const setDrafts = (items: DraftPhoto[]) => { photosRef.current = items; setPhotos(items); };
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; for (const photo of photosRef.current) { URL.revokeObjectURL(photo.previewUrl); if (photo.path && !pendingReports.has(order.id)) void api.removeDraft(photo.path).catch(() => undefined); } }; }, [api, order.id, pendingReports]);
+  function useLatest() { if (!previous) return; setStage(previous.stage); setProduced(String(previous.produced)); setChecked(String(previous.checked)); setDefects(String(previous.defects)); setDescription(previous.defectDescription); setBaseId(previous.id); setMessage(""); setSuccess(false); }
+  async function choose(files: FileList | null) {
+    if (!files || saving || uncertain || preparing) return;
+    if (photosRef.current.length + files.length > 6) { setMessage("Você pode anexar até 6 fotos por atualização."); setSuccess(false); return; }
+    setPreparing(true); setMessage(""); setSuccess(false); const created: DraftPhoto[] = [];
+    try { for (const file of Array.from(files)) { const image = await compressPortalImage(file); created.push({ id: portalRequestId(), ...image }); }
+      if (mounted.current) setDrafts([...photosRef.current, ...created]); else for (const photo of created) URL.revokeObjectURL(photo.previewUrl);
+    } catch (cause) { for (const photo of created) URL.revokeObjectURL(photo.previewUrl); if (mounted.current) setMessage(cause instanceof PortalAccessError ? cause.message : "Não foi possível preparar as fotos."); }
+    finally { if (mounted.current) setPreparing(false); }
+  }
+  async function remove(photo: DraftPhoto) {
+    if (saving || uncertain || preparing) return;
+    try { if (photo.path) await api.removeDraft(photo.path); URL.revokeObjectURL(photo.previewUrl); setDrafts(photosRef.current.filter(item => item.id !== photo.id)); }
+    catch (cause) { if (cause instanceof PortalAccessError && cause.kind === "denied") onDenied(cause); else setMessage("Não foi possível remover essa foto agora. Tente novamente."); }
+  }
+  async function submit(event: React.FormEvent) {
+    event.preventDefault(); if (saving || preparing) return;
+    setSaving(true); setMessage(""); setSuccess(false); let attempted = false;
+    try {
+      let request = pendingReports.get(order.id);
+      if (!request) {
+        const base = validatePortalSubmission({ orderId: order.id, stage, produced: Number(produced), checked: Number(checked), defects: Number(defects), reporter, notes, defectDescription: description, photos: [] }, order);
+        for (const photo of photosRef.current) if (!photo.path) { photo.path = await api.upload(photo.blob); if (!mounted.current) return; }
+        const payload = { ...base, photos: photosRef.current.map(photo => photo.path!) };
+        request = { id: portalRequestId(), payload }; pendingReports.set(order.id, request);
+      }
+      attempted = true;
+      const result = await api.submit(request.payload, request.id);
+      if (!mounted.current) return;
+      pendingReports.delete(order.id); setUncertain(false); setBaseId(result.update.id); setNotes(""); setDescription("");
+      for (const photo of photosRef.current) URL.revokeObjectURL(photo.previewUrl); setDrafts([]);
+      setSuccess(true); setMessage(result.replayed ? "Atualização confirmada. O envio anterior já estava salvo, sem duplicar o registro." : "Atualização enviada para a Moda Pink. Obrigada pelo cuidado em cada detalhe!");
+      await onSaved();
+    } catch (cause) {
+      if (!mounted.current) return;
+      const failure = cause instanceof PortalAccessError ? cause : new PortalAccessError("network", "Não foi possível confirmar o envio agora.");
+      if (failure.kind === "denied") { onDenied(failure); return; }
+      if (attempted && failure.kind === "network") { setUncertain(true); setMessage("A confirmação do envio não chegou. Clique em confirmar novamente para verificar os mesmos dados, sem duplicar a atualização."); }
+      else { pendingReports.delete(order.id); setUncertain(false); setMessage(failure.message); }
+    } finally { if (mounted.current) setSaving(false); }
+  }
+  return <section className="pp-panel pp-report"><div className="pp-section-title"><span className="pp-section-icon"><Send size={18} /></span><div><h2>Atualizar este lote</h2><p>Marque a etapa atual e informe o que já foi feito.</p></div></div>
+    {previous && previous.id !== baseId && !uncertain && <div className="pp-remote-change"><RefreshCw size={16} /><p>Há uma atualização mais recente desta ordem. Confira os números antes de enviar.</p><button onClick={useLatest} type="button" disabled={saving}>Usar últimos números</button></div>}
+    <form onSubmit={submit}><fieldset disabled={saving || preparing || uncertain}><div className="pp-stage-field"><h3>Em qual etapa o lote está agora?</h3><p>Escolha uma opção. Você pode atualizar novamente quando o trabalho avançar.</p><div className="pp-stage-options" role="group" aria-label="Etapa atual do lote">{portalStages.map(item => <button key={item} type="button" aria-pressed={stage === item} className={stage === item ? "selected" : ""} onClick={() => setStage(item)}><span className="pp-stage-indicator">{stage === item && <CheckCheck size={13} />}</span><span><strong>{item}</strong><small>{stageDescriptions[item]}</small></span></button>)}</div>{stage === "Pronto para retirada" && <p className="pp-ready-hint"><ClipboardCheck size={15} />Para esta etapa, as {number(order.quantity)} peças precisam estar produzidas e conferidas. Se houver defeitos, descreva abaixo.</p>}</div><div className="pp-count-help"><h3>Quantas peças foram feitas até agora?</h3><p>Informe o <strong>total do lote até este momento</strong>. Exemplo: se havia 30 e você fez mais 20, informe 50.</p></div><div className="pp-count-fields"><label><span><Scissors size={15} />Produzidas</span><input inputMode="numeric" type="number" min={0} max={order.quantity} step={1} value={produced} required onChange={e => setProduced(e.target.value)} /><small>Total produzido, de {number(order.quantity)} peças do lote.</small></label><label><span><ClipboardCheck size={15} />Conferidas</span><input inputMode="numeric" type="number" min={0} max={Math.min(order.quantity, Number(produced) || 0)} step={1} value={checked} required onChange={e => setChecked(e.target.value)} /><small>Das produzidas, quantas você já revisou.</small></label><label className="pp-defect-count"><span><TriangleAlert size={15} />Com defeito</span><input inputMode="numeric" type="number" min={0} max={Math.min(order.quantity, Number(checked) || 0)} step={1} value={defects} required onChange={e => setDefects(e.target.value)} /><small>Das conferidas, quantas precisam de correção.</small></label></div>
+      {Number(defects) > 0 && <label className="pp-defect-description">Quais defeitos foram encontrados?<textarea value={description} onChange={e => setDescription(e.target.value)} required maxLength={2000} rows={3} placeholder="Descreva o problema e as peças afetadas…" /></label>}
+      <div className="pp-form-grid"><label>Quem está informando?<div className="pp-input-icon"><UserRound size={16} /><input value={reporter} onChange={e => setReporter(e.target.value)} autoComplete="name" required maxLength={100} placeholder="Seu nome" /></div></label><label>Observação da produção <small>opcional</small><textarea value={notes} onChange={e => setNotes(e.target.value)} maxLength={4000} rows={2} placeholder="Prazo, andamento ou outro detalhe importante…" /></label></div>
+      <div className="pp-photos-title"><span>Fotos da atualização <small>opcionais</small></span><strong>{photos.length}/6</strong></div><div className="pp-draft-photos">{photos.map((photo, index) => <div key={photo.id}><img src={photo.previewUrl} alt={`Foto ${index + 1} selecionada para a atualização`} /><button type="button" aria-label={`Remover foto ${index + 1}`} onClick={() => void remove(photo)}><X size={14} /></button></div>)}{photos.length < 6 && <button type="button" className="pp-add-photo" onClick={() => inputRef.current?.click()}><ImagePlus size={22} /><strong>{preparing ? "Preparando…" : "Adicionar fotos"}</strong><span>JPG, PNG ou WebP · até 5 MB</span></button>}</div><input ref={inputRef} className="pp-file-input" type="file" accept="image/jpeg,image/png,image/webp" multiple aria-label="Escolher fotos da atualização" onChange={e => { void choose(e.target.files); e.target.value = ""; }} />
+    </fieldset>{message && <div className={`pp-feedback ${success ? "pp-feedback-success" : ""}`} role={success ? "status" : "alert"}>{success ? <CheckCheck size={18} /> : <TriangleAlert size={18} />}<p>{message}</p></div>}
+    {uncertain && <p className="pp-history-limit" role="status">Há um envio aguardando confirmação. Os mesmos dados e fotos serão verificados com segurança, sem duplicar o registro.</p>}<div className="pp-submit-row"><span><ShieldCheck size={14} />Sua atualização fica registrada com seu nome.</span><button className="pp-button pp-primary" disabled={saving || preparing} type="submit">{saving ? "Enviando…" : uncertain ? "Confirmar envio novamente" : "Enviar atualização"}<ArrowUpRight size={16} /></button></div></form>
+  </section>;
+}
+export default function PartnerPortal() {
+  const connection = useRef<GuestPortalConnection | null>(null); const [data, setData] = useState<GuestPortalState | null>(null); const [selectedId, setSelected] = useState(""); const [loading, setLoading] = useState(true); const [failure, setFailure] = useState<PortalAccessError | null>(null); const [retry, setRetry] = useState(0); const [updating, setUpdating] = useState(false); const [lastSync, setLastSync] = useState<Date | null>(null); const [urls, setUrls] = useState<Record<string, string>>({}); const [photosLoading, setPhotosLoading] = useState(false); const [viewer, setViewer] = useState<{ url: string; label: string } | null>(null);
+  const [photoWarning, setPhotoWarning] = useState(""); const [photoRetry, setPhotoRetry] = useState(0); const photoBackoff = useRef(new Map<string, number>());
+  const [visiblePhotos, setVisiblePhotos] = useState<string[]>([]); const historyRoot = useRef<HTMLElement>(null);
+  const pendingReports = useRef(new Map<string, PendingReport>()).current;
+  const selectedRef = useRef(""); const fetching = useRef<number | null>(null); const sequence = useRef(0);
+  const selected = data?.orders.find(order => order.id === selectedId) ?? data?.orders[0]; const history = selected && data ? data.updates.filter(update => update.orderId === selected.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)) : []; const last = selected && data ? latest(data.latestUpdates, selected.id) : undefined;
+  const deny = useCallback((error: PortalAccessError) => { if (error.kind === "denied") pendingReports.clear(); connection.current?.clearPhotos(); setUrls({}); setViewer(null); setData(null); setPhotoWarning(""); setFailure(error); setLoading(false); }, [pendingReports]);
+  const acceptSnapshot = useCallback((snapshot: GuestPortalState) => {
+    setData(snapshot); setFailure(null); setLastSync(new Date());
+    const id = snapshot.orders.some(order => order.id === selectedRef.current) ? selectedRef.current : snapshot.orders[0]?.id ?? "";
+    selectedRef.current = id; setSelected(id);
+  }, []);
+  const load = useCallback(async () => {
+    const api = connection.current; if (!api || fetching.current !== null) return; const current = sequence.current; fetching.current = current; setUpdating(true);
+    try { const snapshot = await api.load(); if (current !== sequence.current) return; acceptSnapshot(snapshot); }
+    catch (cause) { if (current === sequence.current) deny(cause instanceof PortalAccessError ? cause : new PortalAccessError("network", "Não foi possível carregar suas ordens agora.")); }
+    finally { if (current === sequence.current) { setLoading(false); setUpdating(false); } if (fetching.current === current) fetching.current = null; }
+  }, [deny, acceptSnapshot]);
+  useEffect(() => {
+    sequence.current += 1; fetching.current = null; setLoading(true); setFailure(null); setData(null); setUrls({}); setVisiblePhotos([]); setPhotoWarning(""); photoBackoff.current.clear(); let live = true;
+    try { const token = portalTokenFromFragment(window.location.hash); connection.current = createGuestPortalConnection(token); void load(); }
+    catch (cause) { deny(cause instanceof PortalAccessError ? cause : new PortalAccessError("configuration", "Este acesso ainda não está disponível.")); }
+    const refresh = () => { if (live && document.visibilityState === "visible") void load(); };
+    const interval = setInterval(refresh, 15_000); document.addEventListener("visibilitychange", refresh); window.addEventListener("focus", refresh);
+    return () => { live = false; sequence.current += 1; clearInterval(interval); document.removeEventListener("visibilitychange", refresh); window.removeEventListener("focus", refresh); connection.current?.dispose(); connection.current = null; };
+  }, [retry, load, deny]);
+  useEffect(() => {
+    const nodes = historyRoot.current?.querySelectorAll<HTMLElement>("[data-portal-photo]");
+    if (!nodes?.length) return;
+    const reveal = (path: string) => setVisiblePhotos(current => current.includes(path) ? current : [...current, path]);
+    if (typeof IntersectionObserver === "undefined") { nodes.forEach(node => reveal(node.dataset.portalPhoto!)); return; }
+    const observer = new IntersectionObserver(entries => { for (const entry of entries) if (entry.isIntersecting) { reveal((entry.target as HTMLElement).dataset.portalPhoto!); observer.unobserve(entry.target); } }, { rootMargin: "180px" });
+    nodes.forEach(node => observer.observe(node)); return () => observer.disconnect();
+  }, [data, selected?.id]);
+  useEffect(() => {
+    const api = connection.current; if (!api || !data || !selected || (photoBackoff.current.get(selected.id) ?? 0) > Date.now()) return;
+    let live = true; setPhotosLoading(true);
+    const recent = data.updates.filter(update => update.orderId === selected.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 20);
+    const paths = [...new Set([selected.model.image, ...recent.flatMap(update => update.photos).filter(path => visiblePhotos.includes(path))].filter((path): path is string => !!path))];
+    void loadGuestPortalPhotos(api, paths).then(result => {
+      if (!live) return;
+      setUrls(result.urls); setPhotosLoading(false);
+      if (result.unavailable && result.state) {
+        photoBackoff.current.set(selected.id, Date.now() + 15_000);
+        setPhotoWarning("As fotos não carregaram agora. Você pode continuar acompanhando o lote e enviando atualizações.");
+        setViewer(null); acceptSnapshot(result.state);
+      } else { photoBackoff.current.delete(selected.id); setPhotoWarning(""); }
+    }).catch(cause => { if (live) deny(cause instanceof PortalAccessError ? cause : new PortalAccessError("network", "Não foi possível confirmar o acesso ao portal. Tente novamente.")); }).finally(() => { if (live) setPhotosLoading(false); });
+    return () => { live = false; };
+  }, [data, selected?.id, visiblePhotos, photoRetry, deny, acceptSnapshot]);
+  useEffect(() => { if (!viewer) return; const key = (event: KeyboardEvent) => { if (event.key === "Escape") setViewer(null); }; window.addEventListener("keydown", key); return () => window.removeEventListener("keydown", key); }, [viewer]);
+  const total = data?.orders.reduce((sum, order) => sum + order.quantity, 0) ?? 0;
+  return <div className="partner-portal"><PortalHeader name={data?.partner.name} /><main className="pp-main">{loading ? <section className="pp-access-state"><span className="pp-access-icon"><Factory size={27} /></span><span className="pp-spinner" /><h1>Preparando suas produções…</h1><p>Um instante para conectar cada detalhe.</p></section> : failure ? <section className="pp-access-state"><span className="pp-access-icon"><LockKeyhole size={27} /></span><span className="pp-eyebrow">PORTAL DA CONFECÇÃO</span><h1>{failure.kind === "denied" ? "Vamos conferir seu acesso." : "Não foi possível conectar agora."}</h1><p role="alert">{failure.message}</p>{failure.kind === "network" && <button className="pp-button pp-primary" onClick={() => { fetching.current = null; setRetry(value => value + 1); }}><RefreshCw size={16} />Tentar novamente</button>}<small>Este espaço mostra apenas as produções liberadas para sua confecção.</small></section> : data && <>
+    <div className="pp-intro"><div><span className="pp-eyebrow">FEITO EM PARCERIA</span><h1>Suas produções,<br /><em>passo a passo.</em></h1><p>Olá, <strong>{data.partner.name}</strong>. Escolha um lote e conte à Moda Pink como está o trabalho.</p></div><div className="pp-connection"><span><i />Conectado à Moda Pink</span><small>{updating ? "Atualizando…" : lastSync ? `Atualizado às ${lastSync.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}</small><button onClick={() => void load()} disabled={updating}><RefreshCw size={13} />Atualizar</button></div></div>
+    <ol className="pp-quick-guide" aria-label="Como informar o andamento"><li><span>1</span><div><strong>Escolha o lote</strong><small>Encontre a produção na lista abaixo.</small></div></li><li><span>2</span><div><strong>Informe o andamento</strong><small>Marque a etapa e confira as quantidades.</small></div></li><li><span>3</span><div><strong>Envie a atualização</strong><small>Coloque seu nome e clique em enviar.</small></div></li></ol>
+    <section className="pp-summary"><article><span className="pp-summary-icon"><Scissors size={19} /></span><div><strong>{data.orders.length}</strong><span>lotes para acompanhar</span></div></article><article><span className="pp-summary-icon pp-lilac"><Layers size={19} /></span><div><strong>{number(total)}</strong><span>peças nos seus lotes</span></div></article><article><span className="pp-summary-icon pp-sage"><ClipboardCheck size={19} /></span><div><strong>{data.updates.length}</strong><span>atualizações no histórico recente</span></div></article></section>
+    {!data.orders.length ? <section className="pp-panel pp-empty"><PackageCheck size={35} /><h2>Seu próximo lote aparece aqui.</h2><p>A Moda Pink ainda não vinculou uma produção à sua confecção. Peça à equipe para liberar o lote. Ele aparecerá aqui pelo mesmo link.</p></section> : <div className="pp-workspace"><aside className="pp-order-list pp-panel"><div className="pp-list-heading"><h2>Escolha o lote</h2><span>{data.orders.length}</span></div>{data.orders.map(order => { const report = latest(data.latestUpdates, order.id); const percent = Math.round((report?.produced ?? 0) / order.quantity * 100); return <button className={`pp-order-choice ${selected?.id === order.id ? "selected" : ""}`} key={order.id} onClick={() => { selectedRef.current = order.id; setSelected(order.id); setViewer(null); setVisiblePhotos([]); setUrls({}); setPhotoWarning(""); photoBackoff.current.delete(order.id); }}><span className="pp-order-code">{order.code}<ArrowUpRight size={13} /></span><strong>{order.model.name}</strong><span className="pp-order-info">{number(order.quantity)} peças<span>Até {date(order.due)}</span></span><div className="pp-small-track"><i style={{ width: `${percent}%` }} /></div><span className="pp-order-progress">{report ? report.stage : "Aguardando sua atualização"}<b>{percent}%</b></span></button>; })}</aside>
+      {selected && connection.current && <div className="pp-content">{photoWarning && <div className="pp-photo-warning" role="status"><Camera size={18} /><p>{photoWarning}</p><button type="button" disabled={photosLoading} onClick={() => { photoBackoff.current.delete(selected.id); setPhotoRetry(value => value + 1); }}><RefreshCw size={14} />{photosLoading ? "Atualizando…" : "Recarregar fotos"}</button></div>}<section className="pp-panel pp-order-detail"><div className="pp-order-top"><span className="pp-eyebrow">{selected.code} · DETALHES DO LOTE</span><StageBadge stage={last?.stage ?? "Recebido"} /></div><div className="pp-product"><div className="pp-product-photo">{selected.model.image && urls[selected.model.image] ? <img src={urls[selected.model.image]} alt={selected.model.name} /> : <Shirt size={50} strokeWidth={1} />}</div><div><span className="pp-product-ref">{selected.model.reference}</span><h2>{selected.model.name}</h2><p><Clock3 size={14} />Prazo combinado: <strong>{date(selected.due)}</strong></p><span className="pp-official-stage">Na Moda Pink: {selected.stage}</span></div><div className="pp-order-quantity"><strong>{number(selected.quantity)}</strong><span>peças neste lote</span></div></div><div className="pp-grade"><span>Grade da produção</span><div>{selected.variants.map(variant => <span key={variant.size}><b>{variant.size}</b>{number(variant.quantity)} peças</span>)}</div></div>{last && <div className="pp-last-counts"><span><strong>{number(last.produced)}</strong>produzidas</span><span><strong>{number(last.checked)}</strong>conferidas</span><span className={last.defects > 0 ? "pp-has-defects" : ""}><strong>{number(last.defects)}</strong>com defeito</span></div>}</section>
+        <ReportForm key={selected.id} api={connection.current} order={selected} previous={last} pendingReports={pendingReports} onSaved={load} onDenied={deny} />
+        <section ref={historyRoot} className="pp-panel pp-history"><div className="pp-section-title"><span className="pp-section-icon"><History size={18} /></span><div><h2>Atualizações deste lote</h2><p>Veja o que já foi enviado à Moda Pink.</p></div>{photosLoading && <small className="pp-photos-loading">Atualizando fotos…</small>}</div>{!history.length ? <div className="pp-history-empty"><Clock3 size={24} /><p>{last ? "O último status deste lote aparece nos totais acima. Os registros anteriores não estão no histórico recente." : "A primeira atualização deste lote pode começar com você."}</p></div> : <div className="pp-history-list">{history.slice(0, 20).map(update => <article key={update.id}><span className="pp-timeline-dot" /><header><StageBadge stage={update.stage} /><time>{moment(update.createdAt)}</time></header><p className="pp-report-author">Informado por <strong>{update.reporter}</strong></p><div className="pp-history-counts"><span>{number(update.produced)} produzidas</span><span>{number(update.checked)} conferidas</span><span className={update.defects ? "pp-defect-text" : ""}>{number(update.defects)} com defeito</span></div>{update.defectDescription && <div className="pp-defect-note"><TriangleAlert size={14} /><p>{update.defectDescription}</p></div>}{update.notes && <p className="pp-history-note">{update.notes}</p>}{update.photos.length > 0 && <div className="pp-history-photos">{update.photos.map((path, index) => <span className="pp-photo-slot" data-portal-photo={path} key={path}>{urls[path] ? <button key={path} onClick={() => setViewer({ url: urls[path], label: `Foto ${index + 1} da atualização de ${update.reporter}` })}><img src={urls[path]} alt={`Foto ${index + 1} da atualização`} /><span><Camera size={12} /></span></button> : <span key={path} className="pp-photo-pending"><Camera size={20} /></span>}</span>)}</div>}</article>)}</div>}{(history.length > 20 || data.updates.length >= data.historyLimit) && <p className="pp-history-limit">Exibindo até 20 registros deste lote entre as {data.historyLimit} atualizações mais recentes da confecção. Os totais atuais do lote são preservados.</p>}</section>
+      </div>}
+    </div>}<div className="pp-care-note"><span>MP</span><div><strong>Uma parceria feita de cuidado.</strong><p>Se tiver dúvidas sobre prazo, material ou acabamento, fale com a equipe da Moda Pink.</p></div><ShieldCheck size={23} /></div>
+  </>}</main><footer className="pp-footer"><span>Moda Pink · Portal da Confecção</span><AgencyCredit label="Feito com cuidado por" /></footer>{viewer && <div className="pp-image-viewer" role="dialog" aria-modal="true" aria-label={viewer.label} onClick={() => setViewer(null)}><button autoFocus aria-label="Fechar foto" onClick={() => setViewer(null)}><X size={22} /></button><img src={viewer.url} alt={viewer.label} onClick={e => e.stopPropagation()} /><p>{viewer.label}</p></div>}</div>;
+}
