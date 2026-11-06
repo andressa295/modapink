@@ -232,6 +232,10 @@ export default function CatalogClient({
     (sum, item) => sum + item.price * item.quantity,
     0
   )
+  // Apply the discount once to the original subtotal, matching checkout rounding.
+  const cartPixTotal = Math.round((
+    cartTotal * (1 - (catalog?.settings.pixDiscountPercent ?? 0) / 100) + Number.EPSILON
+  ) * 100) / 100
   const minimum =
     catalog?.settings.minimumOrder ??
     DEFAULT_STORE_SETTINGS.minimum_order
@@ -420,13 +424,13 @@ export default function CatalogClient({
     }
   }
 
-  function productPriceLabel(item: CatalogProduct) {
+  function productPriceLabel(item: CatalogProduct, method: "pix" | "card") {
     const prices = item.variants
       .filter(variant => variant.available)
-      .map(variant => variant.price)
+      .map(variant => method === "pix" ? variant.pixPrice : variant.price)
     const hasDifferentPrices = new Set(prices).size > 1
 
-    return `Cartão: ${hasDifferentPrices ? "a partir de " : ""}${money(item.priceFrom)}`
+    return `${method === "pix" ? "Pix" : "Cartão"}: ${hasDifferentPrices ? "a partir de " : ""}${money(method === "pix" ? item.pixPriceFrom : item.priceFrom)}`
   }
 
   if (loading) {
@@ -605,12 +609,13 @@ export default function CatalogClient({
                         De: {money(item.compareAtPriceFrom)}
                       </span>
                     )}
-                    <strong>{productPriceLabel(item)}</strong>
-                    <small>
-                      {catalog.settings.pixDiscountPercent > 0
-                        ? `Pix: ${money(item.pixPriceFrom)} (${catalog.settings.pixDiscountPercent}% OFF)`
-                        : "no Pix ou cartão"}
-                    </small>
+                    <strong>{productPriceLabel(item, "pix")}</strong>
+                    <small>{productPriceLabel(item, "card")}</small>
+                    {catalog.settings.pixDiscountPercent > 0 && (
+                      <small className={styles.discountNote}>
+                        {catalog.settings.pixDiscountPercent}% de desconto já aplicado no Pix
+                      </small>
+                    )}
                   </div>
 
                   <button
@@ -644,7 +649,7 @@ export default function CatalogClient({
             <ShoppingBag size={19} />
             {itemCount} {itemCount === 1 ? "item" : "itens"}
           </span>
-          <strong>{money(cartTotal)}</strong>
+          <strong>Pix: {money(cartPixTotal)}</strong>
         </button>
       )}
 
@@ -720,12 +725,21 @@ export default function CatalogClient({
                 {selectedVariant?.compareAtPrice && (
                   <span>De: {money(selectedVariant.compareAtPrice)}</span>
                 )}
-                <strong>Cartão: {money(selectedVariant?.price || product.priceFrom)}</strong>
+                <strong>
+                  {selectedVariant
+                    ? `Pix: ${money(selectedVariant.pixPrice)}`
+                    : productPriceLabel(product, "pix")}
+                </strong>
                 <small>
-                  {catalog.settings.pixDiscountPercent > 0
-                    ? `Pix: ${money(selectedVariant?.pixPrice || product.pixPriceFrom)} (${catalog.settings.pixDiscountPercent}% OFF)`
-                    : "Pix ou cartão"}
+                  {selectedVariant
+                    ? `Cartão: ${money(selectedVariant.price)}`
+                    : productPriceLabel(product, "card")}
                 </small>
+                {catalog.settings.pixDiscountPercent > 0 && (
+                  <small className={styles.discountNote}>
+                    {catalog.settings.pixDiscountPercent}% de desconto já aplicado no Pix
+                  </small>
+                )}
               </div>
 
               {product.attributes.map((attribute, attributeIndex) => {
@@ -846,7 +860,8 @@ export default function CatalogClient({
                             ).join(" · ")}
                           </span>
                         )}
-                        <b>{money(item.price * item.quantity)}</b>
+                        <b>Pix: {money(item.pixPrice)} por peça</b>
+                        <small>Cartão: {money(item.price)} por peça</small>
 
                         <div className={styles.cartItemActions}>
                           <div className={styles.smallQuantity}>
@@ -897,10 +912,15 @@ export default function CatalogClient({
                   </div>
 
                   <div className={styles.totalRow}>
-                    <span>Total</span>
-                    <strong>{money(cartTotal)}</strong>
+                    <span>Produtos no Pix</span>
+                    <strong>{money(cartPixTotal)}</strong>
+                  </div>
+                  <div className={styles.cardTotalRow}>
+                    <span>Produtos no cartão</span>
+                    <span>{money(cartTotal)}</span>
                   </div>
                   <small>
+                    Frete não incluído. O pedido mínimo considera o valor antes do desconto no Pix.
                     Ao finalizar, sua lista completa será enviada para o WhatsApp da Moda Pink.
                   </small>
 
@@ -1011,7 +1031,10 @@ export default function CatalogClient({
 
               <div className={styles.checkoutSummary}>
                 <span>{itemCount} {itemCount === 1 ? "item" : "itens"}</span>
-                <strong>{money(cartTotal)}</strong>
+                <div className={styles.checkoutPrices}>
+                  <strong>Pix: {money(cartPixTotal)}</strong>
+                  <small>Cartão: {money(cartTotal)}</small>
+                </div>
               </div>
 
               <button type="submit" disabled={checkoutLoading}>

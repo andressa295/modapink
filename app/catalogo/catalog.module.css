@@ -375,17 +375,25 @@
 }
 
 .priceBlock strong {
-  color: #231a1e;
-  font-size: 17px;
+  color: #24734d;
+  font-size: 19px;
   font-weight: 700;
 }
 
 .priceBlock small,
 .modalPrice small {
   margin-top: 2px;
-  color: #2f8c5d;
+  color: #74646c;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.priceBlock .discountNote,
+.modalPrice .discountNote {
+  margin-top: 4px;
+  color: #24734d;
   font-size: 10px;
-  font-weight: 600;
+  line-height: 1.4;
 }
 
 .comparePrice,
@@ -574,8 +582,8 @@
 }
 
 .modalPrice strong {
-  color: #251b20;
-  font-size: 22px;
+  color: #24734d;
+  font-size: 26px;
 }
 
 .description {
@@ -809,8 +817,14 @@
 }
 
 .cartItemInfo > b {
-  color: #2b2025;
-  font-size: 13px;
+  color: #24734d;
+  font-size: 15px;
+}
+
+.cartItemInfo > small {
+  margin: 3px 0 10px;
+  color: #74646c;
+  font-size: 11px;
 }
 
 .cartItemActions {
@@ -901,8 +915,17 @@
 }
 
 .totalRow strong {
-  color: #2a2025;
-  font-size: 20px;
+  color: #24734d;
+  font-size: 22px;
+}
+
+.cardTotalRow {
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: #74646c;
+  font-size: 12px;
 }
 
 .drawerFooter > small {
@@ -1065,8 +1088,20 @@
 }
 
 .checkoutSummary strong {
-  color: #31242a;
-  font-size: 16px;
+  color: #24734d;
+  font-size: 18px;
+}
+
+.checkoutPrices {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+
+.checkoutPrices small {
+  color: #74646c;
+  font-size: 11px;
 }
 
 .checkoutForm > button {
@@ -1235,11 +1270,15 @@
   }
 
   .priceBlock strong {
-    font-size: 14px;
+    font-size: 17px;
   }
 
   .priceBlock small {
-    font-size: 8px;
+    font-size: 11px;
+  }
+
+  .priceBlock .discountNote {
+    font-size: 9px;
   }
 
   .chooseButton {
